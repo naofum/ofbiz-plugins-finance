@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://ofbiz.apache.org/dtds/services.xsd">
+    <description>Finance - STEP 3 Services (Accounting, Billing, Payment)</description>
+    <vendor>OFBiz Finance</vendor>
+    <version>1.0</version>
+
+    <!-- ============================================================= -->
+    <!-- Monthly interest accrual (Java)                               -->
+    <!-- ============================================================= -->
+    <service name="runMonthlyInterestAccrual" engine="java"
+            location="org.apache.ofbiz.finance.accounting.FinanceAccountingServices" invoke="runMonthlyInterestAccrual" auth="true">
+        <description>Compute and record monthly interest accrual for a loan agreement</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="accrualDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="loanAccrualId" type="String" mode="OUT" optional="true"/>
+        <attribute name="acctgTransId" type="String" mode="OUT" optional="true"/>
+        <attribute name="accrualCreated" type="Boolean" mode="OUT" optional="true"/>
+        <attribute name="interestAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="outstandingPrincipal" type="BigDecimal" mode="OUT" optional="true"/>
+    </service>
+
+    <service name="runMonthlyInterestAccrualInternal" engine="java" export="false"
+            location="org.apache.ofbiz.finance.accounting.FinanceAccountingServices" invoke="runMonthlyInterestAccrual" auth="true">
+        <description>Internal monthly interest accrual used by billing and batch wrappers</description>
+        <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="accrualDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="loanAccrualId" type="String" mode="OUT" optional="true"/>
+        <attribute name="acctgTransId" type="String" mode="OUT" optional="true"/>
+        <attribute name="accrualCreated" type="Boolean" mode="OUT" optional="true"/>
+        <attribute name="interestAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="outstandingPrincipal" type="BigDecimal" mode="OUT" optional="true"/>
+    </service>
+
+    <service name="runLoanMonthlyAccountingBatch" engine="java"
+            location="org.apache.ofbiz.finance.accounting.FinanceAccountingServices" invoke="runLoanMonthlyAccountingBatch" auth="true">
+        <description>Accrue interest and create all installment invoices due through the processing date for active loans</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="processingDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="loanAgreementId" type="String" mode="IN" optional="true"/>
+        <attribute name="processedAgreementCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="createdAccrualCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="createdInvoiceCount" type="Long" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- Installment billing - create Invoice (Java)                   -->
+    <!-- ============================================================= -->
+    <service name="createLoanInstallmentInvoice" engine="java"
+            location="org.apache.ofbiz.finance.accounting.FinanceAccountingServices" invoke="createLoanInstallmentInvoice" auth="true">
+        <description>Bill one repayment installment by creating an Invoice (principal + interest)</description>
+        <permission-service service-name="financeBillingPermission" main-action="CREATE"/>
+        <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="installmentNumber" type="Long" mode="IN" optional="false"/>
+        <attribute name="invoiceId" type="String" mode="OUT" optional="true"/>
+        <attribute name="billedAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="invoiceCreated" type="Boolean" mode="OUT" optional="true"/>
+    </service>
+
+    <service name="createLoanInstallmentInvoiceInternal" engine="java" export="false"
+            location="org.apache.ofbiz.finance.accounting.FinanceAccountingServices" invoke="createLoanInstallmentInvoice" auth="true">
+        <description>Internal installment billing used by the monthly accounting batch</description>
+        <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="installmentNumber" type="Long" mode="IN" optional="false"/>
+        <attribute name="invoiceId" type="String" mode="OUT" optional="true"/>
+        <attribute name="billedAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="invoiceCreated" type="Boolean" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- Payment receipt / settlement (Java)                           -->
+    <!-- ============================================================= -->
+    <service name="receiveLoanPayment" engine="java"
+            location="org.apache.ofbiz.finance.accounting.FinanceAccountingServices" invoke="receiveLoanPayment" auth="true">
+        <description>Receive a loan payment and apply it to an installment invoice</description>
+        <permission-service service-name="financePaymentPermission" main-action="CREATE"/>
+        <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="invoiceId" type="String" mode="IN" optional="true"/>
+        <attribute name="amount" type="BigDecimal" mode="IN" optional="false"/>
+        <attribute name="paymentMethodTypeId" type="String" mode="IN" optional="true"><description>defaults to EFT_ACCOUNT</description></attribute>
+        <attribute name="effectiveDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="paymentId" type="String" mode="OUT" optional="true"/>
+        <attribute name="loanPaymentReceiptId" type="String" mode="OUT" optional="true"/>
+    </service>
+
+</services>

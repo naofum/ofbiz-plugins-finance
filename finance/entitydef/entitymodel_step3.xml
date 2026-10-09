@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<entitymodel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://ofbiz.apache.org/dtds/entitymodel.xsd">
+    <title>Finance Component Entity Model - STEP 3 (Accounting, Billing, Payment)</title>
+    <description>
+        Links loan repayment installments to accounting Invoices, and records monthly
+        interest accruals. Reuses core Invoice / Payment / PaymentApplication for billing
+        and settlement.
+    </description>
+    <version>1.0</version>
+
+    <!-- ========================================================= -->
+    <!-- LoanInstallmentInvoice: links a repayment installment      -->
+    <!-- to a core Invoice (billing).                               -->
+    <!-- ========================================================= -->
+    <entity entity-name="LoanInstallmentInvoice" package-name="org.apache.ofbiz.finance.billing"
+            title="Loan Installment to Invoice link">
+        <field name="loanAgreementId" type="id"></field>
+        <field name="installmentNumber" type="numeric"></field>
+        <field name="invoiceId" type="id"><description>FK to core Invoice</description></field>
+        <field name="loanQuoteId" type="id"><description>the quote whose schedule this installment belongs to</description></field>
+        <field name="dueDate" type="date-time"></field>
+        <field name="principalAmount" type="currency-amount"></field>
+        <field name="interestAmount" type="currency-amount"></field>
+        <field name="accruedInterestAppliedAmount" col-name="ACCR_INT_APPLIED_AMT" type="currency-amount"><description>interest transferred from previously accrued interest receivable</description></field>
+        <field name="billedAmount" type="currency-amount"><description>total billed for this installment</description></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="loanAgreementId"/>
+        <prim-key field="installmentNumber"/>
+        <relation type="one" fk-name="LOANII_AGR" rel-entity-name="LoanAgreement">
+            <key-map field-name="loanAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LOANII_INV" rel-entity-name="Invoice">
+            <key-map field-name="invoiceId"/>
+        </relation>
+        <relation type="one" fk-name="LOANII_QT" rel-entity-name="LoanQuote">
+            <key-map field-name="loanQuoteId"/>
+        </relation>
+        <index name="LOANII_INV_UQ" unique="true">
+            <index-field name="invoiceId"/>
+        </index>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- LoanAccrual: a monthly interest accrual record for an      -->
+    <!-- agreement (accrued/receivable interest recognition).       -->
+    <!-- ========================================================= -->
+    <entity entity-name="LoanAccrual" package-name="org.apache.ofbiz.finance.accounting"
+            title="Loan Interest Accrual">
+        <field name="loanAccrualId" type="id"><description>primary sequenced ID</description></field>
+        <field name="loanAgreementId" type="id"></field>
+        <field name="accrualDate" type="date-time"><description>the accounting date of this accrual</description></field>
+        <field name="fromDate" type="date-time"><description>period start</description></field>
+        <field name="thruDate" type="date-time"><description>period end</description></field>
+        <field name="outstandingPrincipal" type="currency-amount"><description>principal balance the interest was computed on</description></field>
+        <field name="interestAmount" type="currency-amount"><description>accrued interest for the period</description></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="acctgTransId" type="id"><description>optional link to a posted AcctgTrans (GL)</description></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="loanAccrualId"/>
+        <relation type="one" fk-name="LOANACR_AGR" rel-entity-name="LoanAgreement">
+            <key-map field-name="loanAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LOANACR_UOM" rel-entity-name="Uom">
+            <key-map field-name="currencyUomId" rel-field-name="uomId"/>
+        </relation>
+        <relation type="one" fk-name="LOANACR_ATX" rel-entity-name="AcctgTrans">
+            <key-map field-name="acctgTransId"/>
+        </relation>
+        <index name="LOANACR_MONTH_UQ" unique="true">
+            <index-field name="loanAgreementId"/>
+            <index-field name="fromDate"/>
+        </index>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- LoanPaymentReceipt: a received payment applied to a loan   -->
+    <!-- (links to core Payment).                                   -->
+    <!-- ========================================================= -->
+    <entity entity-name="LoanPaymentReceipt" package-name="org.apache.ofbiz.finance.payment"
+            title="Loan Payment Receipt">
+        <field name="loanPaymentReceiptId" type="id"></field>
+        <field name="loanAgreementId" type="id"></field>
+        <field name="paymentId" type="id"><description>FK to core Payment</description></field>
+        <field name="invoiceId" type="id"><description>the installment invoice settled, if any</description></field>
+        <field name="amount" type="currency-amount"></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="receiptDate" type="date-time"></field>
+        <prim-key field="loanPaymentReceiptId"/>
+        <relation type="one" fk-name="LOANPR_AGR" rel-entity-name="LoanAgreement">
+            <key-map field-name="loanAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LOANPR_PAY" rel-entity-name="Payment">
+            <key-map field-name="paymentId"/>
+        </relation>
+        <relation type="one" fk-name="LOANPR_INV" rel-entity-name="Invoice">
+            <key-map field-name="invoiceId"/>
+        </relation>
+        <index name="LOANPR_PAY_UQ" unique="true">
+            <index-field name="paymentId"/>
+        </index>
+    </entity>
+
+</entitymodel>

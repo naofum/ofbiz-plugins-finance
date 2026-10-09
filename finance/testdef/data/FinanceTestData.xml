@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<entity-engine-xml>
+    <!-- Borrower party (person) -->
+    <Party partyId="TEST_BORROWER1" partyTypeId="PERSON"/>
+    <Person partyId="TEST_BORROWER1" firstName="Test" lastName="Borrower"/>
+
+    <!-- Lender organization reuses the standard demo Company (loaded by base seed/demo). -->
+
+    <!-- A loan product: core Product + FinancialProduct (method B) -->
+    <Product productId="TEST_LOANPROD1" productTypeId="SERVICE" internalName="Test Personal Loan" productName="Test Personal Loan"/>
+    <FinancialProduct productId="TEST_LOANPROD1" financialProductTypeId="PERSONAL_UNSECURED"
+            currencyUomId="USD" minPrincipalAmount="10000" maxPrincipalAmount="1000000"
+            minTermMonths="1" maxTermMonths="60" defaultAnnualInterestRate="0.150000" requiresCollateral="N"/>
+
+    <!-- A received loan application used by the lifecycle tests -->
+    <LoanApplication loanApplicationId="TEST_LOANAPP1" productId="TEST_LOANPROD1"
+            applicantPartyId="TEST_BORROWER1" statusId="LOANAPP_RECEIVED" currencyUomId="USD"
+            requestedPrincipalAmount="120000" requestedTermMonths="12"
+            purpose="Quote and underwriting tests"/>
+    <LoanApplication loanApplicationId="TEST_LOANAPP_AGR" productId="TEST_LOANPROD1"
+            applicantPartyId="TEST_BORROWER1" statusId="LOANAPP_RECEIVED" currencyUomId="USD"
+            requestedPrincipalAmount="100000" requestedTermMonths="10"
+            purpose="Agreement confirmation test"/>
+    <LoanApplication loanApplicationId="TEST_LOANAPP_BILL" productId="TEST_LOANPROD1"
+            applicantPartyId="TEST_BORROWER1" statusId="LOANAPP_RECEIVED" currencyUomId="USD"
+            requestedPrincipalAmount="60000" requestedTermMonths="6"
+            purpose="Billing from confirmed schedule test"/>
+    <LoanApplication loanApplicationId="TEST_LOANAPP_ACCRUAL" productId="TEST_LOANPROD1"
+            applicantPartyId="TEST_BORROWER1" statusId="LOANAPP_RECEIVED" currencyUomId="USD"
+            requestedPrincipalAmount="36000" requestedTermMonths="6"
+            purpose="Monthly accrual and recurring billing test"/>
+</entity-engine-xml>

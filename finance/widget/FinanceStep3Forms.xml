@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://ofbiz.apache.org/Widget-Form" xsi:schemaLocation="http://ofbiz.apache.org/Widget-Form http://ofbiz.apache.org/dtds/widget-form.xsd">
+
+    <!-- Agreement list -->
+    <form name="RunLoanMonthlyAccountingBatch" type="single" target="runLoanMonthlyAccountingBatch">
+        <field name="processingDate" title="${uiLabelMap.FinanceProcessingDate}"><date-time type="date"/></field>
+        <field name="runButton" title="${uiLabelMap.FinanceRunMonthlyBatch}"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListLoanAgreements" list-name="agreements" default-entity-name="LoanAgreement" paginate="false">
+        <actions>
+            <entity-condition entity-name="LoanAgreement">
+                <order-by field-name="agreementDate"/>
+            </entity-condition>
+        </actions>
+        <field name="loanAgreementId" title="${uiLabelMap.FinanceLoanAgreement}" widget-style="buttontext">
+            <hyperlink description="${loanAgreementId}" target="ManageLoanAgreement" also-hidden="false">
+                <parameter param-name="loanAgreementId"/>
+            </hyperlink>
+        </field>
+        <field name="borrowerPartyId" title="${uiLabelMap.FinanceApplicantPartyId}"><display/></field>
+        <field name="principalAmount" title="${uiLabelMap.FinanceRequestedPrincipalAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="annualInterestRate" title="${uiLabelMap.FinanceAnnualInterestRate}">
+            <display description="${annualInterestRate * 100}%"/>
+        </field>
+        <field name="termMonths" title="${uiLabelMap.FinanceRequestedTermMonths}"><display/></field>
+        <field name="finAccountId" title="${uiLabelMap.FinanceFinAccountId}"><display/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem"/></field>
+    </grid>
+
+    <!-- Agreement header -->
+    <form name="ViewLoanAgreementHeader" type="single" default-entity-name="LoanAgreement">
+        <auto-fields-entity entity-name="LoanAgreement" default-field-type="display"/>
+    </form>
+
+    <!-- Run monthly interest accrual -->
+    <form name="RunAccrual" type="single" target="runMonthlyInterestAccrual" default-entity-name="LoanAccrual">
+        <field name="loanAgreementId"><hidden/></field>
+        <field name="accrualDate" title="${uiLabelMap.FinanceApplicationDate}"><date-time type="date"/></field>
+        <field name="runButton" title="${uiLabelMap.FinanceRunAccrual}"><submit button-type="button"/></field>
+    </form>
+
+    <!-- Create installment invoice -->
+    <form name="CreateInstallmentInvoice" type="single" target="createLoanInstallmentInvoice">
+        <field name="loanAgreementId"><hidden/></field>
+        <field name="installmentNumber" title="${uiLabelMap.FinanceInstallmentNumber}"><text size="6"/></field>
+        <field name="createButton" title="${uiLabelMap.FinanceCreateInvoice}"><submit button-type="button"/></field>
+    </form>
+
+    <!-- Receive payment -->
+    <form name="ReceiveLoanPayment" type="single" target="receiveLoanPayment">
+        <field name="loanAgreementId"><hidden/></field>
+        <field name="invoiceId" title="${uiLabelMap.FinanceInvoiceId}"><text size="20"/></field>
+        <field name="amount" title="${uiLabelMap.FinanceAmount}"><text size="20"/></field>
+        <field name="effectiveDate" title="${uiLabelMap.FinanceApplicationDate}"><date-time type="date"/></field>
+        <field name="receiveButton" title="${uiLabelMap.FinanceReceivePayment}"><submit button-type="button"/></field>
+    </form>
+
+    <!-- Installment invoices for an agreement -->
+    <grid name="ListInstallmentInvoices" list-name="installmentInvoices" default-entity-name="LoanInstallmentInvoice" paginate="false">
+        <actions>
+            <entity-condition entity-name="LoanInstallmentInvoice">
+                <condition-expr field-name="loanAgreementId" from-field="loanAgreementId"/>
+                <order-by field-name="installmentNumber"/>
+            </entity-condition>
+        </actions>
+        <field name="installmentNumber" title="${uiLabelMap.FinanceInstallmentNumber}"><display/></field>
+        <field name="invoiceId" title="${uiLabelMap.FinanceInvoiceId}"><display/></field>
+        <field name="dueDate" title="${uiLabelMap.FinanceDueDate}"><display type="date"/></field>
+        <field name="principalAmount" title="${uiLabelMap.FinancePrincipalPortion}"><display/></field>
+        <field name="interestAmount" title="${uiLabelMap.FinanceInterestPortion}"><display/></field>
+        <field name="billedAmount" title="${uiLabelMap.FinanceAmount}"><display/></field>
+    </grid>
+
+    <!-- Accruals for an agreement -->
+    <grid name="ListLoanAccruals" list-name="accruals" default-entity-name="LoanAccrual" paginate="false">
+        <actions>
+            <entity-condition entity-name="LoanAccrual">
+                <condition-expr field-name="loanAgreementId" from-field="loanAgreementId"/>
+                <order-by field-name="accrualDate"/>
+            </entity-condition>
+        </actions>
+        <field name="accrualDate" title="${uiLabelMap.FinanceApplicationDate}"><display type="date"/></field>
+        <field name="outstandingPrincipal" title="${uiLabelMap.FinanceRemainingBalance}"><display/></field>
+        <field name="interestAmount" title="${uiLabelMap.FinanceInterestPortion}"><display/></field>
+        <field name="acctgTransId" title="${uiLabelMap.FinanceAcctgTransId}"><display/></field>
+    </grid>
+
+    <!-- Payment receipts for an agreement -->
+    <grid name="ListLoanPaymentReceipts" list-name="receipts" default-entity-name="LoanPaymentReceipt" paginate="false">
+        <actions>
+            <entity-condition entity-name="LoanPaymentReceipt">
+                <condition-expr field-name="loanAgreementId" from-field="loanAgreementId"/>
+                <order-by field-name="receiptDate"/>
+            </entity-condition>
+        </actions>
+        <field name="receiptDate" title="${uiLabelMap.FinanceApplicationDate}"><display type="date"/></field>
+        <field name="paymentId" title="${uiLabelMap.FinanceReceivePayment}"><display/></field>
+        <field name="invoiceId" title="${uiLabelMap.FinanceInvoiceId}"><display/></field>
+        <field name="amount" title="${uiLabelMap.FinanceAmount}"><display/></field>
+    </grid>
+
+</forms>

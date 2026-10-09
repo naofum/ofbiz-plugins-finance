@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+
+    Demo data for the finance plugin: a sample borrower, a loan product
+    (core Product + FinancialProduct, method B) and a received loan
+    application. Enough to exercise the quote / schedule / PDF flow in a UI.
+    Depends on finance seed (FinancialProductType PERSONAL_UNSECURED) and the
+    standard currency Uom (JPY).
+-->
+<entity-engine-xml>
+    <!-- Borrower party (person) -->
+    <Party partyId="DEMO_BORROWER1" partyTypeId="PERSON"/>
+    <Person partyId="DEMO_BORROWER1" firstName="花子" lastName="融資"/>
+
+    <!-- A loan product: core Product + FinancialProduct (method B) -->
+    <Product productId="DEMO_LOANPROD1" productTypeId="SERVICE"
+            internalName="Demo Personal Loan" productName="個人向け無担保ローン（デモ）"/>
+    <FinancialProduct productId="DEMO_LOANPROD1" financialProductTypeId="PERSONAL_UNSECURED"
+            currencyUomId="JPY" minPrincipalAmount="10000" maxPrincipalAmount="1000000"
+            minTermMonths="1" maxTermMonths="60" defaultAnnualInterestRate="0.150000" requiresCollateral="N"/>
+
+    <!-- A received loan application ready for quoting -->
+    <LoanApplication loanApplicationId="DEMO_LOANAPP1" productId="DEMO_LOANPROD1"
+            applicantPartyId="DEMO_BORROWER1" statusId="LOANAPP_RECEIVED" currencyUomId="JPY"
+            requestedPrincipalAmount="300000" requestedTermMonths="12"
+            purpose="Demo application for loan quote PDF"/>
+</entity-engine-xml>

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<screens xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://ofbiz.apache.org/Widget-Screen" xsi:schemaLocation="http://ofbiz.apache.org/Widget-Screen http://ofbiz.apache.org/dtds/widget-screen.xsd">
+
+    <!-- Quote + underwriting management for a loan application -->
+    <screen name="ManageLoanApplication">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceLoanApplication"/>
+                <set field="headerItem" value="LoanApplications"/>
+                <set field="loanApplicationId" from-field="parameters.loanApplicationId"/>
+                <entity-one entity-name="LoanApplication" value-field="loanApplication"/>
+                <set field="uwTarget" value="updateLoanUnderwriting"/>
+                <entity-condition entity-name="LoanUnderwriting" list="uwList">
+                    <condition-expr field-name="loanApplicationId" from-field="loanApplicationId"/>
+                    <order-by field-name="reviewDate"/>
+                </entity-condition>
+                <set field="loanUnderwriting" from-field="uwList[0]"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <section>
+                            <condition><not><if-empty field="loanApplication"/></not></condition>
+                            <widgets>
+                                <include-menu name="LoanApplicationTabBar" location="component://finance/widget/FinanceMenus.xml"/>
+
+                                <screenlet title="${uiLabelMap.FinanceGenerateQuote}">
+                                    <include-form name="GenerateLoanQuote" location="component://finance/widget/FinanceStep2Forms.xml"/>
+                                </screenlet>
+
+                                <screenlet title="${uiLabelMap.FinanceLoanQuotes}">
+                                    <include-grid name="ListLoanQuotes" location="component://finance/widget/FinanceStep2Forms.xml"/>
+                                </screenlet>
+
+                                <screenlet title="${uiLabelMap.FinanceLoanUnderwriting}">
+                                    <include-form name="EditLoanUnderwriting" location="component://finance/widget/FinanceStep2Forms.xml"/>
+                                </screenlet>
+                            </widgets>
+                            <fail-widgets>
+                                <label text="${uiLabelMap.FinanceLoanApplicationNotFound}"/>
+                            </fail-widgets>
+                        </section>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+
+    <!-- View a quote and its repayment schedule -->
+    <screen name="ViewLoanQuote">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceLoanQuote"/>
+                <set field="headerItem" value="LoanApplications"/>
+                <set field="loanQuoteId" from-field="parameters.loanQuoteId"/>
+                <entity-one entity-name="LoanQuote" value-field="loanQuote"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <section>
+                            <condition><not><if-empty field="loanQuote"/></not></condition>
+                            <widgets>
+                                <container style="button-bar">
+                                    <link target="PrintLoanQuote.pdf" text="${uiLabelMap.FinancePrintLoanQuotePdf}" style="buttontext pdf">
+                                        <parameter param-name="loanQuoteId" from-field="loanQuote.loanQuoteId"/>
+                                    </link>
+                                </container>
+                                <screenlet title="${uiLabelMap.FinanceLoanQuote}">
+                                    <include-form name="ViewLoanQuoteHeader" location="component://finance/widget/FinanceStep2Forms.xml"/>
+                                </screenlet>
+                                <screenlet title="${uiLabelMap.FinanceRepaymentSchedule}">
+                                    <include-grid name="ListRepaymentSchedule" location="component://finance/widget/FinanceStep2Forms.xml"/>
+                                </screenlet>
+                            </widgets>
+                            <fail-widgets>
+                                <label text="${uiLabelMap.FinanceLoanQuoteNotFound}"/>
+                            </fail-widgets>
+                        </section>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+
+</screens>

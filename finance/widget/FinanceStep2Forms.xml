@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://ofbiz.apache.org/Widget-Form" xsi:schemaLocation="http://ofbiz.apache.org/Widget-Form http://ofbiz.apache.org/dtds/widget-form.xsd">
+
+    <!-- Generate a quote for an application -->
+    <form name="GenerateLoanQuote" type="single" target="createLoanQuote" default-entity-name="LoanQuote">
+        <field name="loanApplicationId"><hidden/></field>
+        <field name="principalAmount" title="${uiLabelMap.FinanceRequestedPrincipalAmount}"><text size="20"/></field>
+        <field name="annualInterestRate" title="${uiLabelMap.FinanceAnnualInterestRatePercent}"><text size="10"/></field>
+        <field name="termMonths" title="${uiLabelMap.FinanceRequestedTermMonths}"><text size="10"/></field>
+        <field name="repaymentMethodEnumId" title="${uiLabelMap.FinanceRepaymentMethod}">
+            <drop-down allow-empty="false">
+                <entity-options key-field-name="enumId" description="${description}" entity-name="Enumeration">
+                    <entity-constraint name="enumTypeId" value="LOAN_REPAY_METHOD"/>
+                    <entity-order-by field-name="sequenceId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="firstPaymentDate" title="${uiLabelMap.FinanceDueDate}"><date-time type="date"/></field>
+        <field name="generateButton" title="${uiLabelMap.FinanceGenerateQuote}"><submit button-type="button"/></field>
+    </form>
+
+    <!-- Quotes for an application -->
+    <grid name="ListLoanQuotes" list-name="quotes" default-entity-name="LoanQuote" paginate="false">
+        <actions>
+            <entity-condition entity-name="LoanQuote">
+                <condition-expr field-name="loanApplicationId" from-field="loanApplicationId"/>
+                <order-by field-name="createdDate"/>
+            </entity-condition>
+        </actions>
+        <field name="loanQuoteId" title="${uiLabelMap.FinanceLoanQuote}" widget-style="buttontext">
+            <hyperlink description="${loanQuoteId}" target="ViewLoanQuote" also-hidden="false">
+                <parameter param-name="loanQuoteId"/>
+            </hyperlink>
+        </field>
+        <field name="principalAmount" title="${uiLabelMap.FinanceRequestedPrincipalAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="annualInterestRate" title="${uiLabelMap.FinanceAnnualInterestRate}">
+            <display description="${annualInterestRate * 100}%"/>
+        </field>
+        <field name="termMonths" title="${uiLabelMap.FinanceRequestedTermMonths}"><display/></field>
+        <field name="monthlyPaymentAmount" title="${uiLabelMap.FinanceMonthlyPayment}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="totalPaymentAmount" title="${uiLabelMap.FinanceTotalPayment}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem"/></field>
+        <field name="presentQuoteLink" title=" " widget-style="buttontext" use-when="${statusId == 'LOANQT_CREATED'}">
+            <hyperlink description="${uiLabelMap.FinancePresentQuote}" target="setLoanQuoteStatus" also-hidden="false">
+                <parameter param-name="loanQuoteId"/>
+                <parameter param-name="loanApplicationId"/>
+                <parameter param-name="statusId" value="LOANQT_PRESENTED"/>
+            </hyperlink>
+        </field>
+        <field name="acceptQuoteLink" title=" " widget-style="buttontext" use-when="${statusId == 'LOANQT_PRESENTED'}">
+            <hyperlink description="${uiLabelMap.FinanceAcceptQuote}" target="setLoanQuoteStatus" also-hidden="false">
+                <parameter param-name="loanQuoteId"/>
+                <parameter param-name="loanApplicationId"/>
+                <parameter param-name="statusId" value="LOANQT_ACCEPTED"/>
+            </hyperlink>
+        </field>
+        <field name="rejectQuoteLink" title=" " widget-style="buttontext" use-when="${statusId == 'LOANQT_PRESENTED'}">
+            <hyperlink description="${uiLabelMap.FinanceRejectQuote}" target="setLoanQuoteStatus" also-hidden="false">
+                <parameter param-name="loanQuoteId"/>
+                <parameter param-name="loanApplicationId"/>
+                <parameter param-name="statusId" value="LOANQT_REJECTED"/>
+            </hyperlink>
+        </field>
+        <field name="createAgreementLink" title=" " widget-style="buttontext" use-when="${statusId == 'LOANQT_ACCEPTED'}">
+            <hyperlink description="${uiLabelMap.FinanceCreateAgreement}" target="createLoanAgreement" also-hidden="false"
+                    confirmation-message="${uiLabelMap.FinanceCreateAgreementConfirm}">
+                <parameter param-name="loanQuoteId"/>
+                <parameter param-name="loanApplicationId"/>
+            </hyperlink>
+        </field>
+    </grid>
+
+    <!-- Repayment schedule for a quote -->
+    <grid name="ListRepaymentSchedule" list-name="scheduleList" default-entity-name="LoanRepaymentSchedule" paginate="false">
+        <actions>
+            <entity-condition entity-name="LoanRepaymentSchedule">
+                <condition-expr field-name="loanQuoteId" from-field="loanQuoteId"/>
+                <order-by field-name="installmentNumber"/>
+            </entity-condition>
+        </actions>
+        <field name="installmentNumber" title="${uiLabelMap.FinanceInstallmentNumber}"><display/></field>
+        <field name="dueDate" title="${uiLabelMap.FinanceDueDate}"><display type="date"/></field>
+        <field name="paymentAmount" title="${uiLabelMap.FinanceMonthlyPayment}"><display/></field>
+        <field name="principalAmount" title="${uiLabelMap.FinancePrincipalPortion}"><display/></field>
+        <field name="interestAmount" title="${uiLabelMap.FinanceInterestPortion}"><display/></field>
+        <field name="remainingBalance" title="${uiLabelMap.FinanceRemainingBalance}"><display/></field>
+    </grid>
+
+    <!-- Underwriting edit/create -->
+    <form name="EditLoanUnderwriting" type="single" target="${uwTarget}" default-entity-name="LoanUnderwriting">
+        <alt-target use-when="loanUnderwriting==null" target="createLoanUnderwriting"/>
+        <field use-when="loanUnderwriting!=null" name="loanUnderwritingId"><display/></field>
+        <field name="loanApplicationId"><hidden/></field>
+        <field use-when="loanUnderwriting==null" name="statusId"><hidden value="LOANUW_IN_REVIEW"/></field>
+        <field use-when="loanUnderwriting!=null" name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem"/></field>
+        <field name="creditScore" title="${uiLabelMap.FinanceCreditScore}"><text size="10"/></field>
+        <field use-when="loanUnderwriting==null" name="decision"><hidden value="PENDING"/></field>
+        <field use-when="loanUnderwriting!=null" name="decision" title="${uiLabelMap.FinanceDecision}"><display/></field>
+        <field name="approvedPrincipalAmount" title="${uiLabelMap.FinanceRequestedPrincipalAmount}"><text size="20"/></field>
+        <field name="approvedAnnualInterestRate" title="${uiLabelMap.FinanceApprovedAnnualInterestRatePercent}"><text size="10"/></field>
+        <field name="comments" title="${uiLabelMap.FinancePurpose}"><textarea cols="60" rows="3"/></field>
+        <field name="submitButton" title="${uiLabelMap.CommonSubmit}"><submit button-type="button"/></field>
+        <field name="approveUnderwritingLink" title=" " widget-style="buttontext"
+                use-when="${loanUnderwriting != null &amp;&amp; loanUnderwriting.statusId == 'LOANUW_IN_REVIEW'}">
+            <hyperlink description="${uiLabelMap.FinanceApproveUnderwriting}" target="setLoanUnderwritingStatus" also-hidden="false">
+                <parameter param-name="loanUnderwritingId" from-field="loanUnderwriting.loanUnderwritingId"/>
+                <parameter param-name="loanApplicationId"/>
+                <parameter param-name="statusId" value="LOANUW_APPROVED"/>
+            </hyperlink>
+        </field>
+        <field name="rejectUnderwritingLink" title=" " widget-style="buttontext"
+                use-when="${loanUnderwriting != null &amp;&amp; loanUnderwriting.statusId == 'LOANUW_IN_REVIEW'}">
+            <hyperlink description="${uiLabelMap.FinanceRejectUnderwriting}" target="setLoanUnderwritingStatus" also-hidden="false">
+                <parameter param-name="loanUnderwritingId" from-field="loanUnderwriting.loanUnderwritingId"/>
+                <parameter param-name="loanApplicationId"/>
+                <parameter param-name="statusId" value="LOANUW_REJECTED"/>
+            </hyperlink>
+        </field>
+    </form>
+
+    <!-- Quote header view -->
+    <form name="ViewLoanQuoteHeader" type="single" default-entity-name="LoanQuote" default-map-name="loanQuote">
+        <auto-fields-entity entity-name="LoanQuote" default-field-type="display"/>
+        <!-- Override auto-generated field titles with localized labels. -->
+        <field name="loanQuoteId" title="${uiLabelMap.FinanceLoanQuoteId}"><display/></field>
+        <field name="loanApplicationId" title="${uiLabelMap.FinanceLoanApplicationId}"><display/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display/></field>
+        <field name="currencyUomId" title="${uiLabelMap.FinanceCurrencyUomId}"><display/></field>
+        <field name="principalAmount" title="${uiLabelMap.FinancePrincipalAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="annualInterestRate" title="${uiLabelMap.FinanceAnnualInterestRate}">
+            <display description="${loanQuote.annualInterestRate * 100}%"/>
+        </field>
+        <field name="termMonths" title="${uiLabelMap.FinanceTermMonths}"><display/></field>
+        <field name="repaymentMethodEnumId" title="${uiLabelMap.FinanceRepaymentMethod}"><display/></field>
+        <field name="monthlyPaymentAmount" title="${uiLabelMap.FinanceMonthlyPaymentAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="totalPaymentAmount" title="${uiLabelMap.FinanceTotalPaymentAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="totalInterestAmount" title="${uiLabelMap.FinanceTotalInterestAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="firstPaymentDate" title="${uiLabelMap.FinanceFirstPaymentDate}"><display/></field>
+        <field name="createdDate" title="${uiLabelMap.FinanceCreatedDate}"><display/></field>
+    </form>
+
+</forms>

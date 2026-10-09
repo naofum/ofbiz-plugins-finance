@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<resource xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://ofbiz.apache.org/dtds/ofbiz-properties.xsd">
+    <property key="FinanceApplication">
+        <value xml:lang="en">Finance</value>
+        <value xml:lang="ja">ファイナンス</value>
+    </property>
+    <property key="FinanceCompanyName">
+        <value xml:lang="en">OFBiz Finance</value>
+        <value xml:lang="ja">OFBiz ファイナンス</value>
+    </property>
+    <property key="FinanceCompanySubtitle">
+        <value xml:lang="en">Loan Services</value>
+        <value xml:lang="ja">ローンサービス</value>
+    </property>
+    <property key="FinanceLoanApplication">
+        <value xml:lang="en">Loan Application</value>
+        <value xml:lang="ja">ローン申込</value>
+    </property>
+    <property key="FinanceLoanApplications">
+        <value xml:lang="en">Loan Applications</value>
+        <value xml:lang="ja">ローン申込一覧</value>
+    </property>
+    <property key="FinanceFindLoanApplications">
+        <value xml:lang="en">Find Loan Applications</value>
+        <value xml:lang="ja">ローン申込検索</value>
+    </property>
+    <property key="FinanceNewLoanApplication">
+        <value xml:lang="en">New Loan Application</value>
+        <value xml:lang="ja">新規ローン申込</value>
+    </property>
+    <property key="FinanceEditLoanApplication">
+        <value xml:lang="en">Edit Loan Application</value>
+        <value xml:lang="ja">ローン申込編集</value>
+    </property>
+    <property key="FinanceLoanApplicationId">
+        <value xml:lang="en">Loan Application ID</value>
+        <value xml:lang="ja">ローン申込ID</value>
+    </property>
+    <property key="FinanceProductId">
+        <value xml:lang="en">Financial Product</value>
+        <value xml:lang="ja">ローン商品</value>
+    </property>
+    <property key="FinanceApplicantPartyId">
+        <value xml:lang="en">Applicant</value>
+        <value xml:lang="ja">申込者</value>
+    </property>
+    <property key="FinanceRequestedPrincipalAmount">
+        <value xml:lang="en">Requested Principal</value>
+        <value xml:lang="ja">希望融資額</value>
+    </property>
+    <property key="FinanceRequestedTermMonths">
+        <value xml:lang="en">Requested Term (months)</value>
+        <value xml:lang="ja">希望返済期間（月）</value>
+    </property>
+    <property key="FinanceCurrencyUomId">
+        <value xml:lang="en">Currency</value>
+        <value xml:lang="ja">通貨</value>
+    </property>
+    <property key="FinanceApplicationDate">
+        <value xml:lang="en">Application Date</value>
+        <value xml:lang="ja">申込日</value>
+    </property>
+    <property key="FinancePurpose">
+        <value xml:lang="en">Purpose</value>
+        <value xml:lang="ja">資金使途</value>
+    </property>
+    <property key="FinanceStatus">
+        <value xml:lang="en">Status</value>
+        <value xml:lang="ja">ステータス</value>
+    </property>
+    <property key="FinanceChangeStatus">
+        <value xml:lang="en">Change Status</value>
+        <value xml:lang="ja">ステータス変更</value>
+    </property>
+    <property key="FinanceLoanApplicationNotFound">
+        <value xml:lang="en">Loan Application not found: ${loanApplicationId}</value>
+        <value xml:lang="ja">ローン申込が見つかりません: ${loanApplicationId}</value>
+    </property>
+    <property key="FinanceInvalidStatusChange">
+        <value xml:lang="en">Invalid status change from ${oldStatusId} to ${statusId}</value>
+        <value xml:lang="ja">無効なステータス変更です: ${oldStatusId} から ${statusId}</value>
+    </property>
+    <property key="FinancePermissionError">
+        <value xml:lang="en">You do not have permission to perform this operation on Finance.</value>
+        <value xml:lang="ja">このファイナンス操作を行う権限がありません。</value>
+    </property>
+    <property key="FinancePermissionMainActionAttributeMissing">
+        <value xml:lang="en">The mainAction attribute is missing for the Finance permission check.</value>
+        <value xml:lang="ja">ファイナンス権限チェックに mainAction 属性がありません。</value>
+    </property>
+
+    <!-- STEP 2: Quote / Underwriting / Agreement -->
+    <property key="FinanceLoanQuote">
+        <value xml:lang="en">Loan Quote</value>
+        <value xml:lang="ja">見積（返済計画）</value>
+    </property>
+    <property key="FinanceLoanQuotes">
+        <value xml:lang="en">Loan Quotes</value>
+        <value xml:lang="ja">見積一覧</value>
+    </property>
+    <property key="FinanceGenerateQuote">
+        <value xml:lang="en">Generate Quote</value>
+        <value xml:lang="ja">見積作成</value>
+    </property>
+    <property key="FinanceRepaymentMethod">
+        <value xml:lang="en">Repayment Method</value>
+        <value xml:lang="ja">返済方法</value>
+    </property>
+    <property key="FinanceMonthlyPayment">
+        <value xml:lang="en">Monthly Payment</value>
+        <value xml:lang="ja">毎月返済額</value>
+    </property>
+    <property key="FinanceTotalPayment">
+        <value xml:lang="en">Total Payment</value>
+        <value xml:lang="ja">総返済額</value>
+    </property>
+    <property key="FinanceTotalInterest">
+        <value xml:lang="en">Total Interest</value>
+        <value xml:lang="ja">利息合計</value>
+    </property>
+    <property key="FinanceAnnualInterestRate">
+        <value xml:lang="en">Annual Interest Rate</value>
+        <value xml:lang="ja">年利</value>
+    </property>
+    <property key="FinanceRepaymentSchedule">
+        <value xml:lang="en">Repayment Schedule</value>
+        <value xml:lang="ja">返済スケジュール</value>
+    </property>
+    <property key="FinanceInstallmentNumber">
+        <value xml:lang="en">No.</value>
+        <value xml:lang="ja">回次</value>
+    </property>
+    <property key="FinanceDueDate">
+        <value xml:lang="en">Due Date</value>
+        <value xml:lang="ja">返済日</value>
+    </property>
+    <property key="FinancePrincipalPortion">
+        <value xml:lang="en">Principal</value>
+        <value xml:lang="ja">元本</value>
+    </property>
+    <property key="FinanceInterestPortion">
+        <value xml:lang="en">Interest</value>
+        <value xml:lang="ja">利息</value>
+    </property>
+    <property key="FinanceRemainingBalance">
+        <value xml:lang="en">Remaining Balance</value>
+        <value xml:lang="ja">残高</value>
+    </property>
+    <property key="FinanceLoanUnderwriting">
+        <value xml:lang="en">Underwriting</value>
+        <value xml:lang="ja">審査</value>
+    </property>
+    <property key="FinanceCreditScore">
+        <value xml:lang="en">Credit Score</value>
+        <value xml:lang="ja">信用スコア</value>
+    </property>
+    <property key="FinanceDecision">
+        <value xml:lang="en">Decision</value>
+        <value xml:lang="ja">審査判定</value>
+    </property>
+    <property key="FinanceLoanAgreement">
+        <value xml:lang="en">Loan Agreement</value>
+        <value xml:lang="ja">契約</value>
+    </property>
+    <property key="FinanceCreateAgreement">
+        <value xml:lang="en">Create Agreement</value>
+        <value xml:lang="ja">契約作成</value>
+    </property>
+    <property key="FinanceCreateAgreementConfirm">
+        <value xml:lang="en">Create and activate this agreement?</value>
+        <value xml:lang="ja">この契約を作成して有効化しますか？</value>
+    </property>
+    <property key="FinanceFinAccountId">
+        <value xml:lang="en">Loan Account</value>
+        <value xml:lang="ja">ローン口座</value>
+    </property>
+    <property key="FinancePresentQuote">
+        <value xml:lang="en">Present</value>
+        <value xml:lang="ja">提示</value>
+    </property>
+    <property key="FinanceAcceptQuote">
+        <value xml:lang="en">Accept</value>
+        <value xml:lang="ja">受理</value>
+    </property>
+    <property key="FinanceRejectQuote">
+        <value xml:lang="en">Reject</value>
+        <value xml:lang="ja">否決</value>
+    </property>
+    <property key="FinanceApproveUnderwriting">
+        <value xml:lang="en">Approve Underwriting</value>
+        <value xml:lang="ja">審査承認</value>
+    </property>
+    <property key="FinanceRejectUnderwriting">
+        <value xml:lang="en">Reject Underwriting</value>
+        <value xml:lang="ja">審査否決</value>
+    </property>
+    <property key="FinanceAgreementRequiresApprovedApplication">
+        <value xml:lang="en">The loan application must be approved before contracting: ${loanApplicationId}</value>
+        <value xml:lang="ja">契約前にローン申込の承認が必要です: ${loanApplicationId}</value>
+    </property>
+    <property key="FinanceAgreementRequiresAcceptedQuote">
+        <value xml:lang="en">The loan quote must be accepted before contracting: ${loanQuoteId}</value>
+        <value xml:lang="ja">契約前に見積の受理が必要です: ${loanQuoteId}</value>
+    </property>
+    <property key="FinanceAgreementRequiresApprovedUnderwriting">
+        <value xml:lang="en">Approved underwriting is required before contracting: ${loanApplicationId}</value>
+        <value xml:lang="ja">契約前に審査承認が必要です: ${loanApplicationId}</value>
+    </property>
+    <property key="FinanceAgreementScheduleMissing">
+        <value xml:lang="en">The accepted quote does not have a complete repayment schedule: ${loanQuoteId}</value>
+        <value xml:lang="ja">受理済み見積に完全な返済スケジュールがありません: ${loanQuoteId}</value>
+    </property>
+    <property key="FinanceInvalidRepaymentMethod">
+        <value xml:lang="en">Unsupported repayment method: ${repaymentMethodEnumId}</value>
+        <value xml:lang="ja">未対応の返済方式です: ${repaymentMethodEnumId}</value>
+    </property>
+    <property key="FinanceQuoteImmutable">
+        <value xml:lang="en">A generated quote cannot be edited. Create a new quote instead: ${loanQuoteId}</value>
+        <value xml:lang="ja">生成済み見積は変更できません。新しい見積を作成してください: ${loanQuoteId}</value>
+    </property>
+    <property key="FinanceUnderwritingImmutable">
+        <value xml:lang="en">Approved or rejected underwriting cannot be edited: ${loanUnderwritingId}</value>
+        <value xml:lang="ja">承認または否決済みの審査は変更できません: ${loanUnderwritingId}</value>
+    </property>
+    <property key="FinanceApplicationImmutable">
+        <value xml:lang="en">A submitted, approved or contracted application cannot be edited: ${loanApplicationId}</value>
+        <value xml:lang="ja">提出・承認・契約済みの申込は変更できません: ${loanApplicationId}</value>
+    </property>
+    <property key="FinanceAgreementNotActive">
+        <value xml:lang="en">The loan agreement must be active: ${loanAgreementId}</value>
+        <value xml:lang="ja">ローン契約が有効ではありません: ${loanAgreementId}</value>
+    </property>
+    <property key="FinanceAccrualBeforeAgreement">
+        <value xml:lang="en">The accrual month is before the loan agreement date: ${loanAgreementId}</value>
+        <value xml:lang="ja">利息計上月がローン契約日より前です: ${loanAgreementId}</value>
+    </property>
+    <property key="FinanceGlAccountMappingMissing">
+        <value xml:lang="en">GL account mapping ${glAccountTypeId} is not configured for organization ${organizationPartyId}.</value>
+        <value xml:lang="ja">組織 ${organizationPartyId} にGL勘定マッピング ${glAccountTypeId} が設定されていません。</value>
+    </property>
+    <property key="FinanceInstallmentNotDue">
+        <value xml:lang="en">Installment ${installmentNumber} is not due yet for loan agreement ${loanAgreementId}.</value>
+        <value xml:lang="ja">ローン契約 ${loanAgreementId} の返済回 ${installmentNumber} はまだ期日到来していません。</value>
+    </property>
+    <property key="FinanceMonthlyBatchFailed">
+        <value xml:lang="en">Monthly processing failed for loan agreement ${loanAgreementId}: ${cause}</value>
+        <value xml:lang="ja">ローン契約 ${loanAgreementId} の月次処理に失敗しました: ${cause}</value>
+    </property>
+    <property key="FinancePaymentInvoiceMismatch">
+        <value xml:lang="en">Invoice ${invoiceId} does not belong to loan agreement ${loanAgreementId}, or the payment amount is invalid.</value>
+        <value xml:lang="ja">請求書 ${invoiceId} はローン契約 ${loanAgreementId} に属していないか、入金額が不正です。</value>
+    </property>
+    <property key="FinanceStatusTargetMissing">
+        <value xml:lang="en">No target record identifier was provided for the status change.</value>
+        <value xml:lang="ja">ステータス変更の対象レコードIDが指定されていません。</value>
+    </property>
+    <property key="FinanceRecordNotFound">
+        <value xml:lang="en">${entityName} not found: ${id}</value>
+        <value xml:lang="ja">${entityName} が見つかりません: ${id}</value>
+    </property>
+    <property key="FinanceQuoteMissingInputs">
+        <value xml:lang="en">Cannot generate quote: principal, term and interest rate are required.</value>
+        <value xml:lang="ja">見積を作成できません: 元本・期間・金利が必要です。</value>
+    </property>
+    <property key="FinancePaymentAmountInvalid">
+        <value xml:lang="en">The payment amount must be greater than zero.</value>
+        <value xml:lang="ja">入金額は 0 より大きい必要があります。</value>
+    </property>
+    <property key="FinanceMonthlyAccrual">
+        <value xml:lang="en">Monthly Interest Accrual</value>
+        <value xml:lang="ja">月次利息計上</value>
+    </property>
+    <property key="FinanceMonthlyBatch">
+        <value xml:lang="en">Monthly Accounting and Recurring Billing</value>
+        <value xml:lang="ja">月次経理・定期請求</value>
+    </property>
+    <property key="FinanceProcessingDate">
+        <value xml:lang="en">Processing Date</value>
+        <value xml:lang="ja">処理日</value>
+    </property>
+    <property key="FinanceRunMonthlyBatch">
+        <value xml:lang="en">Run Monthly Processing</value>
+        <value xml:lang="ja">月次処理を実行</value>
+    </property>
+    <property key="FinanceAcctgTransId">
+        <value xml:lang="en">GL Transaction</value>
+        <value xml:lang="ja">GL仕訳</value>
+    </property>
+    <property key="FinanceBilling">
+        <value xml:lang="en">Billing</value>
+        <value xml:lang="ja">請求</value>
+    </property>
+    <property key="FinanceInstallmentInvoices">
+        <value xml:lang="en">Installment Invoices</value>
+        <value xml:lang="ja">請求（回次別）</value>
+    </property>
+    <property key="FinanceReceivePayment">
+        <value xml:lang="en">Receive Payment</value>
+        <value xml:lang="ja">入金受付</value>
+    </property>
+    <property key="FinanceInvoiceId">
+        <value xml:lang="en">Invoice</value>
+        <value xml:lang="ja">請求書</value>
+    </property>
+    <property key="FinanceAmount">
+        <value xml:lang="en">Amount</value>
+        <value xml:lang="ja">金額</value>
+    </property>
+    <property key="FinancePaymentReceipts">
+        <value xml:lang="en">Payment Receipts</value>
+        <value xml:lang="ja">入金一覧</value>
+    </property>
+    <property key="FinanceRunAccrual">
+        <value xml:lang="en">Run Accrual</value>
+        <value xml:lang="ja">利息計上を実行</value>
+    </property>
+    <property key="FinanceCreateInvoice">
+        <value xml:lang="en">Create Invoice</value>
+        <value xml:lang="ja">請求書作成</value>
+    </property>
+    <property key="FinancePrintLoanQuotePdf">
+        <value xml:lang="en">Print Quote (PDF)</value>
+        <value xml:lang="ja">見積書を印刷 (PDF)</value>
+    </property>
+    <property key="FinanceQuoteIdMissing">
+        <value xml:lang="en">No loan quote ID was provided.</value>
+        <value xml:lang="ja">見積ID が指定されていません。</value>
+    </property>
+    <property key="FinanceLoanQuoteNotFound">
+        <value xml:lang="en">Loan quote not found: ${loanQuoteId}</value>
+        <value xml:lang="ja">見積が見つかりません: ${loanQuoteId}</value>
+    </property>
+    <property key="FinanceLoanQuoteLenderName">
+        <value xml:lang="en">OFBiz Finance</value>
+        <value xml:lang="ja">OFBiz ファイナンス</value>
+    </property>
+    <property key="FinanceLoanQuoteId">
+        <value xml:lang="en">Quote ID</value>
+        <value xml:lang="ja">見積ID</value>
+    </property>
+    <property key="FinancePrincipalAmount">
+        <value xml:lang="en">Principal Amount</value>
+        <value xml:lang="ja">元本</value>
+    </property>
+    <property key="FinanceTermMonths">
+        <value xml:lang="en">Term (months)</value>
+        <value xml:lang="ja">返済期間（月）</value>
+    </property>
+    <property key="FinanceMonthlyPaymentAmount">
+        <value xml:lang="en">Monthly Payment</value>
+        <value xml:lang="ja">毎月返済額</value>
+    </property>
+    <property key="FinanceTotalPaymentAmount">
+        <value xml:lang="en">Total Payment</value>
+        <value xml:lang="ja">総返済額</value>
+    </property>
+    <property key="FinanceTotalInterestAmount">
+        <value xml:lang="en">Total Interest</value>
+        <value xml:lang="ja">利息合計</value>
+    </property>
+    <property key="FinanceFirstPaymentDate">
+        <value xml:lang="en">First Payment Date</value>
+        <value xml:lang="ja">初回返済日</value>
+    </property>
+    <property key="FinanceCreatedDate">
+        <value xml:lang="en">Created Date</value>
+        <value xml:lang="ja">作成日</value>
+    </property>
+
+    <!-- Loan quote PDF labels (passed to the JasperReports template as parameters) -->
+    <property key="FinanceQuotePdfTitle">
+        <value xml:lang="en">Loan Quote</value>
+        <value xml:lang="ja">見積書</value>
+    </property>
+    <property key="FinanceQuotePdfQuoteNo">
+        <value xml:lang="en">Quote No.</value>
+        <value xml:lang="ja">見積番号</value>
+    </property>
+    <property key="FinanceQuotePdfIssueDate">
+        <value xml:lang="en">Issue Date</value>
+        <value xml:lang="ja">発行日</value>
+    </property>
+    <property key="FinanceQuotePdfLender">
+        <value xml:lang="en">Lender</value>
+        <value xml:lang="ja">貸主</value>
+    </property>
+    <property key="FinanceQuotePdfBorrower">
+        <value xml:lang="en">Borrower</value>
+        <value xml:lang="ja">借主</value>
+    </property>
+    <property key="FinanceQuotePdfPrincipal">
+        <value xml:lang="en">Principal</value>
+        <value xml:lang="ja">元本</value>
+    </property>
+    <property key="FinanceQuotePdfAnnualRate">
+        <value xml:lang="en">Annual Rate</value>
+        <value xml:lang="ja">年利</value>
+    </property>
+    <property key="FinanceQuotePdfTermMonths">
+        <value xml:lang="en">Term (months)</value>
+        <value xml:lang="ja">返済期間（月）</value>
+    </property>
+    <property key="FinanceQuotePdfRepaymentMethod">
+        <value xml:lang="en">Repayment Method</value>
+        <value xml:lang="ja">返済方法</value>
+    </property>
+    <property key="FinanceQuotePdfMonthlyPayment">
+        <value xml:lang="en">Monthly Payment</value>
+        <value xml:lang="ja">毎月返済額</value>
+    </property>
+    <property key="FinanceQuotePdfTotalPayment">
+        <value xml:lang="en">Total Payment</value>
+        <value xml:lang="ja">総返済額</value>
+    </property>
+    <property key="FinanceQuotePdfTotalInterest">
+        <value xml:lang="en">Total Interest</value>
+        <value xml:lang="ja">利息合計</value>
+    </property>
+    <property key="FinanceQuotePdfCurrency">
+        <value xml:lang="en">Currency</value>
+        <value xml:lang="ja">通貨</value>
+    </property>
+    <property key="FinanceQuotePdfColInstallment">
+        <value xml:lang="en">No.</value>
+        <value xml:lang="ja">回次</value>
+    </property>
+    <property key="FinanceQuotePdfColDueDate">
+        <value xml:lang="en">Due Date</value>
+        <value xml:lang="ja">返済日</value>
+    </property>
+    <property key="FinanceQuotePdfColPayment">
+        <value xml:lang="en">Payment</value>
+        <value xml:lang="ja">返済額</value>
+    </property>
+    <property key="FinanceQuotePdfColPrincipal">
+        <value xml:lang="en">Principal</value>
+        <value xml:lang="ja">元金</value>
+    </property>
+    <property key="FinanceQuotePdfColInterest">
+        <value xml:lang="en">Interest</value>
+        <value xml:lang="ja">利息</value>
+    </property>
+    <property key="FinanceQuotePdfColBalance">
+        <value xml:lang="en">Balance</value>
+        <value xml:lang="ja">残高</value>
+    </property>
+    <property key="FinanceQuotePdfPage">
+        <value xml:lang="en">Page</value>
+        <value xml:lang="ja">ページ</value>
+    </property>
+    <property key="FinanceLoanQuoteLenderAddress">
+        <value xml:lang="en">1-2-3 Finance Street, Chuo-ku, Tokyo, Japan</value>
+        <value xml:lang="ja">〒100-0000 東京都中央区ファイナンス町1-2-3</value>
+    </property>
+    <property key="FinanceAnnualInterestRatePercent">
+        <value xml:lang="en">Annual Interest Rate (%)</value>
+        <value xml:lang="ja">年利（％）</value>
+    </property>
+    <property key="FinanceApprovedAnnualInterestRatePercent">
+        <value xml:lang="en">Approved Annual Interest Rate (%)</value>
+        <value xml:lang="ja">承認年利（％）</value>
+    </property>
+    <property key="FinanceInterestRateInvalid">
+        <value xml:lang="en">The interest rate must be a number (percent, e.g. 15 or 15.5).</value>
+        <value xml:lang="ja">金利は数値（％、例: 15 または 15.5）で入力してください。</value>
+    </property>
+</resource>

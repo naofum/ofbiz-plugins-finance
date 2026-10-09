@@ -1,0 +1,243 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+
+    Loan quote (見積書) report, rendered by the generic jasperreports view
+    handler. Data is supplied at run time from the OFBiz entity engine:
+      - header values via report parameters (request attribute "jrParameters")
+      - repayment schedule rows via a JRMapCollectionDataSource
+        (request attribute "jrDataSource")
+    JasperReports 7.x native JRXML syntax; no xmlns / external schema.
+-->
+<jasperReport name="LoanQuoteReport"
+              pageWidth="595" pageHeight="842"
+              columnWidth="555" leftMargin="20" rightMargin="20"
+              topMargin="20" bottomMargin="20"
+              whenNoDataType="AllSectionsNoDetail"
+              uuid="b2c3d4e5-0f1a-4b2c-9d3e-1a2b3c4d5e6f">
+
+    <!-- Default style using OpenPDF's built-in Japanese CJK font so Japanese
+         text (title, borrower name, repayment method, etc.) renders in the PDF.
+         Requires openpdf-fonts-extra on the classpath (provided by the
+         jasperreports plugin). -->
+    <style name="base" default="true" pdfFontName="HeiseiKakuGo-W5" pdfEncoding="UniJIS-UCS2-H" pdfEmbedded="true"/>
+
+    <!-- ===== Header parameters (filled from jrParameters) ===== -->
+    <parameter name="lenderName" class="java.lang.String"/>
+    <parameter name="borrowerName" class="java.lang.String"/>
+    <parameter name="loanQuoteId" class="java.lang.String"/>
+    <parameter name="currencyUomId" class="java.lang.String"/>
+    <parameter name="principalAmount" class="java.math.BigDecimal"/>
+    <parameter name="annualInterestRate" class="java.math.BigDecimal"/>
+    <parameter name="termMonths" class="java.math.BigDecimal"/>
+    <parameter name="repaymentMethod" class="java.lang.String"/>
+    <parameter name="monthlyPaymentAmount" class="java.math.BigDecimal"/>
+    <parameter name="totalPaymentAmount" class="java.math.BigDecimal"/>
+    <parameter name="totalInterestAmount" class="java.math.BigDecimal"/>
+    <parameter name="firstPaymentDate" class="java.sql.Timestamp"/>
+    <parameter name="createdDate" class="java.sql.Timestamp"/>
+    <parameter name="lenderAddress" class="java.lang.String"/>
+    <parameter name="logoPath" class="java.lang.String"/>
+
+    <!-- Localized label parameters (resolved from FinanceUiLabels by the event) -->
+    <parameter name="FinanceQuotePdfTitle" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfQuoteNo" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfIssueDate" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfLender" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfBorrower" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfPrincipal" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfAnnualRate" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfTermMonths" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfRepaymentMethod" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfMonthlyPayment" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfTotalPayment" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfTotalInterest" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfCurrency" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfColInstallment" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfColDueDate" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfColPayment" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfColPrincipal" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfColInterest" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfColBalance" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfPage" class="java.lang.String"/>
+
+    <!-- ===== Fields (one per repayment schedule row Map key) ===== -->
+    <field name="installmentNumber" class="java.math.BigDecimal"/>
+    <field name="dueDate" class="java.sql.Timestamp"/>
+    <field name="paymentAmount" class="java.math.BigDecimal"/>
+    <field name="principalAmount" class="java.math.BigDecimal"/>
+    <field name="interestAmount" class="java.math.BigDecimal"/>
+    <field name="remainingBalance" class="java.math.BigDecimal"/>
+
+    <!-- ===== Title: logo + document heading + quote header block ===== -->
+    <title height="250">
+        <!-- OFBiz logo (top-left). printWhenExpression guards a null path. -->
+        <element kind="image" x="0" y="0" width="140" height="40" scaleImage="RetainShape" hImageAlign="Left" vImageAlign="Middle">
+            <expression><![CDATA[$P{logoPath}]]></expression>
+            <printWhenExpression><![CDATA[$P{logoPath} != null]]></printWhenExpression>
+        </element>
+
+        <element kind="textField" x="150" y="0" width="405" height="40" fontSize="24.0" bold="true" hTextAlign="Right" vTextAlign="Middle">
+            <expression><![CDATA[$P{FinanceQuotePdfTitle}]]></expression>
+        </element>
+
+        <element kind="line" x="0" y="46" width="555" height="1"/>
+
+        <element kind="textField" x="0" y="54" width="90" height="18" fontSize="11.0" bold="true">
+            <expression><![CDATA[$P{FinanceQuotePdfQuoteNo}]]></expression>
+        </element>
+        <element kind="textField" x="95" y="54" width="190" height="18" fontSize="11.0">
+            <expression><![CDATA[$P{loanQuoteId}]]></expression>
+        </element>
+        <element kind="textField" x="300" y="54" width="90" height="18" fontSize="11.0" bold="true">
+            <expression><![CDATA[$P{FinanceQuotePdfIssueDate}]]></expression>
+        </element>
+        <element kind="textField" x="395" y="54" width="160" height="18" fontSize="11.0" pattern="yyyy-MM-dd">
+            <expression><![CDATA[$P{createdDate}]]></expression>
+        </element>
+
+        <!-- Lender: name + address -->
+        <element kind="textField" x="0" y="80" width="90" height="18" fontSize="11.0" bold="true">
+            <expression><![CDATA[$P{FinanceQuotePdfLender}]]></expression>
+        </element>
+        <element kind="textField" x="95" y="80" width="460" height="18" fontSize="11.0">
+            <expression><![CDATA[$P{lenderName}]]></expression>
+        </element>
+        <element kind="textField" x="95" y="98" width="460" height="18" fontSize="9.0">
+            <expression><![CDATA[$P{lenderAddress}]]></expression>
+            <printWhenExpression><![CDATA[$P{lenderAddress} != null]]></printWhenExpression>
+        </element>
+
+        <element kind="textField" x="0" y="120" width="90" height="18" fontSize="11.0" bold="true">
+            <expression><![CDATA[$P{FinanceQuotePdfBorrower}]]></expression>
+        </element>
+        <element kind="textField" x="95" y="120" width="460" height="18" fontSize="11.0">
+            <expression><![CDATA[$P{borrowerName}]]></expression>
+        </element>
+
+        <element kind="line" x="0" y="146" width="555" height="1"/>
+
+        <!-- Quote terms summary -->
+        <element kind="textField" x="0" y="154" width="130" height="16" fontSize="10.0" bold="true">
+            <expression><![CDATA[$P{FinanceQuotePdfPrincipal}]]></expression>
+        </element>
+        <element kind="textField" x="130" y="154" width="150" height="16" fontSize="10.0" hTextAlign="Right" pattern="#,##0">
+            <expression><![CDATA[$P{principalAmount}]]></expression>
+        </element>
+        <element kind="textField" x="300" y="154" width="130" height="16" fontSize="10.0" bold="true">
+            <expression><![CDATA[$P{FinanceQuotePdfAnnualRate}]]></expression>
+        </element>
+        <element kind="textField" x="430" y="154" width="125" height="16" fontSize="10.0" hTextAlign="Right" pattern="#0.000%">
+            <expression><![CDATA[$P{annualInterestRate}]]></expression>
+        </element>
+
+        <element kind="textField" x="0" y="172" width="130" height="16" fontSize="10.0" bold="true">
+            <expression><![CDATA[$P{FinanceQuotePdfTermMonths}]]></expression>
+        </element>
+        <element kind="textField" x="130" y="172" width="150" height="16" fontSize="10.0" hTextAlign="Right" pattern="#,##0">
+            <expression><![CDATA[$P{termMonths}]]></expression>
+        </element>
+        <element kind="textField" x="300" y="172" width="130" height="16" fontSize="10.0" bold="true">
+            <expression><![CDATA[$P{FinanceQuotePdfRepaymentMethod}]]></expression>
+        </element>
+        <element kind="textField" x="430" y="172" width="125" height="16" fontSize="10.0" hTextAlign="Right">
+            <expression><![CDATA[$P{repaymentMethod}]]></expression>
+        </element>
+
+        <element kind="textField" x="0" y="190" width="130" height="16" fontSize="10.0" bold="true">
+            <expression><![CDATA[$P{FinanceQuotePdfMonthlyPayment}]]></expression>
+        </element>
+        <element kind="textField" x="130" y="190" width="150" height="16" fontSize="10.0" hTextAlign="Right" pattern="#,##0">
+            <expression><![CDATA[$P{monthlyPaymentAmount}]]></expression>
+        </element>
+        <element kind="textField" x="300" y="190" width="130" height="16" fontSize="10.0" bold="true">
+            <expression><![CDATA[$P{FinanceQuotePdfTotalPayment}]]></expression>
+        </element>
+        <element kind="textField" x="430" y="190" width="125" height="16" fontSize="10.0" hTextAlign="Right" pattern="#,##0">
+            <expression><![CDATA[$P{totalPaymentAmount}]]></expression>
+        </element>
+
+        <element kind="textField" x="0" y="208" width="130" height="16" fontSize="10.0" bold="true">
+            <expression><![CDATA[$P{FinanceQuotePdfTotalInterest}]]></expression>
+        </element>
+        <element kind="textField" x="130" y="208" width="150" height="16" fontSize="10.0" hTextAlign="Right" pattern="#,##0">
+            <expression><![CDATA[$P{totalInterestAmount}]]></expression>
+        </element>
+        <element kind="textField" x="300" y="208" width="130" height="16" fontSize="10.0" bold="true">
+            <expression><![CDATA[$P{FinanceQuotePdfCurrency}]]></expression>
+        </element>
+        <element kind="textField" x="430" y="208" width="125" height="16" fontSize="10.0" hTextAlign="Right">
+            <expression><![CDATA[$P{currencyUomId}]]></expression>
+        </element>
+    </title>
+
+    <!-- ===== Column header for the repayment schedule table ===== -->
+    <columnHeader height="22">
+        <element kind="textField" x="0" y="2" width="50" height="18" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" mode="Opaque" backcolor="#E6E6E6">
+            <expression><![CDATA[$P{FinanceQuotePdfColInstallment}]]></expression>
+        </element>
+        <element kind="textField" x="50" y="2" width="105" height="18" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" mode="Opaque" backcolor="#E6E6E6">
+            <expression><![CDATA[$P{FinanceQuotePdfColDueDate}]]></expression>
+        </element>
+        <element kind="textField" x="155" y="2" width="100" height="18" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" mode="Opaque" backcolor="#E6E6E6">
+            <expression><![CDATA[$P{FinanceQuotePdfColPayment}]]></expression>
+        </element>
+        <element kind="textField" x="255" y="2" width="100" height="18" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" mode="Opaque" backcolor="#E6E6E6">
+            <expression><![CDATA[$P{FinanceQuotePdfColPrincipal}]]></expression>
+        </element>
+        <element kind="textField" x="355" y="2" width="100" height="18" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" mode="Opaque" backcolor="#E6E6E6">
+            <expression><![CDATA[$P{FinanceQuotePdfColInterest}]]></expression>
+        </element>
+        <element kind="textField" x="455" y="2" width="100" height="18" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" mode="Opaque" backcolor="#E6E6E6">
+            <expression><![CDATA[$P{FinanceQuotePdfColBalance}]]></expression>
+        </element>
+    </columnHeader>
+
+    <!-- ===== Detail: one row per repayment installment ===== -->
+    <detail>
+        <band height="18">
+            <element kind="textField" x="0" y="0" width="50" height="16" fontSize="9.0" hTextAlign="Center" pattern="#,##0">
+                <expression><![CDATA[$F{installmentNumber}]]></expression>
+            </element>
+            <element kind="textField" x="50" y="0" width="105" height="16" fontSize="9.0" hTextAlign="Center" pattern="yyyy-MM-dd">
+                <expression><![CDATA[$F{dueDate}]]></expression>
+            </element>
+            <element kind="textField" x="155" y="0" width="100" height="16" fontSize="9.0" hTextAlign="Right" pattern="#,##0">
+                <expression><![CDATA[$F{paymentAmount}]]></expression>
+            </element>
+            <element kind="textField" x="255" y="0" width="100" height="16" fontSize="9.0" hTextAlign="Right" pattern="#,##0">
+                <expression><![CDATA[$F{principalAmount}]]></expression>
+            </element>
+            <element kind="textField" x="355" y="0" width="100" height="16" fontSize="9.0" hTextAlign="Right" pattern="#,##0">
+                <expression><![CDATA[$F{interestAmount}]]></expression>
+            </element>
+            <element kind="textField" x="455" y="0" width="100" height="16" fontSize="9.0" hTextAlign="Right" pattern="#,##0">
+                <expression><![CDATA[$F{remainingBalance}]]></expression>
+            </element>
+            <element kind="line" x="0" y="17" width="555" height="1" forecolor="#CCCCCC"/>
+        </band>
+    </detail>
+
+    <!-- ===== Page footer: page number ===== -->
+    <pageFooter height="20">
+        <element kind="textField" x="455" y="0" width="100" height="15" fontSize="9.0" hTextAlign="Right">
+            <expression><![CDATA[$V{PAGE_NUMBER} + " " + $P{FinanceQuotePdfPage}]]></expression>
+        </element>
+    </pageFooter>
+
+</jasperReport>

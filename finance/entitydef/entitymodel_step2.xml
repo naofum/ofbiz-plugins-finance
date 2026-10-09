@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<entitymodel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://ofbiz.apache.org/dtds/entitymodel.xsd">
+    <title>Finance Component Entity Model - STEP 2 (Quote, Underwriting, Agreement)</title>
+    <description>
+        Quote (repayment plan), underwriting (review) and loan agreement for a LoanApplication.
+        Reuses the core FinAccount entity as the loan account opened at contract time.
+    </description>
+    <version>1.0</version>
+
+    <!-- ========================================================= -->
+    <!-- LoanQuote: a repayment-plan proposal for a LoanApplication -->
+    <!-- ========================================================= -->
+    <entity entity-name="LoanQuote" package-name="org.apache.ofbiz.finance.quote" title="Loan Quote (repayment plan)">
+        <field name="loanQuoteId" type="id"><description>primary sequenced ID</description></field>
+        <field name="loanApplicationId" type="id"></field>
+        <field name="statusId" type="id"><description>FK to StatusItem (LOAN_QUOTE_STATUS)</description></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="principalAmount" type="currency-amount"><description>quoted loan principal</description></field>
+        <field name="annualInterestRate" type="fixed-point"><description>annual nominal interest rate (e.g. 0.150000 = 15%)</description></field>
+        <field name="termMonths" type="numeric"><description>repayment term in months</description></field>
+        <field name="repaymentMethodEnumId" type="id"><description>e.g. EQUAL_PAYMENT (元利均等), EQUAL_PRINCIPAL (元金均等)</description></field>
+        <field name="monthlyPaymentAmount" type="currency-amount"><description>calculated level payment (for equal-payment method)</description></field>
+        <field name="totalPaymentAmount" type="currency-amount"><description>sum of all payments</description></field>
+        <field name="totalInterestAmount" type="currency-amount"><description>total interest over the term</description></field>
+        <field name="firstPaymentDate" type="date-time"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="loanQuoteId"/>
+        <relation type="one" fk-name="LOANQT_APP" rel-entity-name="LoanApplication">
+            <key-map field-name="loanApplicationId"/>
+        </relation>
+        <relation type="one" fk-name="LOANQT_STTS" rel-entity-name="StatusItem">
+            <key-map field-name="statusId"/>
+        </relation>
+        <relation type="one" fk-name="LOANQT_UOM" rel-entity-name="Uom">
+            <key-map field-name="currencyUomId" rel-field-name="uomId"/>
+        </relation>
+        <relation type="one" fk-name="LOANQT_RPMENUM" rel-entity-name="Enumeration">
+            <key-map field-name="repaymentMethodEnumId" rel-field-name="enumId"/>
+        </relation>
+    </entity>
+
+    <!-- Repayment schedule line items for a quote -->
+    <entity entity-name="LoanRepaymentSchedule" package-name="org.apache.ofbiz.finance.quote" title="Loan Repayment Schedule Item">
+        <field name="loanQuoteId" type="id"></field>
+        <field name="installmentNumber" type="numeric"><description>1-based installment sequence</description></field>
+        <field name="dueDate" type="date-time"></field>
+        <field name="paymentAmount" type="currency-amount"><description>total payment for this installment</description></field>
+        <field name="principalAmount" type="currency-amount"><description>principal portion</description></field>
+        <field name="interestAmount" type="currency-amount"><description>interest portion</description></field>
+        <field name="remainingBalance" type="currency-amount"><description>remaining principal after this installment</description></field>
+        <prim-key field="loanQuoteId"/>
+        <prim-key field="installmentNumber"/>
+        <relation type="one" fk-name="LOANRS_QT" rel-entity-name="LoanQuote">
+            <key-map field-name="loanQuoteId"/>
+        </relation>
+    </entity>
+
+    <!-- Contract-time snapshot of the accepted quote schedule. -->
+    <entity entity-name="LoanAgreementRepaymentSchedule" package-name="org.apache.ofbiz.finance.agreement"
+            table-name="LOAN_AGR_REPAY_SCHED" title="Loan Agreement Repayment Schedule Item">
+        <field name="loanAgreementId" type="id"></field>
+        <field name="installmentNumber" type="numeric"><description>1-based installment sequence</description></field>
+        <field name="loanQuoteId" type="id"><description>source accepted quote</description></field>
+        <field name="dueDate" type="date-time"></field>
+        <field name="paymentAmount" type="currency-amount"></field>
+        <field name="principalAmount" type="currency-amount"></field>
+        <field name="interestAmount" type="currency-amount"></field>
+        <field name="remainingBalance" type="currency-amount"></field>
+        <prim-key field="loanAgreementId"/>
+        <prim-key field="installmentNumber"/>
+        <relation type="one" fk-name="LARSC_AGR" rel-entity-name="LoanAgreement">
+            <key-map field-name="loanAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LARSC_QT" rel-entity-name="LoanQuote">
+            <key-map field-name="loanQuoteId"/>
+        </relation>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- LoanUnderwriting: review / credit decision                -->
+    <!-- ========================================================= -->
+    <entity entity-name="LoanUnderwriting" package-name="org.apache.ofbiz.finance.underwriting" title="Loan Underwriting (review)">
+        <field name="loanUnderwritingId" type="id"><description>primary sequenced ID</description></field>
+        <field name="loanApplicationId" type="id"></field>
+        <field name="statusId" type="id"><description>FK to StatusItem (LOAN_UW_STATUS)</description></field>
+        <field name="creditScore" type="numeric"><description>computed or entered credit score</description></field>
+        <field name="decision" type="short-varchar"><description>APPROVED / REJECTED / PENDING</description></field>
+        <field name="approvedPrincipalAmount" type="currency-amount"><description>principal approved by underwriting</description></field>
+        <field name="approvedAnnualInterestRate" type="fixed-point"></field>
+        <field name="reviewerPartyId" type="id"><description>Party who performed the review</description></field>
+        <field name="reviewDate" type="date-time"></field>
+        <field name="comments" type="comment"></field>
+        <prim-key field="loanUnderwritingId"/>
+        <relation type="one" fk-name="LOANUW_APP" rel-entity-name="LoanApplication">
+            <key-map field-name="loanApplicationId"/>
+        </relation>
+        <relation type="one" fk-name="LOANUW_STTS" rel-entity-name="StatusItem">
+            <key-map field-name="statusId"/>
+        </relation>
+        <relation type="one" fk-name="LOANUW_RVWR" rel-entity-name="Party">
+            <key-map field-name="reviewerPartyId" rel-field-name="partyId"/>
+        </relation>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- LoanAgreement: the finalized contract                     -->
+    <!-- Reuses core FinAccount as the opened loan account.        -->
+    <!-- ========================================================= -->
+    <entity entity-name="LoanAgreement" package-name="org.apache.ofbiz.finance.agreement" title="Loan Agreement (contract)">
+        <field name="loanAgreementId" type="id"><description>primary sequenced ID</description></field>
+        <field name="loanApplicationId" type="id"></field>
+        <field name="loanQuoteId" type="id"><description>the accepted quote</description></field>
+        <field name="agreementId" type="id"><description>optional link to core Agreement entity</description></field>
+        <field name="finAccountId" type="id"><description>the opened loan account (core FinAccount)</description></field>
+        <field name="statusId" type="id"><description>FK to StatusItem (LOAN_AGR_STATUS)</description></field>
+        <field name="borrowerPartyId" type="id"></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="principalAmount" type="currency-amount"></field>
+        <field name="annualInterestRate" type="fixed-point"></field>
+        <field name="termMonths" type="numeric"></field>
+        <field name="agreementDate" type="date-time"></field>
+        <field name="firstPaymentDate" type="date-time"></field>
+        <field name="processingLockVersion" type="numeric"><description>optimistic token used to serialize STEP 3 processing</description></field>
+        <prim-key field="loanAgreementId"/>
+        <relation type="one" fk-name="LOANAGR_APP" rel-entity-name="LoanApplication">
+            <key-map field-name="loanApplicationId"/>
+        </relation>
+        <relation type="one" fk-name="LOANAGR_QT" rel-entity-name="LoanQuote">
+            <key-map field-name="loanQuoteId"/>
+        </relation>
+        <relation type="one" fk-name="LOANAGR_AGR" rel-entity-name="Agreement">
+            <key-map field-name="agreementId"/>
+        </relation>
+        <relation type="one" fk-name="LOANAGR_FINACT" rel-entity-name="FinAccount">
+            <key-map field-name="finAccountId"/>
+        </relation>
+        <relation type="one" fk-name="LOANAGR_STTS" rel-entity-name="StatusItem">
+            <key-map field-name="statusId"/>
+        </relation>
+        <relation type="one" fk-name="LOANAGR_BRWR" rel-entity-name="Party">
+            <key-map field-name="borrowerPartyId" rel-field-name="partyId"/>
+        </relation>
+        <relation type="one" fk-name="LOANAGR_UOM" rel-entity-name="Uom">
+            <key-map field-name="currencyUomId" rel-field-name="uomId"/>
+        </relation>
+        <index name="LOANAGR_QT_UQ" unique="true">
+            <index-field name="loanQuoteId"/>
+        </index>
+    </entity>
+
+</entitymodel>

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://ofbiz.apache.org/dtds/services.xsd">
+    <description>Finance - Loan Application Services (STEP 1)</description>
+    <vendor>OFBiz Finance</vendor>
+    <version>1.0</version>
+
+    <!-- ============================================================= -->
+    <!-- Permission service                                            -->
+    <!-- ============================================================= -->
+    <service name="financeGenericPermission" engine="simple" default-entity-name="LoanApplication"
+            location="component://finance/minilang/FinancePermissionServices.xml" invoke="financeGenericPermission" auth="true">
+        <description>Finance Generic Permission Checking Logic</description>
+        <attribute name="mainAction" type="String" mode="IN" optional="false"/>
+        <attribute name="primaryPermission" type="String" mode="IN" optional="true"/>
+        <attribute name="hasPermission" type="Boolean" mode="OUT" optional="true"/>
+        <attribute name="failMessage" type="String" mode="OUT" optional="true"/>
+    </service>
+    <service name="financeAccountingPermission" engine="simple"
+            location="component://finance/minilang/FinancePermissionServices.xml" invoke="financeGenericPermission" auth="true">
+        <description>Finance accounting permission checking logic</description>
+        <attribute name="mainAction" type="String" mode="IN" optional="false"/>
+        <attribute name="primaryPermission" type="String" mode="IN" optional="true" default-value="FINANCE_ACCOUNTING"/>
+        <attribute name="hasPermission" type="Boolean" mode="OUT" optional="true"/>
+        <attribute name="failMessage" type="String" mode="OUT" optional="true"/>
+    </service>
+    <service name="financeBillingPermission" engine="simple"
+            location="component://finance/minilang/FinancePermissionServices.xml" invoke="financeGenericPermission" auth="true">
+        <description>Finance billing permission checking logic</description>
+        <attribute name="mainAction" type="String" mode="IN" optional="false"/>
+        <attribute name="primaryPermission" type="String" mode="IN" optional="true" default-value="FINANCE_BILLING"/>
+        <attribute name="hasPermission" type="Boolean" mode="OUT" optional="true"/>
+        <attribute name="failMessage" type="String" mode="OUT" optional="true"/>
+    </service>
+    <service name="financePaymentPermission" engine="simple"
+            location="component://finance/minilang/FinancePermissionServices.xml" invoke="financeGenericPermission" auth="true">
+        <description>Finance payment permission checking logic</description>
+        <attribute name="mainAction" type="String" mode="IN" optional="false"/>
+        <attribute name="primaryPermission" type="String" mode="IN" optional="true" default-value="FINANCE_PAYMENT"/>
+        <attribute name="hasPermission" type="Boolean" mode="OUT" optional="true"/>
+        <attribute name="failMessage" type="String" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- FinancialProduct CRUD (entity-auto)                           -->
+    <!-- ============================================================= -->
+    <service name="createFinancialProduct" default-entity-name="FinancialProduct" engine="entity-auto" invoke="create" auth="true">
+        <description>Create a FinancialProduct</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true"/>
+        <override name="financialProductTypeId" optional="false"/>
+    </service>
+    <service name="updateFinancialProduct" default-entity-name="FinancialProduct" engine="entity-auto" invoke="update" auth="true">
+        <description>Update a FinancialProduct</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true"/>
+    </service>
+    <service name="deleteFinancialProduct" default-entity-name="FinancialProduct" engine="entity-auto" invoke="delete" auth="true">
+        <description>Delete a FinancialProduct</description>
+        <permission-service service-name="financeGenericPermission" main-action="DELETE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- LoanApplication CRUD (entity-auto)                            -->
+    <!-- ============================================================= -->
+    <service name="createLoanApplication" default-entity-name="LoanApplication" engine="groovy"
+            location="component://finance/groovyScripts/CreateLoanApplication.groovy" invoke="" auth="true">
+        <description>Create a Loan Application in RECEIVED status</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <auto-attributes include="pk" mode="OUT" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true">
+            <exclude field-name="statusId"/>
+        </auto-attributes>
+        <override name="productId" optional="false"/>
+        <override name="applicantPartyId" optional="false"/>
+        <override name="requestedPrincipalAmount" optional="false"/>
+        <override name="requestedTermMonths" optional="false"/>
+    </service>
+    <service name="updateLoanApplication" default-entity-name="LoanApplication" engine="groovy"
+            location="component://finance/groovyScripts/UpdateLoanApplication.groovy" invoke="" auth="true">
+        <description>Update a Loan Application only while it is in RECEIVED status</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true">
+            <exclude field-name="statusId"/>
+        </auto-attributes>
+    </service>
+    <service name="deleteLoanApplication" default-entity-name="LoanApplication" engine="entity-auto" invoke="delete" auth="true">
+        <description>Delete a Loan Application</description>
+        <permission-service service-name="financeGenericPermission" main-action="DELETE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- LoanApplication status transition (groovy)                    -->
+    <!-- ============================================================= -->
+    <service name="setLoanApplicationStatus" engine="groovy"
+            location="component://finance/groovyScripts/SetLoanApplicationStatus.groovy" invoke="" auth="true">
+        <description>Change the status of a Loan Application, validating the transition against StatusValidChange and recording history</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="loanApplicationId" type="String" mode="IN" optional="false"/>
+        <attribute name="statusId" type="String" mode="IN" optional="false"/>
+        <attribute name="oldStatusId" type="String" mode="OUT" optional="true"/>
+    </service>
+
+</services>

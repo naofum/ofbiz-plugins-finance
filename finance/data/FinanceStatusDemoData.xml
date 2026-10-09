@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+
+Finance workflow status snapshots for UI demonstration. These records are
+loaded directly by the demo reader; they do not bypass workflow rules in
+production services. All monetary records are JPY.
+-->
+<entity-engine-xml>
+    <!-- Shared demo borrowers. The lender/reviewer uses the standard Company party. -->
+    <Party partyId="FD_BORROWER_A" partyTypeId="PERSON"/>
+    <Person partyId="FD_BORROWER_A" firstName="一郎" lastName="融資デモ"/>
+    <Party partyId="FD_BORROWER_B" partyTypeId="PERSON"/>
+    <Person partyId="FD_BORROWER_B" firstName="さくら" lastName="融資デモ"/>
+
+    <!-- ============================================================= -->
+    <!-- LoanApplication: two or more snapshots for every status       -->
+    <!-- ============================================================= -->
+    <LoanApplication loanApplicationId="FDAPP_REC_01" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_A"
+            statusId="LOANAPP_RECEIVED" currencyUomId="JPY" requestedPrincipalAmount="100000" requestedTermMonths="12"
+            applicationDate="2026-10-01 09:00:00.0" purpose="受付済みデモ1"/>
+    <LoanApplication loanApplicationId="FDAPP_REC_02" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_B"
+            statusId="LOANAPP_RECEIVED" currencyUomId="JPY" requestedPrincipalAmount="200000" requestedTermMonths="24"
+            applicationDate="2026-10-02 09:00:00.0" purpose="受付済みデモ2"/>
+    <LoanApplication loanApplicationId="FDAPP_SUB_01" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_A"
+            statusId="LOANAPP_SUBMITTED" currencyUomId="JPY" requestedPrincipalAmount="100000" requestedTermMonths="2"
+            applicationDate="2026-09-20 09:00:00.0" purpose="提出済みデモ1"/>
+    <LoanApplication loanApplicationId="FDAPP_SUB_02" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_B"
+            statusId="LOANAPP_SUBMITTED" currencyUomId="JPY" requestedPrincipalAmount="200000" requestedTermMonths="2"
+            applicationDate="2026-09-21 09:00:00.0" purpose="提出済みデモ2"/>
+    <LoanApplication loanApplicationId="FDAPP_CAN_01" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_A"
+            statusId="LOANAPP_CANCELLED" currencyUomId="JPY" requestedPrincipalAmount="150000" requestedTermMonths="12"
+            applicationDate="2026-08-01 09:00:00.0" purpose="取消済みデモ1"/>
+    <LoanApplication loanApplicationId="FDAPP_CAN_02" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_B"
+            statusId="LOANAPP_CANCELLED" currencyUomId="JPY" requestedPrincipalAmount="250000" requestedTermMonths="24"
+            applicationDate="2026-08-02 09:00:00.0" purpose="取消済みデモ2"/>
+    <LoanApplication loanApplicationId="FDAPP_REJ_01" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_A"
+            statusId="LOANAPP_REJECTED" currencyUomId="JPY" requestedPrincipalAmount="100000" requestedTermMonths="2"
+            applicationDate="2026-07-01 09:00:00.0" purpose="否決済みデモ1"/>
+    <LoanApplication loanApplicationId="FDAPP_REJ_02" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_B"
+            statusId="LOANAPP_REJECTED" currencyUomId="JPY" requestedPrincipalAmount="200000" requestedTermMonths="2"
+            applicationDate="2026-07-02 09:00:00.0" purpose="否決済みデモ2"/>
+    <LoanApplication loanApplicationId="FDAPP_APR_01" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_A"
+            statusId="LOANAPP_APPROVED" currencyUomId="JPY" requestedPrincipalAmount="100000" requestedTermMonths="2"
+            applicationDate="2026-06-01 09:00:00.0" purpose="承認済みデモ1"/>
+    <LoanApplication loanApplicationId="FDAPP_APR_02" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_B"
+            statusId="LOANAPP_APPROVED" currencyUomId="JPY" requestedPrincipalAmount="200000" requestedTermMonths="2"
+            applicationDate="2026-06-02 09:00:00.0" purpose="承認済みデモ2"/>
+    <LoanApplication loanApplicationId="FDAPP_CON_01" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_A"
+            statusId="LOANAPP_APPROVED" currencyUomId="JPY" requestedPrincipalAmount="100000" requestedTermMonths="2"
+            applicationDate="2026-05-01 09:00:00.0" purpose="契約済みデモ1"/>
+    <LoanApplication loanApplicationId="FDAPP_CON_02" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_B"
+            statusId="LOANAPP_APPROVED" currencyUomId="JPY" requestedPrincipalAmount="200000" requestedTermMonths="2"
+            applicationDate="2026-05-02 09:00:00.0" purpose="契約済みデモ2"/>
+
+    <!-- Applications dedicated to agreement status snapshots. -->
+    <LoanApplication loanApplicationId="FDAPP_DRA_01" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_A" statusId="LOANAPP_APPROVED" currencyUomId="JPY" requestedPrincipalAmount="300000" requestedTermMonths="2" applicationDate="2026-09-01 09:00:00.0" purpose="契約ドラフト1"/>
+    <LoanApplication loanApplicationId="FDAPP_DRA_02" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_B" statusId="LOANAPP_APPROVED" currencyUomId="JPY" requestedPrincipalAmount="320000" requestedTermMonths="2" applicationDate="2026-09-02 09:00:00.0" purpose="契約ドラフト2"/>
+    <LoanApplication loanApplicationId="FDAPP_ACT_01" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_A" statusId="LOANAPP_CONTRACTED" currencyUomId="JPY" requestedPrincipalAmount="400000" requestedTermMonths="2" applicationDate="2026-07-01 09:00:00.0" purpose="有効契約1"/>
+    <LoanApplication loanApplicationId="FDAPP_ACT_02" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_B" statusId="LOANAPP_CONTRACTED" currencyUomId="JPY" requestedPrincipalAmount="420000" requestedTermMonths="2" applicationDate="2026-08-01 09:00:00.0" purpose="有効契約2"/>
+    <LoanApplication loanApplicationId="FDAPP_CLO_01" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_A" statusId="LOANAPP_CONTRACTED" currencyUomId="JPY" requestedPrincipalAmount="500000" requestedTermMonths="2" applicationDate="2025-01-01 09:00:00.0" purpose="完済契約1"/>
+    <LoanApplication loanApplicationId="FDAPP_CLO_02" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_B" statusId="LOANAPP_CONTRACTED" currencyUomId="JPY" requestedPrincipalAmount="520000" requestedTermMonths="2" applicationDate="2025-02-01 09:00:00.0" purpose="完済契約2"/>
+    <LoanApplication loanApplicationId="FDAPP_ACN_01" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_A" statusId="LOANAPP_APPROVED" currencyUomId="JPY" requestedPrincipalAmount="250000" requestedTermMonths="2" applicationDate="2026-09-10 09:00:00.0" purpose="契約取消1"/>
+    <LoanApplication loanApplicationId="FDAPP_ACN_02" productId="DEMO_LOANPROD1" applicantPartyId="FD_BORROWER_B" statusId="LOANAPP_APPROVED" currencyUomId="JPY" requestedPrincipalAmount="270000" requestedTermMonths="2" applicationDate="2026-09-11 09:00:00.0" purpose="契約取消2"/>
+
+    <!-- ============================================================= -->
+    <!-- LoanQuote status snapshots (2 installments, equal principal)  -->
+    <!-- ============================================================= -->
+    <LoanQuote loanQuoteId="FDQT_CRE_01" loanApplicationId="FDAPP_SUB_01" statusId="LOANQT_CREATED" currencyUomId="JPY" principalAmount="100000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="101500" totalInterestAmount="1500" firstPaymentDate="2026-12-15 00:00:00.0" createdDate="2026-09-21 10:00:00.0"/>
+    <LoanQuote loanQuoteId="FDQT_CRE_02" loanApplicationId="FDAPP_SUB_02" statusId="LOANQT_CREATED" currencyUomId="JPY" principalAmount="200000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="203000" totalInterestAmount="3000" firstPaymentDate="2026-12-15 00:00:00.0" createdDate="2026-09-22 10:00:00.0"/>
+    <LoanQuote loanQuoteId="FDQT_PRE_01" loanApplicationId="FDAPP_APR_01" statusId="LOANQT_PRESENTED" currencyUomId="JPY" principalAmount="100000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="101500" totalInterestAmount="1500" firstPaymentDate="2026-12-15 00:00:00.0" createdDate="2026-06-03 10:00:00.0"/>
+    <LoanQuote loanQuoteId="FDQT_PRE_02" loanApplicationId="FDAPP_APR_02" statusId="LOANQT_PRESENTED" currencyUomId="JPY" principalAmount="200000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="203000" totalInterestAmount="3000" firstPaymentDate="2026-12-15 00:00:00.0" createdDate="2026-06-04 10:00:00.0"/>
+    <LoanQuote loanQuoteId="FDQT_ACC_01" loanApplicationId="FDAPP_CON_01" statusId="LOANQT_ACCEPTED" currencyUomId="JPY" principalAmount="100000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="101500" totalInterestAmount="1500" firstPaymentDate="2026-12-15 00:00:00.0" createdDate="2026-05-03 10:00:00.0"/>
+    <LoanQuote loanQuoteId="FDQT_ACC_02" loanApplicationId="FDAPP_CON_02" statusId="LOANQT_ACCEPTED" currencyUomId="JPY" principalAmount="200000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="203000" totalInterestAmount="3000" firstPaymentDate="2026-12-15 00:00:00.0" createdDate="2026-05-04 10:00:00.0"/>
+    <LoanQuote loanQuoteId="FDQT_REJ_01" loanApplicationId="FDAPP_REJ_01" statusId="LOANQT_REJECTED" currencyUomId="JPY" principalAmount="100000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="101500" totalInterestAmount="1500" firstPaymentDate="2026-12-15 00:00:00.0" createdDate="2026-07-03 10:00:00.0"/>
+    <LoanQuote loanQuoteId="FDQT_REJ_02" loanApplicationId="FDAPP_REJ_02" statusId="LOANQT_REJECTED" currencyUomId="JPY" principalAmount="200000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="203000" totalInterestAmount="3000" firstPaymentDate="2026-12-15 00:00:00.0" createdDate="2026-07-04 10:00:00.0"/>
+
+    <!-- Reusable schedules for the eight quote-status snapshots. -->
+    <LoanRepaymentSchedule loanQuoteId="FDQT_CRE_01" installmentNumber="1" dueDate="2026-12-15 00:00:00.0" paymentAmount="51000" principalAmount="50000" interestAmount="1000" remainingBalance="50000"/><LoanRepaymentSchedule loanQuoteId="FDQT_CRE_01" installmentNumber="2" dueDate="2027-01-15 00:00:00.0" paymentAmount="50500" principalAmount="50000" interestAmount="500" remainingBalance="0"/>
+    <LoanRepaymentSchedule loanQuoteId="FDQT_CRE_02" installmentNumber="1" dueDate="2026-12-15 00:00:00.0" paymentAmount="102000" principalAmount="100000" interestAmount="2000" remainingBalance="100000"/><LoanRepaymentSchedule loanQuoteId="FDQT_CRE_02" installmentNumber="2" dueDate="2027-01-15 00:00:00.0" paymentAmount="101000" principalAmount="100000" interestAmount="1000" remainingBalance="0"/>
+    <LoanRepaymentSchedule loanQuoteId="FDQT_PRE_01" installmentNumber="1" dueDate="2026-12-15 00:00:00.0" paymentAmount="51000" principalAmount="50000" interestAmount="1000" remainingBalance="50000"/><LoanRepaymentSchedule loanQuoteId="FDQT_PRE_01" installmentNumber="2" dueDate="2027-01-15 00:00:00.0" paymentAmount="50500" principalAmount="50000" interestAmount="500" remainingBalance="0"/>
+    <LoanRepaymentSchedule loanQuoteId="FDQT_PRE_02" installmentNumber="1" dueDate="2026-12-15 00:00:00.0" paymentAmount="102000" principalAmount="100000" interestAmount="2000" remainingBalance="100000"/><LoanRepaymentSchedule loanQuoteId="FDQT_PRE_02" installmentNumber="2" dueDate="2027-01-15 00:00:00.0" paymentAmount="101000" principalAmount="100000" interestAmount="1000" remainingBalance="0"/>
+    <LoanRepaymentSchedule loanQuoteId="FDQT_ACC_01" installmentNumber="1" dueDate="2026-12-15 00:00:00.0" paymentAmount="51000" principalAmount="50000" interestAmount="1000" remainingBalance="50000"/><LoanRepaymentSchedule loanQuoteId="FDQT_ACC_01" installmentNumber="2" dueDate="2027-01-15 00:00:00.0" paymentAmount="50500" principalAmount="50000" interestAmount="500" remainingBalance="0"/>
+    <LoanRepaymentSchedule loanQuoteId="FDQT_ACC_02" installmentNumber="1" dueDate="2026-12-15 00:00:00.0" paymentAmount="102000" principalAmount="100000" interestAmount="2000" remainingBalance="100000"/><LoanRepaymentSchedule loanQuoteId="FDQT_ACC_02" installmentNumber="2" dueDate="2027-01-15 00:00:00.0" paymentAmount="101000" principalAmount="100000" interestAmount="1000" remainingBalance="0"/>
+    <LoanRepaymentSchedule loanQuoteId="FDQT_REJ_01" installmentNumber="1" dueDate="2026-12-15 00:00:00.0" paymentAmount="51000" principalAmount="50000" interestAmount="1000" remainingBalance="50000"/><LoanRepaymentSchedule loanQuoteId="FDQT_REJ_01" installmentNumber="2" dueDate="2027-01-15 00:00:00.0" paymentAmount="50500" principalAmount="50000" interestAmount="500" remainingBalance="0"/>
+    <LoanRepaymentSchedule loanQuoteId="FDQT_REJ_02" installmentNumber="1" dueDate="2026-12-15 00:00:00.0" paymentAmount="102000" principalAmount="100000" interestAmount="2000" remainingBalance="100000"/><LoanRepaymentSchedule loanQuoteId="FDQT_REJ_02" installmentNumber="2" dueDate="2027-01-15 00:00:00.0" paymentAmount="101000" principalAmount="100000" interestAmount="1000" remainingBalance="0"/>
+
+    <!-- ============================================================= -->
+    <!-- LoanUnderwriting: two snapshots for every status              -->
+    <!-- ============================================================= -->
+    <LoanUnderwriting loanUnderwritingId="FDUW_REV_01" loanApplicationId="FDAPP_SUB_01" statusId="LOANUW_IN_REVIEW" creditScore="680" decision="PENDING" reviewerPartyId="Company" comments="審査中デモ1"/>
+    <LoanUnderwriting loanUnderwritingId="FDUW_REV_02" loanApplicationId="FDAPP_SUB_02" statusId="LOANUW_IN_REVIEW" creditScore="700" decision="PENDING" reviewerPartyId="Company" comments="審査中デモ2"/>
+    <LoanUnderwriting loanUnderwritingId="FDUW_APR_01" loanApplicationId="FDAPP_CON_01" statusId="LOANUW_APPROVED" creditScore="760" decision="APPROVED" approvedPrincipalAmount="100000" approvedAnnualInterestRate="0.120000" reviewerPartyId="Company" reviewDate="2026-05-02 15:00:00.0" comments="承認審査デモ1"/>
+    <LoanUnderwriting loanUnderwritingId="FDUW_APR_02" loanApplicationId="FDAPP_CON_02" statusId="LOANUW_APPROVED" creditScore="780" decision="APPROVED" approvedPrincipalAmount="200000" approvedAnnualInterestRate="0.120000" reviewerPartyId="Company" reviewDate="2026-05-03 15:00:00.0" comments="承認審査デモ2"/>
+    <LoanUnderwriting loanUnderwritingId="FDUW_REJ_01" loanApplicationId="FDAPP_REJ_01" statusId="LOANUW_REJECTED" creditScore="520" decision="REJECTED" reviewerPartyId="Company" reviewDate="2026-07-03 15:00:00.0" comments="否決審査デモ1"/>
+    <LoanUnderwriting loanUnderwritingId="FDUW_REJ_02" loanApplicationId="FDAPP_REJ_02" statusId="LOANUW_REJECTED" creditScore="540" decision="REJECTED" reviewerPartyId="Company" reviewDate="2026-07-04 15:00:00.0" comments="否決審査デモ2"/>
+
+    <!-- ============================================================= -->
+    <!-- Agreement chains: accepted quote + approved underwriting      -->
+    <!-- + FinAccount + immutable agreement repayment schedule         -->
+    <!-- ============================================================= -->
+    <!-- Draft -->
+    <LoanQuote loanQuoteId="FDQT_DRA_01" loanApplicationId="FDAPP_DRA_01" statusId="LOANQT_ACCEPTED" currencyUomId="JPY" principalAmount="300000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="304500" totalInterestAmount="4500" firstPaymentDate="2026-12-15 00:00:00.0" createdDate="2026-09-03 10:00:00.0"/>
+    <LoanQuote loanQuoteId="FDQT_DRA_02" loanApplicationId="FDAPP_DRA_02" statusId="LOANQT_ACCEPTED" currencyUomId="JPY" principalAmount="320000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="324800" totalInterestAmount="4800" firstPaymentDate="2026-12-20 00:00:00.0" createdDate="2026-09-04 10:00:00.0"/>
+    <LoanUnderwriting loanUnderwritingId="FDUW_DRA_01" loanApplicationId="FDAPP_DRA_01" statusId="LOANUW_APPROVED" creditScore="730" decision="APPROVED" approvedPrincipalAmount="300000" approvedAnnualInterestRate="0.120000" reviewerPartyId="Company" reviewDate="2026-09-05 15:00:00.0"/><LoanUnderwriting loanUnderwritingId="FDUW_DRA_02" loanApplicationId="FDAPP_DRA_02" statusId="LOANUW_APPROVED" creditScore="735" decision="APPROVED" approvedPrincipalAmount="320000" approvedAnnualInterestRate="0.120000" reviewerPartyId="Company" reviewDate="2026-09-06 15:00:00.0"/>
+    <FinAccount finAccountId="FDFIN_DRA_01" finAccountTypeId="LOAN_ACCOUNT" statusId="FNACT_ACTIVE" finAccountName="JPY Loan Draft 01" currencyUomId="JPY" organizationPartyId="Company" ownerPartyId="FD_BORROWER_A" postToGlAccountId="120000" fromDate="2026-09-07 00:00:00.0" actualBalance="0" availableBalance="0"/>
+    <FinAccount finAccountId="FDFIN_DRA_02" finAccountTypeId="LOAN_ACCOUNT" statusId="FNACT_ACTIVE" finAccountName="JPY Loan Draft 02" currencyUomId="JPY" organizationPartyId="Company" ownerPartyId="FD_BORROWER_B" postToGlAccountId="120000" fromDate="2026-09-08 00:00:00.0" actualBalance="0" availableBalance="0"/>
+    <LoanAgreement loanAgreementId="FDAGR_DRA_01" loanApplicationId="FDAPP_DRA_01" loanQuoteId="FDQT_DRA_01" finAccountId="FDFIN_DRA_01" statusId="LOANAGR_DRAFT" borrowerPartyId="FD_BORROWER_A" currencyUomId="JPY" principalAmount="300000" annualInterestRate="0.120000" termMonths="2" agreementDate="2026-09-07 00:00:00.0" firstPaymentDate="2026-12-15 00:00:00.0" processingLockVersion="0"/>
+    <LoanAgreement loanAgreementId="FDAGR_DRA_02" loanApplicationId="FDAPP_DRA_02" loanQuoteId="FDQT_DRA_02" finAccountId="FDFIN_DRA_02" statusId="LOANAGR_DRAFT" borrowerPartyId="FD_BORROWER_B" currencyUomId="JPY" principalAmount="320000" annualInterestRate="0.120000" termMonths="2" agreementDate="2026-09-08 00:00:00.0" firstPaymentDate="2026-12-20 00:00:00.0" processingLockVersion="0"/>
+
+    <!-- Active -->
+    <LoanQuote loanQuoteId="FDQT_ACT_01" loanApplicationId="FDAPP_ACT_01" statusId="LOANQT_ACCEPTED" currencyUomId="JPY" principalAmount="400000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="406000" totalInterestAmount="6000" firstPaymentDate="2026-09-15 00:00:00.0" createdDate="2026-07-03 10:00:00.0"/>
+    <LoanQuote loanQuoteId="FDQT_ACT_02" loanApplicationId="FDAPP_ACT_02" statusId="LOANQT_ACCEPTED" currencyUomId="JPY" principalAmount="420000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="426300" totalInterestAmount="6300" firstPaymentDate="2026-11-15 00:00:00.0" createdDate="2026-08-03 10:00:00.0"/>
+    <LoanUnderwriting loanUnderwritingId="FDUW_ACT_01" loanApplicationId="FDAPP_ACT_01" statusId="LOANUW_APPROVED" creditScore="750" decision="APPROVED" approvedPrincipalAmount="400000" approvedAnnualInterestRate="0.120000" reviewerPartyId="Company" reviewDate="2026-07-04 15:00:00.0"/><LoanUnderwriting loanUnderwritingId="FDUW_ACT_02" loanApplicationId="FDAPP_ACT_02" statusId="LOANUW_APPROVED" creditScore="755" decision="APPROVED" approvedPrincipalAmount="420000" approvedAnnualInterestRate="0.120000" reviewerPartyId="Company" reviewDate="2026-08-04 15:00:00.0"/>
+    <FinAccount finAccountId="FDFIN_ACT_01" finAccountTypeId="LOAN_ACCOUNT" statusId="FNACT_ACTIVE" finAccountName="JPY Loan Active 01" currencyUomId="JPY" organizationPartyId="Company" ownerPartyId="FD_BORROWER_A" postToGlAccountId="120000" fromDate="2026-07-05 00:00:00.0" actualBalance="0" availableBalance="0"/>
+    <FinAccount finAccountId="FDFIN_ACT_02" finAccountTypeId="LOAN_ACCOUNT" statusId="FNACT_ACTIVE" finAccountName="JPY Loan Active 02" currencyUomId="JPY" organizationPartyId="Company" ownerPartyId="FD_BORROWER_B" postToGlAccountId="120000" fromDate="2026-08-05 00:00:00.0" actualBalance="0" availableBalance="0"/>
+    <LoanAgreement loanAgreementId="FDAGR_ACT_01" loanApplicationId="FDAPP_ACT_01" loanQuoteId="FDQT_ACT_01" finAccountId="FDFIN_ACT_01" statusId="LOANAGR_ACTIVE" borrowerPartyId="FD_BORROWER_A" currencyUomId="JPY" principalAmount="400000" annualInterestRate="0.120000" termMonths="2" agreementDate="2026-07-05 00:00:00.0" firstPaymentDate="2026-09-15 00:00:00.0" processingLockVersion="0"/>
+    <LoanAgreement loanAgreementId="FDAGR_ACT_02" loanApplicationId="FDAPP_ACT_02" loanQuoteId="FDQT_ACT_02" finAccountId="FDFIN_ACT_02" statusId="LOANAGR_ACTIVE" borrowerPartyId="FD_BORROWER_B" currencyUomId="JPY" principalAmount="420000" annualInterestRate="0.120000" termMonths="2" agreementDate="2026-08-05 00:00:00.0" firstPaymentDate="2026-11-15 00:00:00.0" processingLockVersion="0"/>
+
+    <!-- Closed -->
+    <LoanQuote loanQuoteId="FDQT_CLO_01" loanApplicationId="FDAPP_CLO_01" statusId="LOANQT_ACCEPTED" currencyUomId="JPY" principalAmount="500000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="507500" totalInterestAmount="7500" firstPaymentDate="2025-02-15 00:00:00.0" createdDate="2025-01-03 10:00:00.0"/>
+    <LoanQuote loanQuoteId="FDQT_CLO_02" loanApplicationId="FDAPP_CLO_02" statusId="LOANQT_ACCEPTED" currencyUomId="JPY" principalAmount="520000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="527800" totalInterestAmount="7800" firstPaymentDate="2025-03-15 00:00:00.0" createdDate="2025-02-03 10:00:00.0"/>
+    <LoanUnderwriting loanUnderwritingId="FDUW_CLO_01" loanApplicationId="FDAPP_CLO_01" statusId="LOANUW_APPROVED" creditScore="790" decision="APPROVED" approvedPrincipalAmount="500000" approvedAnnualInterestRate="0.120000" reviewerPartyId="Company" reviewDate="2025-01-04 15:00:00.0"/><LoanUnderwriting loanUnderwritingId="FDUW_CLO_02" loanApplicationId="FDAPP_CLO_02" statusId="LOANUW_APPROVED" creditScore="795" decision="APPROVED" approvedPrincipalAmount="520000" approvedAnnualInterestRate="0.120000" reviewerPartyId="Company" reviewDate="2025-02-04 15:00:00.0"/>
+    <FinAccount finAccountId="FDFIN_CLO_01" finAccountTypeId="LOAN_ACCOUNT" statusId="FNACT_ACTIVE" finAccountName="JPY Loan Closed 01" currencyUomId="JPY" organizationPartyId="Company" ownerPartyId="FD_BORROWER_A" postToGlAccountId="120000" fromDate="2025-01-05 00:00:00.0" actualBalance="0" availableBalance="0"/>
+    <FinAccount finAccountId="FDFIN_CLO_02" finAccountTypeId="LOAN_ACCOUNT" statusId="FNACT_ACTIVE" finAccountName="JPY Loan Closed 02" currencyUomId="JPY" organizationPartyId="Company" ownerPartyId="FD_BORROWER_B" postToGlAccountId="120000" fromDate="2025-02-05 00:00:00.0" actualBalance="0" availableBalance="0"/>
+    <LoanAgreement loanAgreementId="FDAGR_CLO_01" loanApplicationId="FDAPP_CLO_01" loanQuoteId="FDQT_CLO_01" finAccountId="FDFIN_CLO_01" statusId="LOANAGR_CLOSED" borrowerPartyId="FD_BORROWER_A" currencyUomId="JPY" principalAmount="500000" annualInterestRate="0.120000" termMonths="2" agreementDate="2025-01-05 00:00:00.0" firstPaymentDate="2025-02-15 00:00:00.0" processingLockVersion="0"/>
+    <LoanAgreement loanAgreementId="FDAGR_CLO_02" loanApplicationId="FDAPP_CLO_02" loanQuoteId="FDQT_CLO_02" finAccountId="FDFIN_CLO_02" statusId="LOANAGR_CLOSED" borrowerPartyId="FD_BORROWER_B" currencyUomId="JPY" principalAmount="520000" annualInterestRate="0.120000" termMonths="2" agreementDate="2025-02-05 00:00:00.0" firstPaymentDate="2025-03-15 00:00:00.0" processingLockVersion="0"/>
+
+    <!-- Cancelled -->
+    <LoanQuote loanQuoteId="FDQT_ACN_01" loanApplicationId="FDAPP_ACN_01" statusId="LOANQT_ACCEPTED" currencyUomId="JPY" principalAmount="250000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="253750" totalInterestAmount="3750" firstPaymentDate="2026-12-10 00:00:00.0" createdDate="2026-09-12 10:00:00.0"/>
+    <LoanQuote loanQuoteId="FDQT_ACN_02" loanApplicationId="FDAPP_ACN_02" statusId="LOANQT_ACCEPTED" currencyUomId="JPY" principalAmount="270000" annualInterestRate="0.120000" termMonths="2" repaymentMethodEnumId="LOAN_RPM_EQUAL_PRIN" totalPaymentAmount="274050" totalInterestAmount="4050" firstPaymentDate="2026-12-11 00:00:00.0" createdDate="2026-09-13 10:00:00.0"/>
+    <LoanUnderwriting loanUnderwritingId="FDUW_ACN_01" loanApplicationId="FDAPP_ACN_01" statusId="LOANUW_APPROVED" creditScore="710" decision="APPROVED" approvedPrincipalAmount="250000" approvedAnnualInterestRate="0.120000" reviewerPartyId="Company" reviewDate="2026-09-13 15:00:00.0"/><LoanUnderwriting loanUnderwritingId="FDUW_ACN_02" loanApplicationId="FDAPP_ACN_02" statusId="LOANUW_APPROVED" creditScore="715" decision="APPROVED" approvedPrincipalAmount="270000" approvedAnnualInterestRate="0.120000" reviewerPartyId="Company" reviewDate="2026-09-14 15:00:00.0"/>
+    <FinAccount finAccountId="FDFIN_ACN_01" finAccountTypeId="LOAN_ACCOUNT" statusId="FNACT_ACTIVE" finAccountName="JPY Loan Cancelled 01" currencyUomId="JPY" organizationPartyId="Company" ownerPartyId="FD_BORROWER_A" postToGlAccountId="120000" fromDate="2026-09-14 00:00:00.0" actualBalance="0" availableBalance="0"/>
+    <FinAccount finAccountId="FDFIN_ACN_02" finAccountTypeId="LOAN_ACCOUNT" statusId="FNACT_ACTIVE" finAccountName="JPY Loan Cancelled 02" currencyUomId="JPY" organizationPartyId="Company" ownerPartyId="FD_BORROWER_B" postToGlAccountId="120000" fromDate="2026-09-15 00:00:00.0" actualBalance="0" availableBalance="0"/>
+    <LoanAgreement loanAgreementId="FDAGR_ACN_01" loanApplicationId="FDAPP_ACN_01" loanQuoteId="FDQT_ACN_01" finAccountId="FDFIN_ACN_01" statusId="LOANAGR_CANCELLED" borrowerPartyId="FD_BORROWER_A" currencyUomId="JPY" principalAmount="250000" annualInterestRate="0.120000" termMonths="2" agreementDate="2026-09-14 00:00:00.0" firstPaymentDate="2026-12-10 00:00:00.0" processingLockVersion="0"/>
+    <LoanAgreement loanAgreementId="FDAGR_ACN_02" loanApplicationId="FDAPP_ACN_02" loanQuoteId="FDQT_ACN_02" finAccountId="FDFIN_ACN_02" statusId="LOANAGR_CANCELLED" borrowerPartyId="FD_BORROWER_B" currencyUomId="JPY" principalAmount="270000" annualInterestRate="0.120000" termMonths="2" agreementDate="2026-09-15 00:00:00.0" firstPaymentDate="2026-12-11 00:00:00.0" processingLockVersion="0"/>
+
+    <!-- Quote schedules and identical agreement snapshots for all agreement chains. -->
+    <LoanRepaymentSchedule loanQuoteId="FDQT_DRA_01" installmentNumber="1" dueDate="2026-12-15 00:00:00.0" paymentAmount="153000" principalAmount="150000" interestAmount="3000" remainingBalance="150000"/><LoanRepaymentSchedule loanQuoteId="FDQT_DRA_01" installmentNumber="2" dueDate="2027-01-15 00:00:00.0" paymentAmount="151500" principalAmount="150000" interestAmount="1500" remainingBalance="0"/>
+    <LoanRepaymentSchedule loanQuoteId="FDQT_DRA_02" installmentNumber="1" dueDate="2026-12-20 00:00:00.0" paymentAmount="163200" principalAmount="160000" interestAmount="3200" remainingBalance="160000"/><LoanRepaymentSchedule loanQuoteId="FDQT_DRA_02" installmentNumber="2" dueDate="2027-01-20 00:00:00.0" paymentAmount="161600" principalAmount="160000" interestAmount="1600" remainingBalance="0"/>
+    <LoanRepaymentSchedule loanQuoteId="FDQT_ACT_01" installmentNumber="1" dueDate="2026-09-15 00:00:00.0" paymentAmount="204000" principalAmount="200000" interestAmount="4000" remainingBalance="200000"/><LoanRepaymentSchedule loanQuoteId="FDQT_ACT_01" installmentNumber="2" dueDate="2026-10-15 00:00:00.0" paymentAmount="202000" principalAmount="200000" interestAmount="2000" remainingBalance="0"/>
+    <LoanRepaymentSchedule loanQuoteId="FDQT_ACT_02" installmentNumber="1" dueDate="2026-11-15 00:00:00.0" paymentAmount="214200" principalAmount="210000" interestAmount="4200" remainingBalance="210000"/><LoanRepaymentSchedule loanQuoteId="FDQT_ACT_02" installmentNumber="2" dueDate="2026-12-15 00:00:00.0" paymentAmount="212100" principalAmount="210000" interestAmount="2100" remainingBalance="0"/>
+    <LoanRepaymentSchedule loanQuoteId="FDQT_CLO_01" installmentNumber="1" dueDate="2025-02-15 00:00:00.0" paymentAmount="255000" principalAmount="250000" interestAmount="5000" remainingBalance="250000"/><LoanRepaymentSchedule loanQuoteId="FDQT_CLO_01" installmentNumber="2" dueDate="2025-03-15 00:00:00.0" paymentAmount="252500" principalAmount="250000" interestAmount="2500" remainingBalance="0"/>
+    <LoanRepaymentSchedule loanQuoteId="FDQT_CLO_02" installmentNumber="1" dueDate="2025-03-15 00:00:00.0" paymentAmount="265200" principalAmount="260000" interestAmount="5200" remainingBalance="260000"/><LoanRepaymentSchedule loanQuoteId="FDQT_CLO_02" installmentNumber="2" dueDate="2025-04-15 00:00:00.0" paymentAmount="262600" principalAmount="260000" interestAmount="2600" remainingBalance="0"/>
+    <LoanRepaymentSchedule loanQuoteId="FDQT_ACN_01" installmentNumber="1" dueDate="2026-12-10 00:00:00.0" paymentAmount="127500" principalAmount="125000" interestAmount="2500" remainingBalance="125000"/><LoanRepaymentSchedule loanQuoteId="FDQT_ACN_01" installmentNumber="2" dueDate="2027-01-10 00:00:00.0" paymentAmount="126250" principalAmount="125000" interestAmount="1250" remainingBalance="0"/>
+    <LoanRepaymentSchedule loanQuoteId="FDQT_ACN_02" installmentNumber="1" dueDate="2026-12-11 00:00:00.0" paymentAmount="137700" principalAmount="135000" interestAmount="2700" remainingBalance="135000"/><LoanRepaymentSchedule loanQuoteId="FDQT_ACN_02" installmentNumber="2" dueDate="2027-01-11 00:00:00.0" paymentAmount="136350" principalAmount="135000" interestAmount="1350" remainingBalance="0"/>
+
+    <LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_DRA_01" installmentNumber="1" loanQuoteId="FDQT_DRA_01" dueDate="2026-12-15 00:00:00.0" paymentAmount="153000" principalAmount="150000" interestAmount="3000" remainingBalance="150000"/><LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_DRA_01" installmentNumber="2" loanQuoteId="FDQT_DRA_01" dueDate="2027-01-15 00:00:00.0" paymentAmount="151500" principalAmount="150000" interestAmount="1500" remainingBalance="0"/>
+    <LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_DRA_02" installmentNumber="1" loanQuoteId="FDQT_DRA_02" dueDate="2026-12-20 00:00:00.0" paymentAmount="163200" principalAmount="160000" interestAmount="3200" remainingBalance="160000"/><LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_DRA_02" installmentNumber="2" loanQuoteId="FDQT_DRA_02" dueDate="2027-01-20 00:00:00.0" paymentAmount="161600" principalAmount="160000" interestAmount="1600" remainingBalance="0"/>
+    <LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_ACT_01" installmentNumber="1" loanQuoteId="FDQT_ACT_01" dueDate="2026-09-15 00:00:00.0" paymentAmount="204000" principalAmount="200000" interestAmount="4000" remainingBalance="200000"/><LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_ACT_01" installmentNumber="2" loanQuoteId="FDQT_ACT_01" dueDate="2026-10-15 00:00:00.0" paymentAmount="202000" principalAmount="200000" interestAmount="2000" remainingBalance="0"/>
+    <LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_ACT_02" installmentNumber="1" loanQuoteId="FDQT_ACT_02" dueDate="2026-11-15 00:00:00.0" paymentAmount="214200" principalAmount="210000" interestAmount="4200" remainingBalance="210000"/><LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_ACT_02" installmentNumber="2" loanQuoteId="FDQT_ACT_02" dueDate="2026-12-15 00:00:00.0" paymentAmount="212100" principalAmount="210000" interestAmount="2100" remainingBalance="0"/>
+    <LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_CLO_01" installmentNumber="1" loanQuoteId="FDQT_CLO_01" dueDate="2025-02-15 00:00:00.0" paymentAmount="255000" principalAmount="250000" interestAmount="5000" remainingBalance="250000"/><LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_CLO_01" installmentNumber="2" loanQuoteId="FDQT_CLO_01" dueDate="2025-03-15 00:00:00.0" paymentAmount="252500" principalAmount="250000" interestAmount="2500" remainingBalance="0"/>
+    <LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_CLO_02" installmentNumber="1" loanQuoteId="FDQT_CLO_02" dueDate="2025-03-15 00:00:00.0" paymentAmount="265200" principalAmount="260000" interestAmount="5200" remainingBalance="260000"/><LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_CLO_02" installmentNumber="2" loanQuoteId="FDQT_CLO_02" dueDate="2025-04-15 00:00:00.0" paymentAmount="262600" principalAmount="260000" interestAmount="2600" remainingBalance="0"/>
+    <LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_ACN_01" installmentNumber="1" loanQuoteId="FDQT_ACN_01" dueDate="2026-12-10 00:00:00.0" paymentAmount="127500" principalAmount="125000" interestAmount="2500" remainingBalance="125000"/><LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_ACN_01" installmentNumber="2" loanQuoteId="FDQT_ACN_01" dueDate="2027-01-10 00:00:00.0" paymentAmount="126250" principalAmount="125000" interestAmount="1250" remainingBalance="0"/>
+    <LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_ACN_02" installmentNumber="1" loanQuoteId="FDQT_ACN_02" dueDate="2026-12-11 00:00:00.0" paymentAmount="137700" principalAmount="135000" interestAmount="2700" remainingBalance="135000"/><LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_ACN_02" installmentNumber="2" loanQuoteId="FDQT_ACN_02" dueDate="2027-01-11 00:00:00.0" paymentAmount="136350" principalAmount="135000" interestAmount="1350" remainingBalance="0"/>
+</entity-engine-xml>

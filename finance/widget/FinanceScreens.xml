@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<screens xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://ofbiz.apache.org/Widget-Screen" xsi:schemaLocation="http://ofbiz.apache.org/Widget-Screen http://ofbiz.apache.org/dtds/widget-screen.xsd">
+
+    <screen name="FindLoanApplication">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceFindLoanApplications"/>
+                <set field="headerItem" value="LoanApplications"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <screenlet title="${uiLabelMap.FinanceFindLoanApplications}">
+                            <include-form name="FindLoanApplications" location="component://finance/widget/FinanceForms.xml"/>
+                        </screenlet>
+                        <screenlet title="${uiLabelMap.FinanceLoanApplications}">
+                            <container style="button-bar">
+                                <link target="EditLoanApplication" text="${uiLabelMap.FinanceNewLoanApplication}" style="buttontext create"/>
+                            </container>
+                            <include-grid name="ListLoanApplications" location="component://finance/widget/FinanceForms.xml"/>
+                        </screenlet>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+
+    <screen name="EditLoanApplication">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceEditLoanApplication"/>
+                <set field="headerItem" value="LoanApplications"/>
+                <set field="loanApplicationId" from-field="parameters.loanApplicationId"/>
+                <entity-one entity-name="LoanApplication" value-field="loanApplication"/>
+                <set field="target" value="updateLoanApplication"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <section>
+                            <condition><not><if-empty field="loanApplication"/></not></condition>
+                            <widgets>
+                                <include-menu name="LoanApplicationTabBar" location="component://finance/widget/FinanceMenus.xml"/>
+                            </widgets>
+                        </section>
+                        <screenlet title="${uiLabelMap.FinanceEditLoanApplication}">
+                            <include-form name="EditLoanApplication" location="component://finance/widget/FinanceForms.xml"/>
+                        </screenlet>
+                        <section>
+                            <condition><not><if-empty field="loanApplication"/></not></condition>
+                            <widgets>
+                                <screenlet title="${uiLabelMap.FinanceChangeStatus}">
+                                    <include-form name="ChangeLoanApplicationStatus" location="component://finance/widget/FinanceForms.xml"/>
+                                </screenlet>
+                            </widgets>
+                        </section>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+
+</screens>

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://ofbiz.apache.org/dtds/services.xsd">
+    <description>Finance - STEP 2 Services (Quote, Underwriting, Agreement)</description>
+    <vendor>OFBiz Finance</vendor>
+    <version>1.0</version>
+
+    <!-- ============================================================= -->
+    <!-- Quote: generate a repayment plan for a LoanApplication        -->
+    <!-- ============================================================= -->
+    <service name="createLoanQuote" engine="groovy"
+            location="component://finance/groovyScripts/CreateLoanQuote.groovy" invoke="" auth="true">
+        <description>Create a loan quote and generate its repayment schedule from a LoanApplication</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <attribute name="loanApplicationId" type="String" mode="IN" optional="false"/>
+        <attribute name="principalAmount" type="BigDecimal" mode="IN" optional="true"><description>defaults to the application's requested principal</description></attribute>
+        <attribute name="annualInterestRate" type="BigDecimal" mode="IN" optional="true"><description>defaults to the financial product's default rate</description></attribute>
+        <attribute name="termMonths" type="Long" mode="IN" optional="true"><description>defaults to the application's requested term</description></attribute>
+        <attribute name="repaymentMethodEnumId" type="String" mode="IN" optional="true"><description>defaults to LOAN_RPM_EQUAL_PAY</description></attribute>
+        <attribute name="firstPaymentDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="loanQuoteId" type="String" mode="OUT" optional="false"/>
+    </service>
+
+    <service name="updateLoanQuote" default-entity-name="LoanQuote" engine="groovy"
+            location="component://finance/groovyScripts/RejectLoanQuoteUpdate.groovy" invoke="" auth="true">
+        <description>Reject in-place quote updates; create a new quote to recalculate its schedule</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true">
+            <exclude field-name="statusId"/>
+        </auto-attributes>
+    </service>
+
+    <service name="setLoanQuoteStatus" engine="groovy"
+            location="component://finance/groovyScripts/SetFinanceEntityStatus.groovy" invoke="" auth="true">
+        <description>Change the status of a Loan Quote (validated against StatusValidChange)</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="loanQuoteId" type="String" mode="IN" optional="false"/>
+        <attribute name="statusId" type="String" mode="IN" optional="false"/>
+        <attribute name="oldStatusId" type="String" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- Underwriting: review / credit decision                        -->
+    <!-- ============================================================= -->
+    <service name="createLoanUnderwriting" default-entity-name="LoanUnderwriting" engine="groovy"
+            location="component://finance/groovyScripts/SaveLoanUnderwriting.groovy" invoke="" auth="true">
+        <description>Create underwriting in IN_REVIEW/PENDING state</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <auto-attributes include="pk" mode="OUT" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true">
+            <exclude field-name="statusId"/>
+            <exclude field-name="decision"/>
+            <exclude field-name="reviewDate"/>
+        </auto-attributes>
+        <override name="loanApplicationId" optional="false"/>
+    </service>
+    <service name="updateLoanUnderwriting" default-entity-name="LoanUnderwriting" engine="groovy"
+            location="component://finance/groovyScripts/SaveLoanUnderwriting.groovy" invoke="" auth="true">
+        <description>Update underwriting inputs only while IN_REVIEW</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <auto-attributes include="pk" mode="INOUT" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true">
+            <exclude field-name="statusId"/>
+            <exclude field-name="decision"/>
+            <exclude field-name="reviewDate"/>
+            <exclude field-name="loanApplicationId"/>
+        </auto-attributes>
+    </service>
+    <service name="setLoanUnderwritingStatus" engine="groovy"
+            location="component://finance/groovyScripts/SetFinanceEntityStatus.groovy" invoke="" auth="true">
+        <description>Change the status of a Loan Underwriting record</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="loanUnderwritingId" type="String" mode="IN" optional="false"/>
+        <attribute name="statusId" type="String" mode="IN" optional="false"/>
+        <attribute name="oldStatusId" type="String" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- Agreement: finalize contract and open a loan FinAccount       -->
+    <!-- ============================================================= -->
+    <service name="createLoanAgreement" engine="groovy"
+            location="component://finance/groovyScripts/CreateLoanAgreement.groovy" invoke="" auth="true">
+        <description>Create and activate a loan agreement from an approved application, accepted quote and approved underwriting; snapshot the repayment schedule and open a FinAccount</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <attribute name="loanQuoteId" type="String" mode="IN" optional="false"/>
+        <attribute name="organizationPartyId" type="String" mode="IN" optional="true"><description>lender organization; defaults to Company</description></attribute>
+        <attribute name="agreementDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="loanAgreementId" type="String" mode="OUT" optional="false"/>
+        <attribute name="finAccountId" type="String" mode="OUT" optional="false"/>
+    </service>
+    <service name="setLoanAgreementStatus" engine="groovy"
+            location="component://finance/groovyScripts/SetFinanceEntityStatus.groovy" invoke="" auth="true">
+        <description>Change the status of a Loan Agreement</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="statusId" type="String" mode="IN" optional="false"/>
+        <attribute name="oldStatusId" type="String" mode="OUT" optional="true"/>
+    </service>
+
+</services>
