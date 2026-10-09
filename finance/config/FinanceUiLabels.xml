@@ -682,4 +682,82 @@ under the License.
         <value xml:lang="en">Total exposure ${totalExposure} exceeds the credit limit ${creditLimitAmount} for party ${partyId}.</value>
         <value xml:lang="ja">与信枠 ${creditLimitAmount} に対し総与信 ${totalExposure} が超過しています: ${partyId}</value>
     </property>
+
+    <!-- STEP 6: Delinquency / Late Fee / Dunning -->
+    <property key="FinanceDelinquency">
+        <value xml:lang="en">Delinquency</value>
+        <value xml:lang="ja">延滞管理</value>
+    </property>
+    <property key="FinanceDelinquencies">
+        <value xml:lang="en">Delinquent Loans</value>
+        <value xml:lang="ja">延滞一覧</value>
+    </property>
+    <property key="FinanceDelinquencyBatch">
+        <value xml:lang="en">Delinquency Processing</value>
+        <value xml:lang="ja">延滞判定</value>
+    </property>
+    <property key="FinanceRunDelinquencyBatch">
+        <value xml:lang="en">Run Delinquency Processing</value>
+        <value xml:lang="ja">延滞判定を実行</value>
+    </property>
+    <property key="FinanceDaysPastDue">
+        <value xml:lang="en">Days Past Due</value>
+        <value xml:lang="ja">延滞日数</value>
+    </property>
+    <property key="FinanceDelinquencyLevel">
+        <value xml:lang="en">Delinquency Level</value>
+        <value xml:lang="ja">延滞区分</value>
+    </property>
+    <property key="FinanceOverduePrincipal">
+        <value xml:lang="en">Overdue Principal</value>
+        <value xml:lang="ja">延滞元本</value>
+    </property>
+    <property key="FinanceOverdueInterest">
+        <value xml:lang="en">Overdue Interest</value>
+        <value xml:lang="ja">延滞利息</value>
+    </property>
+    <property key="FinanceLateFee">
+        <value xml:lang="en">Late Fee</value>
+        <value xml:lang="ja">遅延損害金</value>
+    </property>
+    <property key="FinanceRunLateFeeAccrual">
+        <value xml:lang="en">Accrue Late Fee</value>
+        <value xml:lang="ja">遅延損害金を計上</value>
+    </property>
+    <property key="FinanceLateFeeAccruals">
+        <value xml:lang="en">Late Fee Accruals</value>
+        <value xml:lang="ja">遅延損害金計上一覧</value>
+    </property>
+    <property key="FinanceDunningNotice">
+        <value xml:lang="en">Dunning Notice</value>
+        <value xml:lang="ja">督促状</value>
+    </property>
+    <property key="FinanceDunningLevel">
+        <value xml:lang="en">Dunning Level</value>
+        <value xml:lang="ja">督促レベル</value>
+    </property>
+    <property key="FinanceGenerateDunningNotice">
+        <value xml:lang="en">Create Dunning Notice</value>
+        <value xml:lang="ja">督促状を作成</value>
+    </property>
+    <property key="FinancePrintDunningNotice">
+        <value xml:lang="en">Print Dunning Notice (PDF)</value>
+        <value xml:lang="ja">督促状を印刷 (PDF)</value>
+    </property>
+    <property key="FinanceDunningNotices">
+        <value xml:lang="en">Dunning Notices</value>
+        <value xml:lang="ja">督促履歴</value>
+    </property>
+    <property key="FinanceDelinquencyActions">
+        <value xml:lang="en">Delinquency Actions</value>
+        <value xml:lang="ja">処置履歴</value>
+    </property>
+    <property key="FinanceWriteOff">
+        <value xml:lang="en">Write Off</value>
+        <value xml:lang="ja">償却</value>
+    </property>
+    <property key="FinanceLegalAction">
+        <value xml:lang="en">Legal Action</value>
+        <value xml:lang="ja">法的手続き</value>
+    </property>
 </resource>

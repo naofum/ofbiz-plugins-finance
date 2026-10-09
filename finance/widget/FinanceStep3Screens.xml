@@ -74,6 +74,25 @@ under the License.
                                 <section>
                                     <condition><if-has-permission permission="FINANCE_ACCOUNTING" action="_CREATE"/></condition>
                                     <widgets>
+                                        <screenlet title="${uiLabelMap.FinanceDelinquency}">
+                                            <include-form name="RunLateFeeAccrual" location="component://finance/widget/FinanceStep6Forms.xml"/>
+                                            <include-grid name="ListLoanLateFeeAccruals" location="component://finance/widget/FinanceStep6Forms.xml"/>
+                                        </screenlet>
+                                    </widgets>
+                                </section>
+
+                                <screenlet title="${uiLabelMap.FinanceDunningNotices}">
+                                    <include-form name="CreateDunningNotice" location="component://finance/widget/FinanceStep6Forms.xml"/>
+                                    <include-grid name="ListDunningNotices" location="component://finance/widget/FinanceStep6Forms.xml"/>
+                                </screenlet>
+
+                                <screenlet title="${uiLabelMap.FinanceDelinquencyActions}">
+                                    <include-grid name="ListDelinquencyActions" location="component://finance/widget/FinanceStep6Forms.xml"/>
+                                </screenlet>
+
+                                <section>
+                                    <condition><if-has-permission permission="FINANCE_ACCOUNTING" action="_CREATE"/></condition>
+                                    <widgets>
                                         <screenlet title="${uiLabelMap.FinanceMonthlyAccrual}">
                                             <include-form name="RunAccrual" location="component://finance/widget/FinanceStep3Forms.xml"/>
                                             <include-grid name="ListLoanAccruals" location="component://finance/widget/FinanceStep3Forms.xml"/>

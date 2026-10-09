@@ -28,7 +28,14 @@ under the License.
     <Product productId="TEST_LOANPROD1" productTypeId="SERVICE" internalName="Test Personal Loan" productName="Test Personal Loan"/>
     <FinancialProduct productId="TEST_LOANPROD1" financialProductTypeId="PERSONAL_UNSECURED"
             currencyUomId="USD" minPrincipalAmount="10000" maxPrincipalAmount="1000000"
-            minTermMonths="1" maxTermMonths="60" defaultAnnualInterestRate="0.150000" requiresCollateral="N"/>
+            minTermMonths="1" maxTermMonths="60" defaultAnnualInterestRate="0.150000" requiresCollateral="N"
+            lateFeeAnnualRate="0.146000"/>
+
+    <!-- Delinquency classification thresholds for the test product -->
+    <FinancialProductDelinquency productId="TEST_LOANPROD1" delinquencyLevelEnumId="DELINQ_D1" minDaysPastDue="1" maxDaysPastDue="30" dunningLevelEnumId="DUN_L1" writeoffFlag="N" legalActionFlag="N"/>
+    <FinancialProductDelinquency productId="TEST_LOANPROD1" delinquencyLevelEnumId="DELINQ_D2" minDaysPastDue="31" maxDaysPastDue="60" dunningLevelEnumId="DUN_L2" writeoffFlag="N" legalActionFlag="N"/>
+    <FinancialProductDelinquency productId="TEST_LOANPROD1" delinquencyLevelEnumId="DELINQ_D3" minDaysPastDue="61" maxDaysPastDue="90" dunningLevelEnumId="DUN_L3" writeoffFlag="Y" legalActionFlag="N"/>
+    <FinancialProductDelinquency productId="TEST_LOANPROD1" delinquencyLevelEnumId="DELINQ_D4" minDaysPastDue="91" dunningLevelEnumId="DUN_L4" writeoffFlag="Y" legalActionFlag="Y"/>
 
     <!-- A received loan application used by the lifecycle tests -->
     <LoanApplication loanApplicationId="TEST_LOANAPP1" productId="TEST_LOANPROD1"

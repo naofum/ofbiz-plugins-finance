@@ -1,18 +1,19 @@
-# Finance プラグイン 仕様（STEP 1〜STEP 5 完了分）
+# Finance プラグイン 仕様（STEP 1〜STEP 6 完了分）
 
 Apache OFBiz 上に構築する独立したファイナンスモジュール。
 *The Data Model Resource Book* の **Financial Services** をベースに、ローン業務を提供する。
 全体計画はリポジトリ直下の `REQUIREMENTS.md` を参照。
 
-このドキュメントは **STEP 1〜STEP 5**（REQUIREMENTS.md の全ステップ）の仕様をまとめたもの。
+このドキュメントは **STEP 1〜STEP 6**（REQUIREMENTS.md の全ステップ）の仕様をまとめたもの。
 
 - STEP 1: ローン申込の CRUD、ステータス遷移、検索一覧 / 登録編集画面
 - STEP 2: 見積（返済計画シミュレーション）、審査、契約（ローン口座＝FinAccount 開設）
 - STEP 3: 月次利息計上、請求（Invoice 生成）、入金消込（Payment 適用）＋単体テスト
 - STEP 4: 担保付ローン（Collateral の登録・評価・紐付け、LTV 上限の強制）＋単体テスト
 - STEP 5: 事業者向けローン（与信枠の限度額チェック、保証人の記録）＋単体テスト
+- STEP 6: 延滞管理・督促（延滞判定・遅延損害金計上・督促状・償却）＋単体テスト
 
-STEP 2 はセクション 9〜12、STEP 3 はセクション 13〜17、STEP 4 はセクション 20、STEP 5 はセクション 21 にまとめている。
+STEP 2 はセクション 9〜12、STEP 3 はセクション 13〜17、STEP 4 はセクション 20、STEP 5 はセクション 21、STEP 6 はセクション 22 にまとめている。
 実装言語の方針：計算・会計・バッチ＝**Java**、CRUD / ステータス遷移 / 画面データ準備＝**entity-auto / Groovy**。
 
 ---
@@ -44,19 +45,23 @@ plugins/finance/
 │   ├── entitymodel_step2.xml    # STEP 2 エンティティ（見積 / 審査 / 契約）
 │   ├── entitymodel_step3.xml    # STEP 3 エンティティ（請求対応 / 利息計上 / 入金対応）
 │   ├── entitymodel_step4.xml    # STEP 4 エンティティ（担保 / 評価 / 紐付け）
-│   └── entitymodel_step5.xml    # STEP 5 エンティティ（与信枠 / 保証人）
+│   ├── entitymodel_step5.xml    # STEP 5 エンティティ（与信枠 / 保証人）
+│   └── entitymodel_step6.xml    # STEP 6 エンティティ（延滞 / 遅延損害金 / 督促 / 処置）
 ├── servicedef/
 │   ├── services.xml             # STEP 1: CRUD + ステータス遷移 + 権限サービス
 │   ├── services_step2.xml       # STEP 2: 見積 / 審査 / 契約サービス
 │   ├── services_step3.xml       # STEP 3: 経理 / 請求 / 入金サービス（Java）
 │   ├── services_step4.xml       # STEP 4: 担保 CRUD / 評価 / 紐付け / LTV サービス
-│   └── services_step5.xml       # STEP 5: 与信枠 / 保証人 / 限度額検証サービス
+│   ├── services_step5.xml       # STEP 5: 与信枠 / 保証人 / 限度額検証サービス
+│   └── services_step6.xml       # STEP 6: 延滞バッチ / 遅延損害金 / 督促サービス（Java）
 ├── src/main/java/org/apache/ofbiz/finance/accounting/
-│   └── FinanceAccountingServices.java   # STEP 3 業務ロジック（Java）
+│   ├── FinanceAccountingServices.java    # STEP 3 業務ロジック（Java）
+│   └── FinanceDelinquencyServices.java   # STEP 6 業務ロジック（Java）
 ├── src/main/groovy/org/apache/ofbiz/finance/test/
 │   ├── LoanLifecycleTests.groovy        # STEP 3 単体テスト（OFBizTestCase）
 │   ├── LoanCollateralTests.groovy       # STEP 4 単体テスト（OFBizTestCase）
-│   └── LoanBusinessLoanTests.groovy     # STEP 5 単体テスト（OFBizTestCase）
+│   ├── LoanBusinessLoanTests.groovy     # STEP 5 単体テスト（OFBizTestCase）
+│   └── LoanDelinquencyTests.groovy      # STEP 6 単体テスト（OFBizTestCase）
 ├── groovyScripts/
 │   ├── SetLoanApplicationStatus.groovy  # STEP 1 ステータス遷移
 │   ├── CreateLoanQuote.groovy           # STEP 2 見積・返済計画算出
@@ -78,7 +83,9 @@ plugins/finance/
 │   ├── FinanceStep4Forms.xml    # STEP 4 担保 / 申告 / 評価 / 紐付けフォーム・一覧
 │   ├── FinanceStep4Screens.xml  # STEP 4 担保一覧 / 担保編集画面
 │   ├── FinanceStep5Forms.xml    # STEP 5 与信枠 / 保証人フォーム・一覧
-│   └── FinanceStep5Screens.xml  # STEP 5 与信枠一覧 / 与信枠編集画面
+│   ├── FinanceStep5Screens.xml  # STEP 5 与信枠一覧 / 与信枠編集画面
+│   ├── FinanceStep6Forms.xml    # STEP 6 延滞 / 遅延損害金 / 督促フォーム・一覧
+│   └── FinanceStep6Screens.xml  # STEP 6 延滞一覧画面
 ├── webapp/finance/
 │   ├── index.jsp                # /control/main へリダイレクト
 │   └── WEB-INF/
@@ -94,10 +101,12 @@ plugins/finance/
     ├── FinanceStep3TypeData.xml               # STEP 3 InvoiceItemType seed
     ├── FinanceStep4TypeData.xml               # STEP 4 担保種別・担保STATUS・評価方法 seed
     ├── FinanceStep5TypeData.xml               # STEP 5 与信枠種別・保証種別 seed
+    ├── FinanceStep6TypeData.xml               # STEP 6 延滞区分・督促レベル・遅延損害金勘定 seed
     ├── FinanceSecurityPermissionSeedData.xml  # 権限 seed データ
     ├── FinanceExchangeRateDemoData.xml         # demo専用 USD/JPY 固定換算レート
     ├── FinanceStep4DemoData.xml                # demo専用 担保付商品・担保・申告
     ├── FinanceStep5DemoData.xml                # demo専用 事業者商品・与信枠・保証人
+    ├── FinanceStep6DemoData.xml                # demo専用 延滞区分閾値
     └── FinanceStatusDemoData.xml               # 全業務STATUSのJPYデモスナップショット
 ```
 
@@ -555,9 +564,10 @@ JPY → USD: conversionFactor = 0.006666666667
 
 - 入力バリデーションの一括追加（`type-validate` + サービス実装内の業務ルールチェック）。現状は主要な契約前提条件と型 / DB 制約を実装済み。
 - 多通貨ローンの入金時に利用する為替レート・換算方針（単通貨テストは貸主基準通貨 USD で実施）。
-- 延滞管理・督促、繰上返済・条件変更などのライフサイクルイベント。
+- 繰上返済・条件変更などのライフサイクルイベント。
 - LTV の担保種別別ヘアカット（担保価額の掛目）や複数担保の優先順位管理。
 - 与信枠のリボルビング化（引き出し・返済による利用可能残高の増減）。
+- 遅延損害金の請求への組込み、督促状の実送信（メール・郵送）連携。
 
 ---
 
@@ -806,16 +816,63 @@ JasperReports 7.x は機能がアーティファクト分割されている点�
 
 ---
 
+## 22. STEP 6 延滞管理・督促（`entitydef/entitymodel_step6.xml`）
+
+期日到来未払いの検出（延滞）、遅延損害金の計上、督促状の発行、償却・法的手続きを実装する。
+
+### データモデル
+
+| エンティティ | 主キー | 主要フィールド / 関連 | 役割 |
+|---|---|---|---|
+| `FinancialProductDelinquency` | productId + delinquencyLevelEnumId | min/maxDaysPastDue, dunningLevelEnumId, writeoffFlag, legalActionFlag | 商品ごとの延滞区分閾値・督促レベル・償却/法的手続きトリガー |
+| `LoanDelinquency` | loanDelinquencyId（採番） | loanAgreementId, asOfDate, daysPastDue, delinquencyLevelEnumId, overduePrincipal/InterestAmount, lateFeeAccruedAmount ＋一意Index(agreement, asOfDate) | 延滞スナップショット |
+| `LoanLateFeeAccrual` | loanLateFeeAccrualId（採番） | loanAgreementId, accrualDate/fromDate/thruDate, overduePrincipal/Interest, lateFeeAmount, acctgTransId ＋一意Index(agreement, fromDate) | 遅延損害金計上 |
+| `LoanDunningNotice` | loanDunningNoticeId（採番） | loanAgreementId, dunningLevelEnumId, noticeDate, sentDate, communicationEventId | 督促通知 |
+| `LoanDelinquencyAction` | loanDelinquencyActionId（採番） | loanAgreementId, actionTypeEnumId, actionDate, amount, invoiceId, acctgTransId | 償却・法的手続き・回収の処置 |
+
+- `FinancialProduct` に `lateFeeAnnualRate`（遅延損害金年率）を追加（加法的）。
+- seed: 延滞区分 `LOAN_DELINQ_LEVEL`、督促レベル `LOAN_DUNNING_LEVEL`、処置種別 `LOAN_DELINQ_ACTION`、`GlAccountType`=`LATE_FEE_INCOME`（GL 810100）＋ `GlAccountTypeDefault`（`WRITEOFF`→517000）。
+
+### サービス（`servicedef/services_step6.xml`、Java `FinanceDelinquencyServices`）
+
+| サービス | 説明 |
+|---|---|
+| runLoanDelinquencyBatch | 全 ACTIVE 契約の延滞判定（期日到来未消込を検出、DPD 算出、商品閾値で区分、スナップショット作成）。writeoffFlag 到達で償却（Invoice WRITEOFF + GL）、legalActionFlag 到達で法的手続き記録。冪等 |
+| runLateFeeAccrual（+Internal） | 延滞残高（元本＋利息）に対する遅延損害金を Actual/365 で増分計上し、GL（借:未収利息 / 貸:遅延損害金収益）を転記 |
+| createLoanDunningNotice | 督促通知の記録（督促レベルごと。PDF は controller イベントで別途生成） |
+
+- 延滞判定の正本は確定返済表＋`Invoice`（`INVOICE_PAID`/`WRITEOFF` 以外は未消込）＋`PaymentApplication`。
+- 直列化・冪等: `processingLockVersion` + 上記一意制約（STEP 3 踏襲）。
+
+### 画面・PDF
+
+- `FindLoanDelinquency`（延滞一覧＋延滞判定バッチ）、`ManageLoanAgreement` に延滞・遅延損害金・督促・処置履歴を追加。
+- 督促状 PDF: `PrintDunningNotice.pdf`（`PrepareDunningNotice.groovy` + `DunningNotice.jrxml`、jasperreports 再利用）。
+
+### テスト（`LoanDelinquencyTests.groovy`）
+
+延滞検出・区分（商品閾値）、遅延損害金の GL 計上（借貸一致・冪等）、督促通知、償却（Invoice WRITEOFF）、法的手続きフラグの 5 ケース。
+
+### 検証状況
+
+| 検証項目 | 方法 | 結果 |
+|----------|------|------|
+| entitymodel_step6 / services_step6 / UiLabels / component / widget | 各対応 XSD でスキーマ検証 | TOTAL_ERRORS=0 |
+| Java / Groovy | `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| finance ライフサイクル実行テスト | `gradlew "ofbiz --test component=finance"` | errors=0 / failures=0 |
+
+---
+
 ### 運用メモ
 
 - 新しい seed（型・ステータス・権限）を追加した場合は、**OFBiz クリーン再起動（または全キャッシュクリア）＋再ログイン** で DB・キャッシュに反映する。
   STEP 1 で、権限 seed 投入後に権限キャッシュが古く「このアプリケーションは使用できません」となる事象を確認済み。
 - Java サービスを追加・変更した場合は再ビルド（`classes` タスク）が必要。
 - STEP 3 の消込解除修正は `plugins/finance` 外の `applications/accounting/src/main/groovy/org/apache/ofbiz/accounting/payment/PaymentServices.groovy` を含む。financeプラグインだけをコピーするデプロイでは欠落するため、core差分も同時に適用して `compileGroovy` とfinanceテストを実行する。
-- `gradlew loadDefault` による全データ再投入は未実施。finance の実行テストは `gradlew "ofbiz --test component=finance"` で完了し、tests=35 / errors=0 / failures=0 を確認済み。
+- `gradlew loadDefault` による全データ再投入は未実施。finance の実行テストは `gradlew "ofbiz --test component=finance"` で完了し、tests=44 / errors=0 / failures=0 を確認済み。
 - 権限：webapp の `base-permission="OFBTOOLS,FINANCE"` を満たすため、`FINANCE_ADMIN` を `SUPER` だけでなく
   `FULLADMIN` / `FLEXADMIN` にも付与している（デモの `admin` は `FULLADMIN` 所属で `SUPER` 非所属のため）。
-- デモデータ：`data/FinanceDemoData.xml`（商品・申込者）、`data/FinanceStep4DemoData.xml`（担保付商品・担保・申告）、`data/FinanceStep5DemoData.xml`（事業者商品・与信枠・保証人）、`data/FinanceStatusDemoData.xml`（全業務STATUSのJPYスナップショット）、`data/FinanceExchangeRateDemoData.xml`（demo専用USD/JPY固定レート）をdemo readerに登録している。UIでローン商品プルダウンが空になる場合はデモデータ未投入が原因。投入は
+- デモデータ：`data/FinanceDemoData.xml`（商品・申込者）、`data/FinanceStep4DemoData.xml`（担保付商品・担保・申告）、`data/FinanceStep5DemoData.xml`（事業者商品・与信枠・保証人）、`data/FinanceStep6DemoData.xml`（延滞区分閾値）、`data/FinanceStatusDemoData.xml`（全業務STATUSのJPYスナップショット）、`data/FinanceExchangeRateDemoData.xml`（demo専用USD/JPY固定レート）をdemo readerに登録している。UIでローン商品プルダウンが空になる場合はデモデータ未投入が原因。投入は
   `gradlew "ofbiz --load-data readers=demo --load-data component=finance"`（OFBiz停止中、`--load-data` は引数ごとに繰り返す）。為替レートはOFBiz共通エンティティへ入り、同一インスタンス全体に影響するため、本番へは投入しない。
 - 見積書 PDF の日本語：`jasperreports` プラグインに `openpdf-fonts-extra` が必要。JRXML のデフォルトスタイルで
   CJK 組み込みフォント（`HeiseiKakuGo-W5` / `UniJIS-UCS2-H`）を指定している。フォントが無いと日本語が

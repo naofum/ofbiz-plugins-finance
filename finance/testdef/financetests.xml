@@ -38,4 +38,8 @@ under the License.
         <junit-test-suite class-name="org.apache.ofbiz.finance.test.LoanBusinessLoanTests"/>
     </test-case>
 
+    <test-case case-name="loan-delinquency-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.LoanDelinquencyTests"/>
+    </test-case>
+
 </test-suite>

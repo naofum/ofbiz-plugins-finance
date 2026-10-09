@@ -32,6 +32,7 @@ under the License.
     <entity-resource type="model" reader-name="main" loader="main" location="entitydef/entitymodel_step3.xml"/>
     <entity-resource type="model" reader-name="main" loader="main" location="entitydef/entitymodel_step4.xml"/>
     <entity-resource type="model" reader-name="main" loader="main" location="entitydef/entitymodel_step5.xml"/>
+    <entity-resource type="model" reader-name="main" loader="main" location="entitydef/entitymodel_step6.xml"/>
 
     <!-- seed data: types, statuses and permissions -->
     <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceTypeData.xml"/>
@@ -39,6 +40,7 @@ under the License.
     <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceStep3TypeData.xml"/>
     <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceStep4TypeData.xml"/>
     <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceStep5TypeData.xml"/>
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceStep6TypeData.xml"/>
     <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceSecurityPermissionSeedData.xml"/>
 
     <!-- demo data: deterministic FX rates, shared master data and status snapshots -->
@@ -46,6 +48,7 @@ under the License.
     <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceDemoData.xml"/>
     <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceStep4DemoData.xml"/>
     <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceStep5DemoData.xml"/>
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceStep6DemoData.xml"/>
     <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceStatusDemoData.xml"/>
 
     <!-- service resources -->
@@ -54,6 +57,7 @@ under the License.
     <service-resource type="model" loader="main" location="servicedef/services_step3.xml"/>
     <service-resource type="model" loader="main" location="servicedef/services_step4.xml"/>
     <service-resource type="model" loader="main" location="servicedef/services_step5.xml"/>
+    <service-resource type="model" loader="main" location="servicedef/services_step6.xml"/>
 
     <!-- test suite -->
     <test-suite loader="main" location="testdef/financetests.xml"/>

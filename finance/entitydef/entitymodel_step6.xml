@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<entitymodel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://ofbiz.apache.org/dtds/entitymodel.xsd">
+    <title>Finance Component Entity Model - STEP 6 (Delinquency, Late Fee, Dunning)</title>
+    <description>
+        Delinquency management and dunning for loans. Tracks past-due installments,
+        accrues late fees with GL posting, records dunning notices and write-off /
+        legal actions. Delinquency classification thresholds are configured per
+        financial product.
+    </description>
+    <version>1.0</version>
+
+    <!-- ========================================================= -->
+    <!-- FinancialProductDelinquency: per-product classification   -->
+    <!-- thresholds, dunning level and write-off/legal triggers.   -->
+    <!-- ========================================================= -->
+    <entity entity-name="FinancialProductDelinquency" package-name="org.apache.ofbiz.finance.product"
+            title="Financial Product Delinquency Classification">
+        <field name="productId" type="id"></field>
+        <field name="delinquencyLevelEnumId" type="id"><description>FK to Enumeration (LOAN_DELINQUENCY_LEVEL)</description></field>
+        <field name="minDaysPastDue" type="numeric"><description>inclusive lower bound of days past due</description></field>
+        <field name="maxDaysPastDue" type="numeric"><description>exclusive upper bound of days past due (null = no upper bound)</description></field>
+        <field name="dunningLevelEnumId" type="id"><description>dunning level triggered at this classification</description></field>
+        <field name="writeoffFlag" type="indicator"><description>Y = trigger write-off at this level</description></field>
+        <field name="legalActionFlag" type="indicator"><description>Y = trigger legal action flag at this level</description></field>
+        <prim-key field="productId"/>
+        <prim-key field="delinquencyLevelEnumId"/>
+        <relation type="one" fk-name="FINPRODDEL_PROD" rel-entity-name="FinancialProduct">
+            <key-map field-name="productId"/>
+        </relation>
+        <relation type="one" fk-name="FINPRODDEL_LEV" rel-entity-name="Enumeration">
+            <key-map field-name="delinquencyLevelEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="FINPRODDEL_DUN" rel-entity-name="Enumeration">
+            <key-map field-name="dunningLevelEnumId" rel-field-name="enumId"/>
+        </relation>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- LoanDelinquency: daily snapshot of an agreement's          -->
+    <!-- delinquency state.                                         -->
+    <!-- ========================================================= -->
+    <entity entity-name="LoanDelinquency" package-name="org.apache.ofbiz.finance.delinquency"
+            title="Loan Delinquency Snapshot">
+        <field name="loanDelinquencyId" type="id"><description>primary sequenced ID</description></field>
+        <field name="loanAgreementId" type="id"></field>
+        <field name="asOfDate" type="date-time"><description>delinquency determination date</description></field>
+        <field name="daysPastDue" type="numeric"><description>days past due of the oldest overdue installment</description></field>
+        <field name="delinquencyLevelEnumId" type="id"></field>
+        <field name="overduePrincipalAmount" type="currency-amount"></field>
+        <field name="overdueInterestAmount" type="currency-amount"></field>
+        <field name="lateFeeAccruedAmount" type="currency-amount"><description>cumulative late fee accrued to date</description></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="loanDelinquencyId"/>
+        <relation type="one" fk-name="LOANDEL_AGR" rel-entity-name="LoanAgreement">
+            <key-map field-name="loanAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LOANDEL_LEV" rel-entity-name="Enumeration">
+            <key-map field-name="delinquencyLevelEnumId" rel-field-name="enumId"/>
+        </relation>
+        <index name="LOANDEL_DATE_UQ" unique="true">
+            <index-field name="loanAgreementId"/>
+            <index-field name="asOfDate"/>
+        </index>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- LoanLateFeeAccrual: late fee (penalty interest) accrual.   -->
+    <!-- ========================================================= -->
+    <entity entity-name="LoanLateFeeAccrual" package-name="org.apache.ofbiz.finance.delinquency"
+            title="Loan Late Fee Accrual">
+        <field name="loanLateFeeAccrualId" type="id"><description>primary sequenced ID</description></field>
+        <field name="loanAgreementId" type="id"></field>
+        <field name="accrualDate" type="date-time"></field>
+        <field name="fromDate" type="date-time"></field>
+        <field name="thruDate" type="date-time"></field>
+        <field name="overduePrincipal" type="currency-amount"><description>delinquent principal the fee was computed on</description></field>
+        <field name="overdueInterest" type="currency-amount"><description>delinquent interest the fee was computed on</description></field>
+        <field name="lateFeeAmount" type="currency-amount"></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="acctgTransId" type="id"><description>optional link to a posted AcctgTrans (GL)</description></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="loanLateFeeAccrualId"/>
+        <relation type="one" fk-name="LOANLFA_AGR" rel-entity-name="LoanAgreement">
+            <key-map field-name="loanAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LOANLFA_UOM" rel-entity-name="Uom">
+            <key-map field-name="currencyUomId" rel-field-name="uomId"/>
+        </relation>
+        <relation type="one" fk-name="LOANLFA_ATX" rel-entity-name="AcctgTrans">
+            <key-map field-name="acctgTransId"/>
+        </relation>
+        <index name="LOANLFA_MONTH_UQ" unique="true">
+            <index-field name="loanAgreementId"/>
+            <index-field name="fromDate"/>
+        </index>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- LoanDunningNotice: a dunning / collection notice record.   -->
+    <!-- ========================================================= -->
+    <entity entity-name="LoanDunningNotice" package-name="org.apache.ofbiz.finance.delinquency"
+            title="Loan Dunning Notice">
+        <field name="loanDunningNoticeId" type="id"><description>primary sequenced ID</description></field>
+        <field name="loanAgreementId" type="id"></field>
+        <field name="dunningLevelEnumId" type="id"></field>
+        <field name="noticeDate" type="date-time"></field>
+        <field name="sentDate" type="date-time"><description>null until sent</description></field>
+        <field name="communicationEventId" type="id"><description>optional link to a party CommunicationEvent</description></field>
+        <field name="comments" type="comment"></field>
+        <prim-key field="loanDunningNoticeId"/>
+        <relation type="one" fk-name="LOANDUN_AGR" rel-entity-name="LoanAgreement">
+            <key-map field-name="loanAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LOANDUN_LEV" rel-entity-name="Enumeration">
+            <key-map field-name="dunningLevelEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="LOANDUN_CMEV" rel-entity-name="CommunicationEvent">
+            <key-map field-name="communicationEventId"/>
+        </relation>
+        <index name="LOANDUN_DAY_UQ" unique="true">
+            <index-field name="loanAgreementId"/>
+            <index-field name="dunningLevelEnumId"/>
+            <index-field name="noticeDate"/>
+        </index>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- LoanDelinquencyAction: write-off, legal and collection     -->
+    <!-- actions taken for a delinquent agreement.                  -->
+    <!-- ========================================================= -->
+    <entity entity-name="LoanDelinquencyAction" package-name="org.apache.ofbiz.finance.delinquency"
+            title="Loan Delinquency Action">
+        <field name="loanDelinquencyActionId" type="id"><description>primary sequenced ID</description></field>
+        <field name="loanAgreementId" type="id"></field>
+        <field name="actionTypeEnumId" type="id"><description>e.g. WRITE_OFF, LEGAL_STARTED, COLLECTION</description></field>
+        <field name="actionDate" type="date-time"></field>
+        <field name="amount" type="currency-amount"><description>amount written off (for WRITE_OFF)</description></field>
+        <field name="invoiceId" type="id"><description>optional invoice written off</description></field>
+        <field name="acctgTransId" type="id"><description>optional GL write-off transaction</description></field>
+        <field name="comments" type="comment"></field>
+        <prim-key field="loanDelinquencyActionId"/>
+        <relation type="one" fk-name="LOANDELACT_AGR" rel-entity-name="LoanAgreement">
+            <key-map field-name="loanAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LOANDELACT_TYP" rel-entity-name="Enumeration">
+            <key-map field-name="actionTypeEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="LOANDELACT_INV" rel-entity-name="Invoice">
+            <key-map field-name="invoiceId"/>
+        </relation>
+        <relation type="one" fk-name="LOANDELACT_ATX" rel-entity-name="AcctgTrans">
+            <key-map field-name="acctgTransId"/>
+        </relation>
+        <index name="LOANDELACT_DAY_UQ" unique="true">
+            <index-field name="loanAgreementId"/>
+            <index-field name="actionTypeEnumId"/>
+            <index-field name="actionDate"/>
+        </index>
+    </entity>
+
+</entitymodel>

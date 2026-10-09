@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<entity-engine-xml>
+    <!-- ============ Delinquency classification levels ============ -->
+    <!-- NOTE: enumTypeId is type "id" (VARCHAR(20)); keep this value <= 20 chars. -->
+    <EnumerationType description="Loan Delinquency Level" enumTypeId="LOAN_DELINQ_LEVEL" hasTable="N"/>
+    <Enumeration description="Current (正常)" enumCode="CURRENT" enumId="DELINQ_CURRENT" sequenceId="01" enumTypeId="LOAN_DELINQ_LEVEL"/>
+    <Enumeration description="Delinquent 1-30 days (延滞)" enumCode="D1" enumId="DELINQ_D1" sequenceId="02" enumTypeId="LOAN_DELINQ_LEVEL"/>
+    <Enumeration description="Delinquent 31-60 days (要注意)" enumCode="D2" enumId="DELINQ_D2" sequenceId="03" enumTypeId="LOAN_DELINQ_LEVEL"/>
+    <Enumeration description="Delinquent 61-90 days (要管理)" enumCode="D3" enumId="DELINQ_D3" sequenceId="04" enumTypeId="LOAN_DELINQ_LEVEL"/>
+    <Enumeration description="Delinquent 91+ days (不良)" enumCode="D4" enumId="DELINQ_D4" sequenceId="05" enumTypeId="LOAN_DELINQ_LEVEL"/>
+
+    <!-- ============ Dunning levels ============ -->
+    <EnumerationType description="Loan Dunning Level" enumTypeId="LOAN_DUNNING_LEVEL" hasTable="N"/>
+    <Enumeration description="Reminder (リマインド)" enumCode="L1" enumId="DUN_L1" sequenceId="01" enumTypeId="LOAN_DUNNING_LEVEL"/>
+    <Enumeration description="Notice (催告)" enumCode="L2" enumId="DUN_L2" sequenceId="02" enumTypeId="LOAN_DUNNING_LEVEL"/>
+    <Enumeration description="Final Notice (最終催告)" enumCode="L3" enumId="DUN_L3" sequenceId="03" enumTypeId="LOAN_DUNNING_LEVEL"/>
+    <Enumeration description="Legal Action (法的手段)" enumCode="L4" enumId="DUN_L4" sequenceId="04" enumTypeId="LOAN_DUNNING_LEVEL"/>
+
+    <!-- ============ Delinquency action types ============ -->
+    <EnumerationType description="Loan Delinquency Action" enumTypeId="LOAN_DELINQ_ACTION" hasTable="N"/>
+    <Enumeration description="Write Off (償却)" enumCode="WRITE_OFF" enumId="DELINQ_ACT_WRITEOFF" sequenceId="01" enumTypeId="LOAN_DELINQ_ACTION"/>
+    <Enumeration description="Legal Action Started (法的手続き)" enumCode="LEGAL" enumId="DELINQ_ACT_LEGAL" sequenceId="02" enumTypeId="LOAN_DELINQ_ACTION"/>
+    <Enumeration description="Collection (回収)" enumCode="COLLECTION" enumId="DELINQ_ACT_COLLECT" sequenceId="03" enumTypeId="LOAN_DELINQ_ACTION"/>
+
+    <!-- ============ Late fee income GL account ============ -->
+    <GlAccountType description="Late Fee Income" glAccountTypeId="LATE_FEE_INCOME" hasTable="N" parentTypeId="INCOME"/>
+    <GlAccount parentGlAccountId="810000" glAccountId="810100" accountCode="810100"
+            glAccountClassId="CASH_INCOME" glAccountTypeId="LATE_FEE_INCOME" glResourceTypeId="MONEY"
+            accountName="LATE FEE INCOME"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LATE_FEE_INCOME" glAccountId="810100"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="WRITEOFF" glAccountId="517000"/>
+    <GlAccountOrganization glAccountId="810100" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountOrganization glAccountId="517000" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+</entity-engine-xml>
