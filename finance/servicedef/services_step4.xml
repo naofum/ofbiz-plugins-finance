@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://ofbiz.apache.org/dtds/services.xsd">
+    <description>Finance - STEP 4 Services (Collateral / Secured Loans)</description>
+    <vendor>OFBiz Finance</vendor>
+    <version>1.0</version>
+
+    <!-- ============================================================= -->
+    <!-- Collateral CRUD + status transition                           -->
+    <!-- ============================================================= -->
+    <service name="createCollateral" default-entity-name="Collateral" engine="groovy"
+            location="component://finance/groovyScripts/CreateCollateral.groovy" invoke="" auth="true">
+        <description>Create a collateral asset in COLL_REGISTERED status</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <auto-attributes include="pk" mode="OUT" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true">
+            <exclude field-name="statusId"/>
+            <exclude field-name="createdDate"/>
+        </auto-attributes>
+        <override name="collateralTypeId" optional="false"/>
+        <override name="ownerPartyId" optional="false"/>
+    </service>
+
+    <service name="updateCollateral" default-entity-name="Collateral" engine="groovy"
+            location="component://finance/groovyScripts/UpdateCollateral.groovy" invoke="" auth="true">
+        <description>Update a collateral asset while it is COLL_REGISTERED</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true">
+            <exclude field-name="statusId"/>
+            <exclude field-name="createdDate"/>
+        </auto-attributes>
+    </service>
+
+    <service name="deleteCollateral" default-entity-name="Collateral" engine="groovy"
+            location="component://finance/groovyScripts/DeleteCollateral.groovy" invoke="" auth="true">
+        <description>Delete a collateral asset only while it is not assigned to a loan</description>
+        <permission-service service-name="financeGenericPermission" main-action="DELETE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+    </service>
+
+    <service name="setCollateralStatus" engine="groovy"
+            location="component://finance/groovyScripts/SetCollateralStatus.groovy" invoke="" auth="true">
+        <description>Change the status of a collateral (validated against StatusValidChange)</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="collateralId" type="String" mode="IN" optional="false"/>
+        <attribute name="statusId" type="String" mode="IN" optional="false"/>
+        <attribute name="oldStatusId" type="String" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- Application collateral declaration (stage 1)                  -->
+    <!-- ============================================================= -->
+    <service name="assignLoanApplicationCollateral" engine="groovy"
+            location="component://finance/groovyScripts/AssignLoanApplicationCollateral.groovy" invoke="" auth="true">
+        <description>Declare a collateral on a loan application (RECEIVED only)</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="loanApplicationId" type="String" mode="IN" optional="false"/>
+        <attribute name="collateralId" type="String" mode="IN" optional="false"/>
+        <attribute name="declaredValueAmount" type="BigDecimal" mode="IN" optional="true"/>
+        <attribute name="comments" type="String" mode="IN" optional="true"/>
+    </service>
+
+    <service name="removeLoanApplicationCollateral" engine="groovy"
+            location="component://finance/groovyScripts/RemoveLoanApplicationCollateral.groovy" invoke="" auth="true">
+        <description>Remove a collateral declaration from a loan application (RECEIVED only)</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="loanApplicationId" type="String" mode="IN" optional="false"/>
+        <attribute name="collateralId" type="String" mode="IN" optional="false"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- Collateral valuation (stage 2, used by underwriting)          -->
+    <!-- ============================================================= -->
+    <service name="createCollateralValuation" engine="groovy"
+            location="component://finance/groovyScripts/CreateCollateralValuation.groovy" invoke="" auth="true">
+        <description>Record an appraisal for a collateral</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <attribute name="collateralId" type="String" mode="IN" optional="false"/>
+        <attribute name="appraisedValueAmount" type="BigDecimal" mode="IN" optional="false"/>
+        <attribute name="valuationDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="currencyUomId" type="String" mode="IN" optional="true"/>
+        <attribute name="valuationMethodEnumId" type="String" mode="IN" optional="true"/>
+        <attribute name="appraiserPartyId" type="String" mode="IN" optional="true"/>
+        <attribute name="comments" type="String" mode="IN" optional="true"/>
+        <attribute name="collateralValuationId" type="String" mode="OUT" optional="false"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- Collateral lien on an agreement (stage 3)                     -->
+    <!-- ============================================================= -->
+    <service name="releaseLoanCollateral" engine="groovy"
+            location="component://finance/groovyScripts/ReleaseLoanCollateral.groovy" invoke="" auth="true">
+        <description>Release a collateral lien by closing its thruDate</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="collateralId" type="String" mode="IN" optional="false"/>
+        <attribute name="thruDate" type="Timestamp" mode="IN" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- Internal shared collateral logic (used by status transitions  -->
+    <!-- and agreement creation)                                       -->
+    <!-- ============================================================= -->
+    <service name="financeValidateCollateralLtv" engine="groovy" export="false"
+            location="component://finance/groovyScripts/ValidateCollateralLtv.groovy" invoke="" auth="true">
+        <description>Validate that a secured application's collateral and LTV ratio are satisfied</description>
+        <attribute name="loanApplicationId" type="String" mode="IN" optional="false"/>
+        <attribute name="principalAmount" type="BigDecimal" mode="IN" optional="false"/>
+        <attribute name="requiresCollateral" type="Boolean" mode="OUT" optional="true"/>
+        <attribute name="totalCollateralValue" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="loanToValueRatio" type="BigDecimal" mode="OUT" optional="true"/>
+    </service>
+
+    <service name="financeCreateLoanCollateralLinks" engine="groovy" export="false"
+            location="component://finance/groovyScripts/CreateLoanCollateralLinks.groovy" invoke="" auth="true">
+        <description>Create LoanCollateral liens for every collateral declared on an application</description>
+        <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="loanApplicationId" type="String" mode="IN" optional="false"/>
+        <attribute name="fromDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="lienDescription" type="String" mode="IN" optional="true"/>
+        <attribute name="createdCount" type="Long" mode="OUT" optional="true"/>
+    </service>
+
+</services>

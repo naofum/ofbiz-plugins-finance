@@ -55,6 +55,16 @@ under the License.
                                 <screenlet title="${uiLabelMap.FinanceLoanUnderwriting}">
                                     <include-form name="EditLoanUnderwriting" location="component://finance/widget/FinanceStep2Forms.xml"/>
                                 </screenlet>
+
+                                <screenlet title="${uiLabelMap.FinanceCollateralDeclarations}">
+                                    <section>
+                                        <condition><if-compare field="loanApplication.statusId" operator="equals" value="LOANAPP_RECEIVED"/></condition>
+                                        <widgets>
+                                            <include-form name="AssignLoanApplicationCollateral" location="component://finance/widget/FinanceStep4Forms.xml"/>
+                                        </widgets>
+                                    </section>
+                                    <include-grid name="ListLoanApplicationCollaterals" location="component://finance/widget/FinanceStep4Forms.xml"/>
+                                </screenlet>
                             </widgets>
                             <fail-widgets>
                                 <label text="${uiLabelMap.FinanceLoanApplicationNotFound}"/>

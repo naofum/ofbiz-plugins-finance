@@ -89,6 +89,17 @@ if (principalReceivableDefault == null) {
             [organizationPartyId: organizationPartyId, glAccountTypeId: 'ACCOUNTS_RECEIVABLE'], context.locale))
 }
 
+// 0) Secured loan collateral: the product's collateral and loan-to-value
+// requirements must be satisfied before the contract can be finalized.
+try {
+    runService('financeValidateCollateralLtv', [
+            loanApplicationId: app.loanApplicationId,
+            principalAmount  : quote.getBigDecimal('principalAmount'),
+            userLogin        : userLogin])
+} catch (org.apache.ofbiz.service.ExecutionServiceException e) {
+    return error(e.getMessage())
+}
+
 // 1) Open the core loan account and retain its principal receivable GL account.
 Map finAcctResult = runService('createFinAccount', [
         finAccountTypeId   : 'LOAN_ACCOUNT',
@@ -133,6 +144,14 @@ for (GenericValue source : sourceSchedule) {
             interestAmount    : source.interestAmount,
             remainingBalance  : source.remainingBalance]).create()
 }
+
+// 3b) Link declared collateral to the agreement (lien), assigning each its
+// latest appraised value.
+runService('financeCreateLoanCollateralLinks', [
+        loanAgreementId : loanAgreementId,
+        loanApplicationId: app.loanApplicationId,
+        fromDate        : agreementDate,
+        userLogin       : userLogin])
 
 // 4) Activate the contract and mark the application contracted through the
 // validated transition services. Any failure rolls back the whole transaction.

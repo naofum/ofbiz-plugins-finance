@@ -204,6 +204,80 @@ under the License.
         </response>
     </request-map>
 
+    <!-- STEP 4: Collateral / Secured Loans -->
+    <request-map uri="FindCollateral">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="FindCollateral"/>
+    </request-map>
+    <request-map uri="EditCollateral">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="EditCollateral"/>
+    </request-map>
+    <request-map uri="createCollateral">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createCollateral"/>
+        <response name="success" type="request-redirect" value="EditCollateral">
+            <redirect-parameter name="collateralId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditCollateral"/>
+    </request-map>
+    <request-map uri="updateCollateral">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="updateCollateral"/>
+        <response name="success" type="request-redirect" value="EditCollateral">
+            <redirect-parameter name="collateralId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditCollateral">
+            <redirect-parameter name="collateralId"/>
+        </response>
+    </request-map>
+    <request-map uri="deleteCollateral">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="deleteCollateral"/>
+        <response name="success" type="request-redirect" value="FindCollateral"/>
+        <response name="error" type="request-redirect" value="FindCollateral"/>
+    </request-map>
+    <request-map uri="setCollateralStatus">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="setCollateralStatus"/>
+        <response name="success" type="request-redirect" value="EditCollateral">
+            <redirect-parameter name="collateralId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditCollateral">
+            <redirect-parameter name="collateralId"/>
+        </response>
+    </request-map>
+    <request-map uri="assignLoanApplicationCollateral">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="assignLoanApplicationCollateral"/>
+        <response name="success" type="request-redirect" value="ManageLoanApplication">
+            <redirect-parameter name="loanApplicationId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLoanApplication">
+            <redirect-parameter name="loanApplicationId"/>
+        </response>
+    </request-map>
+    <request-map uri="removeLoanApplicationCollateral">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="removeLoanApplicationCollateral"/>
+        <response name="success" type="request-redirect" value="ManageLoanApplication">
+            <redirect-parameter name="loanApplicationId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLoanApplication">
+            <redirect-parameter name="loanApplicationId"/>
+        </response>
+    </request-map>
+    <request-map uri="createCollateralValuation">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createCollateralValuation"/>
+        <response name="success" type="request-redirect" value="EditCollateral">
+            <redirect-parameter name="collateralId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditCollateral">
+            <redirect-parameter name="collateralId"/>
+        </response>
+    </request-map>
+
     <!-- View Mappings -->
     <view-map name="main" type="screen" page="component://finance/widget/FinanceScreens.xml#FindLoanApplication"/>
     <view-map name="LookupPartyName" type="screen" page="component://party/widget/partymgr/LookupScreens.xml#LookupPartyName"/>
@@ -217,4 +291,6 @@ under the License.
             content-type="application/pdf"/>
     <view-map name="FindLoanAgreement" type="screen" page="component://finance/widget/FinanceStep3Screens.xml#FindLoanAgreement"/>
     <view-map name="ManageLoanAgreement" type="screen" page="component://finance/widget/FinanceStep3Screens.xml#ManageLoanAgreement"/>
+    <view-map name="FindCollateral" type="screen" page="component://finance/widget/FinanceStep4Screens.xml#FindCollateral"/>
+    <view-map name="EditCollateral" type="screen" page="component://finance/widget/FinanceStep4Screens.xml#EditCollateral"/>
 </site-conf>

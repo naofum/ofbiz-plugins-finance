@@ -58,6 +58,7 @@ under the License.
         <field name="maxTermMonths" type="numeric"><description>maximum repayment term in months</description></field>
         <field name="defaultAnnualInterestRate" type="fixed-point"><description>annual nominal interest rate (e.g. 0.150000 = 15%)</description></field>
         <field name="requiresCollateral" type="indicator"><description>Y for secured loans</description></field>
+        <field name="maxLoanToValueRatio" type="fixed-point"><description>maximum loan-to-value ratio for secured loans (e.g. 0.800000 = 80%); null = no cap</description></field>
         <prim-key field="productId"/>
         <relation type="one" fk-name="FINPROD_PROD" rel-entity-name="Product">
             <key-map field-name="productId"/>

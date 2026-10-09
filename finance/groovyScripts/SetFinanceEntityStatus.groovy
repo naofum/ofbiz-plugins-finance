@@ -71,6 +71,23 @@ if (oldStatusId != null) {
     }
 }
 
+// Approving a secured loan requires its collateral and loan-to-value ratio to
+// be satisfied before the underwriting becomes immutable. Reuse the shared
+// internal LTV validator so contract creation enforces the same rule.
+if ('LoanUnderwriting'.equals(entityName) && 'LOANUW_APPROVED'.equals(newStatusId)) {
+    BigDecimal principal = entityValue.getBigDecimal('approvedPrincipalAmount')
+    if (principal != null) {
+        try {
+            runService('financeValidateCollateralLtv', [
+                    loanApplicationId: entityValue.loanApplicationId,
+                    principalAmount  : principal,
+                    userLogin        : userLogin])
+        } catch (org.apache.ofbiz.service.ExecutionServiceException e) {
+            return error(e.getMessage())
+        }
+    }
+}
+
 entityValue.statusId = newStatusId
 if ('LoanUnderwriting'.equals(entityName)) {
     if ('LOANUW_APPROVED'.equals(newStatusId)) {

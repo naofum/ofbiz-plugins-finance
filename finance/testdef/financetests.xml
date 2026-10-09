@@ -30,4 +30,8 @@ under the License.
         <junit-test-suite class-name="org.apache.ofbiz.finance.test.LoanLifecycleTests"/>
     </test-case>
 
+    <test-case case-name="loan-collateral-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.LoanCollateralTests"/>
+    </test-case>
+
 </test-suite>

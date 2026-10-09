@@ -47,4 +47,21 @@ under the License.
             applicantPartyId="TEST_BORROWER1" statusId="LOANAPP_RECEIVED" currencyUomId="USD"
             requestedPrincipalAmount="36000" requestedTermMonths="6"
             purpose="Monthly accrual and recurring billing test"/>
+
+    <!-- Secured loan product (requires collateral, 80% LTV cap) -->
+    <Product productId="TEST_SECPROD1" productTypeId="SERVICE" internalName="Test Secured Loan" productName="Test Secured Loan"/>
+    <FinancialProduct productId="TEST_SECPROD1" financialProductTypeId="SECURED"
+            currencyUomId="USD" minPrincipalAmount="10000" maxPrincipalAmount="1000000"
+            minTermMonths="1" maxTermMonths="60" defaultAnnualInterestRate="0.120000"
+            requiresCollateral="Y" maxLoanToValueRatio="0.800000"/>
+
+    <!-- A collateral asset (real estate) -->
+    <Collateral collateralId="TEST_COLLATERAL1" collateralTypeId="REAL_ESTATE" ownerPartyId="TEST_BORROWER1"
+            currencyUomId="USD" description="Test real estate collateral" statusId="COLL_REGISTERED"/>
+
+    <!-- A secured loan application -->
+    <LoanApplication loanApplicationId="TEST_LOANAPP_SEC" productId="TEST_SECPROD1"
+            applicantPartyId="TEST_BORROWER1" statusId="LOANAPP_RECEIVED" currencyUomId="USD"
+            requestedPrincipalAmount="60000" requestedTermMonths="10"
+            purpose="Secured loan test"/>
 </entity-engine-xml>

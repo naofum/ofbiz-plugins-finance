@@ -67,6 +67,10 @@ under the License.
                                     <include-form name="ViewLoanAgreementHeader" location="component://finance/widget/FinanceStep3Forms.xml"/>
                                 </screenlet>
 
+                                <screenlet title="${uiLabelMap.FinanceLinkedCollaterals}">
+                                    <include-grid name="ListLoanCollaterals" location="component://finance/widget/FinanceStep4Forms.xml"/>
+                                </screenlet>
+
                                 <section>
                                     <condition><if-has-permission permission="FINANCE_ACCOUNTING" action="_CREATE"/></condition>
                                     <widgets>

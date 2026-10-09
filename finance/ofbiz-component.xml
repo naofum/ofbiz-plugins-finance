@@ -30,22 +30,26 @@ under the License.
     <entity-resource type="model" reader-name="main" loader="main" location="entitydef/entitymodel.xml"/>
     <entity-resource type="model" reader-name="main" loader="main" location="entitydef/entitymodel_step2.xml"/>
     <entity-resource type="model" reader-name="main" loader="main" location="entitydef/entitymodel_step3.xml"/>
+    <entity-resource type="model" reader-name="main" loader="main" location="entitydef/entitymodel_step4.xml"/>
 
     <!-- seed data: types, statuses and permissions -->
     <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceTypeData.xml"/>
     <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceStep2TypeData.xml"/>
     <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceStep3TypeData.xml"/>
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceStep4TypeData.xml"/>
     <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceSecurityPermissionSeedData.xml"/>
 
     <!-- demo data: deterministic FX rates, shared master data and status snapshots -->
     <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceExchangeRateDemoData.xml"/>
     <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceDemoData.xml"/>
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceStep4DemoData.xml"/>
     <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceStatusDemoData.xml"/>
 
     <!-- service resources -->
     <service-resource type="model" loader="main" location="servicedef/services.xml"/>
     <service-resource type="model" loader="main" location="servicedef/services_step2.xml"/>
     <service-resource type="model" loader="main" location="servicedef/services_step3.xml"/>
+    <service-resource type="model" loader="main" location="servicedef/services_step4.xml"/>
 
     <!-- test suite -->
     <test-suite loader="main" location="testdef/financetests.xml"/>

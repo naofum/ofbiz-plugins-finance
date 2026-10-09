@@ -168,4 +168,12 @@ production services. All monetary records are JPY.
     <LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_CLO_02" installmentNumber="1" loanQuoteId="FDQT_CLO_02" dueDate="2025-03-15 00:00:00.0" paymentAmount="265200" principalAmount="260000" interestAmount="5200" remainingBalance="260000"/><LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_CLO_02" installmentNumber="2" loanQuoteId="FDQT_CLO_02" dueDate="2025-04-15 00:00:00.0" paymentAmount="262600" principalAmount="260000" interestAmount="2600" remainingBalance="0"/>
     <LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_ACN_01" installmentNumber="1" loanQuoteId="FDQT_ACN_01" dueDate="2026-12-10 00:00:00.0" paymentAmount="127500" principalAmount="125000" interestAmount="2500" remainingBalance="125000"/><LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_ACN_01" installmentNumber="2" loanQuoteId="FDQT_ACN_01" dueDate="2027-01-10 00:00:00.0" paymentAmount="126250" principalAmount="125000" interestAmount="1250" remainingBalance="0"/>
     <LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_ACN_02" installmentNumber="1" loanQuoteId="FDQT_ACN_02" dueDate="2026-12-11 00:00:00.0" paymentAmount="137700" principalAmount="135000" interestAmount="2700" remainingBalance="135000"/><LoanAgreementRepaymentSchedule loanAgreementId="FDAGR_ACN_02" installmentNumber="2" loanQuoteId="FDQT_ACN_02" dueDate="2027-01-11 00:00:00.0" paymentAmount="136350" principalAmount="135000" interestAmount="1350" remainingBalance="0"/>
+
+    <!-- ============================================================= -->
+    <!-- Collateral: two snapshots for every status                    -->
+    <!-- ============================================================= -->
+    <Collateral collateralId="FDCOL_REG_01" collateralTypeId="REAL_ESTATE" ownerPartyId="FD_BORROWER_A" currencyUomId="JPY" description="登録済み担保デモ1" statusId="COLL_REGISTERED"/>
+    <Collateral collateralId="FDCOL_REG_02" collateralTypeId="VEHICLE" ownerPartyId="FD_BORROWER_B" currencyUomId="JPY" description="登録済み担保デモ2" statusId="COLL_REGISTERED"/>
+    <Collateral collateralId="FDCOL_REL_01" collateralTypeId="DEPOSIT" ownerPartyId="FD_BORROWER_A" currencyUomId="JPY" description="解除済み担保デモ1" statusId="COLL_RELEASED"/>
+    <Collateral collateralId="FDCOL_REL_02" collateralTypeId="SECURITIES" ownerPartyId="FD_BORROWER_B" currencyUomId="JPY" description="解除済み担保デモ2" statusId="COLL_RELEASED"/>
 </entity-engine-xml>

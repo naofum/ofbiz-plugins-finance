@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+
+    Demo data for the finance plugin STEP 4: a secured (mortgage) loan product,
+    a real-estate collateral with a valuation, and a secured application with a
+    collateral declaration. Depends on the standard demo borrower (DEMO_BORROWER1
+    from FinanceDemoData.xml) and STEP 4 seed data (collateral types / status).
+-->
+<entity-engine-xml>
+    <!-- Secured loan product (mortgage demo, 80% LTV cap) -->
+    <Product productId="DEMO_SECPROD1" productTypeId="SERVICE"
+            internalName="Demo Mortgage Loan" productName="住宅ローン（担保付・デモ）"/>
+    <FinancialProduct productId="DEMO_SECPROD1" financialProductTypeId="SECURED"
+            currencyUomId="JPY" minPrincipalAmount="100000" maxPrincipalAmount="50000000"
+            minTermMonths="12" maxTermMonths="420" defaultAnnualInterestRate="0.020000"
+            requiresCollateral="Y" maxLoanToValueRatio="0.800000"/>
+
+    <!-- A demo real-estate collateral with an appraisal -->
+    <Collateral collateralId="DEMO_COLLATERAL1" collateralTypeId="REAL_ESTATE" ownerPartyId="DEMO_BORROWER1"
+            currencyUomId="JPY" description="自宅（デモ担保物件）" statusId="COLL_REGISTERED"/>
+    <CollateralValuation collateralValuationId="DEMO_COLLVAL1" collateralId="DEMO_COLLATERAL1"
+            valuationDate="2026-01-15 00:00:00.0" appraisedValueAmount="30000000" currencyUomId="JPY"
+            valuationMethodEnumId="COLL_VAL_APPRAISAL"/>
+
+    <!-- A secured loan application with a collateral declaration -->
+    <LoanApplication loanApplicationId="DEMO_LOANAPP_SEC" productId="DEMO_SECPROD1"
+            applicantPartyId="DEMO_BORROWER1" statusId="LOANAPP_RECEIVED" currencyUomId="JPY"
+            requestedPrincipalAmount="20000000" requestedTermMonths="240"
+            purpose="住宅購入（デモ）"/>
+    <LoanApplicationCollateral loanApplicationId="DEMO_LOANAPP_SEC" collateralId="DEMO_COLLATERAL1"
+            declaredValueAmount="30000000"/>
+</entity-engine-xml>

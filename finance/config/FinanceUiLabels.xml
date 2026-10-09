@@ -482,4 +482,138 @@ under the License.
         <value xml:lang="en">The interest rate must be a number (percent, e.g. 15 or 15.5).</value>
         <value xml:lang="ja">金利は数値（％、例: 15 または 15.5）で入力してください。</value>
     </property>
+
+    <!-- STEP 4: Collateral / Secured Loans -->
+    <property key="FinanceCollateral">
+        <value xml:lang="en">Collateral</value>
+        <value xml:lang="ja">担保</value>
+    </property>
+    <property key="FinanceCollaterals">
+        <value xml:lang="en">Collaterals</value>
+        <value xml:lang="ja">担保一覧</value>
+    </property>
+    <property key="FinanceNewCollateral">
+        <value xml:lang="en">New Collateral</value>
+        <value xml:lang="ja">新規担保</value>
+    </property>
+    <property key="FinanceEditCollateral">
+        <value xml:lang="en">Edit Collateral</value>
+        <value xml:lang="ja">担保編集</value>
+    </property>
+    <property key="FinanceFindCollaterals">
+        <value xml:lang="en">Find Collaterals</value>
+        <value xml:lang="ja">担保検索</value>
+    </property>
+    <property key="FinanceCollateralId">
+        <value xml:lang="en">Collateral ID</value>
+        <value xml:lang="ja">担保ID</value>
+    </property>
+    <property key="FinanceCollateralTypeId">
+        <value xml:lang="en">Collateral Type</value>
+        <value xml:lang="ja">担保種別</value>
+    </property>
+    <property key="FinanceOwnerPartyId">
+        <value xml:lang="en">Owner</value>
+        <value xml:lang="ja">担保提供者</value>
+    </property>
+    <property key="FinanceFixedAssetId">
+        <value xml:lang="en">Fixed Asset</value>
+        <value xml:lang="ja">固定資産</value>
+    </property>
+    <property key="FinanceCollateralDescription">
+        <value xml:lang="en">Description</value>
+        <value xml:lang="ja">説明</value>
+    </property>
+    <property key="FinanceDeclaredValueAmount">
+        <value xml:lang="en">Declared Value</value>
+        <value xml:lang="ja">申告価額</value>
+    </property>
+    <property key="FinanceAppraisedValueAmount">
+        <value xml:lang="en">Appraised Value</value>
+        <value xml:lang="ja">評価額</value>
+    </property>
+    <property key="FinanceValuationDate">
+        <value xml:lang="en">Valuation Date</value>
+        <value xml:lang="ja">評価日</value>
+    </property>
+    <property key="FinanceValuationMethod">
+        <value xml:lang="en">Valuation Method</value>
+        <value xml:lang="ja">評価方法</value>
+    </property>
+    <property key="FinanceAppraiserPartyId">
+        <value xml:lang="en">Appraiser</value>
+        <value xml:lang="ja">評価者</value>
+    </property>
+    <property key="FinanceAssignedValueAmount">
+        <value xml:lang="en">Assigned Value</value>
+        <value xml:lang="ja">充当担保価額</value>
+    </property>
+    <property key="FinanceLienDescription">
+        <value xml:lang="en">Lien / Registration</value>
+        <value xml:lang="ja">登記・設定参照</value>
+    </property>
+    <property key="FinanceCollateralDeclarations">
+        <value xml:lang="en">Collateral Declarations</value>
+        <value xml:lang="ja">担保申告</value>
+    </property>
+    <property key="FinanceAddCollateral">
+        <value xml:lang="en">Add Collateral</value>
+        <value xml:lang="ja">担保を追加</value>
+    </property>
+    <property key="FinanceRemoveCollateral">
+        <value xml:lang="en">Remove</value>
+        <value xml:lang="ja">申告解除</value>
+    </property>
+    <property key="FinanceReleaseCollateral">
+        <value xml:lang="en">Release</value>
+        <value xml:lang="ja">担保解除</value>
+    </property>
+    <property key="FinanceReleaseCollateralConfirm">
+        <value xml:lang="en">Release this collateral?</value>
+        <value xml:lang="ja">この担保を解除しますか？</value>
+    </property>
+    <property key="FinanceCollateralValuations">
+        <value xml:lang="en">Collateral Valuations</value>
+        <value xml:lang="ja">担保評価</value>
+    </property>
+    <property key="FinanceAddValuation">
+        <value xml:lang="en">Record Valuation</value>
+        <value xml:lang="ja">評価を記録</value>
+    </property>
+    <property key="FinanceLinkedCollaterals">
+        <value xml:lang="en">Linked Collaterals</value>
+        <value xml:lang="ja">紐付け済み担保</value>
+    </property>
+    <property key="FinanceLoanToValueRatio">
+        <value xml:lang="en">Loan-to-Value Ratio</value>
+        <value xml:lang="ja">LTV比率</value>
+    </property>
+    <property key="FinanceMaxLoanToValueRatio">
+        <value xml:lang="en">Max Loan-to-Value Ratio</value>
+        <value xml:lang="ja">LTV上限</value>
+    </property>
+    <property key="FinanceTotalCollateralValue">
+        <value xml:lang="en">Total Collateral Value</value>
+        <value xml:lang="ja">担保評価合計</value>
+    </property>
+    <property key="FinanceCollateralRequired">
+        <value xml:lang="en">This secured loan requires at least one collateral: ${loanApplicationId}</value>
+        <value xml:lang="ja">担保付ローンには担保が1件以上必要です: ${loanApplicationId}</value>
+    </property>
+    <property key="FinanceCollateralValuationMissing">
+        <value xml:lang="en">No valuation recorded for collateral: ${collateralId}</value>
+        <value xml:lang="ja">担保の評価が記録されていません: ${collateralId}</value>
+    </property>
+    <property key="FinanceCollateralLtvExceeded">
+        <value xml:lang="en">Loan-to-value ratio ${loanToValueRatio} exceeds the maximum ${maxLoanToValueRatio}.</value>
+        <value xml:lang="ja">LTV比率 ${loanToValueRatio} が上限 ${maxLoanToValueRatio} を超えています。</value>
+    </property>
+    <property key="FinanceCollateralInUse">
+        <value xml:lang="en">Collateral ${collateralId} is assigned to a loan and cannot be deleted.</value>
+        <value xml:lang="ja">担保 ${collateralId} はローンに紐付けられているため削除できません。</value>
+    </property>
+    <property key="FinanceCollateralImmutable">
+        <value xml:lang="en">A released collateral cannot be edited: ${collateralId}</value>
+        <value xml:lang="ja">解除済みの担保は変更できません: ${collateralId}</value>
+    </property>
 </resource>

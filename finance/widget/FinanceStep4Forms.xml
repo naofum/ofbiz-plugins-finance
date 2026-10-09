@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://ofbiz.apache.org/Widget-Form" xsi:schemaLocation="http://ofbiz.apache.org/Widget-Form http://ofbiz.apache.org/dtds/widget-form.xsd">
+
+    <!-- Create / edit a collateral asset -->
+    <form name="EditCollateral" type="single" target="createCollateral" default-entity-name="Collateral">
+        <alt-target use-when="collateral!=null" target="updateCollateral"/>
+        <field use-when="collateral!=null" name="collateralId" title="${uiLabelMap.FinanceCollateralId}"><display/></field>
+        <field name="collateralTypeId" title="${uiLabelMap.FinanceCollateralTypeId}">
+            <drop-down allow-empty="false">
+                <entity-options key-field-name="collateralTypeId" description="${description}" entity-name="CollateralType">
+                    <entity-order-by field-name="description"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="ownerPartyId" title="${uiLabelMap.FinanceOwnerPartyId}"><text size="20"/></field>
+        <field name="fixedAssetId" title="${uiLabelMap.FinanceFixedAssetId}"><text size="20"/></field>
+        <field name="currencyUomId" title="${uiLabelMap.FinanceCurrencyUomId}"><text size="10"/></field>
+        <field name="description" title="${uiLabelMap.FinanceCollateralDescription}"><text size="40"/></field>
+        <field name="submitButton" title="${uiLabelMap.CommonSubmit}"><submit button-type="button"/></field>
+    </form>
+
+    <!-- Collaterals list -->
+    <grid name="ListCollaterals" list-name="collaterals" default-entity-name="Collateral" paginate="false">
+        <actions>
+            <entity-condition entity-name="Collateral">
+                <order-by field-name="createdDate"/>
+            </entity-condition>
+        </actions>
+        <field name="collateralId" title="${uiLabelMap.FinanceCollateralId}" widget-style="buttontext">
+            <hyperlink description="${collateralId}" target="EditCollateral" also-hidden="false">
+                <parameter param-name="collateralId"/>
+            </hyperlink>
+        </field>
+        <field name="collateralTypeId" title="${uiLabelMap.FinanceCollateralTypeId}"><display-entity entity-name="CollateralType"/></field>
+        <field name="ownerPartyId" title="${uiLabelMap.FinanceOwnerPartyId}"><display/></field>
+        <field name="description" title="${uiLabelMap.FinanceCollateralDescription}"><display/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem"/></field>
+    </grid>
+
+    <!-- Declare a collateral on a loan application -->
+    <form name="AssignLoanApplicationCollateral" type="single" target="assignLoanApplicationCollateral">
+        <field name="loanApplicationId"><hidden/></field>
+        <field name="collateralId" title="${uiLabelMap.FinanceCollateralId}">
+            <drop-down allow-empty="false">
+                <entity-options key-field-name="collateralId" description="${description} [${collateralId}]" entity-name="Collateral">
+                    <entity-order-by field-name="description"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="declaredValueAmount" title="${uiLabelMap.FinanceDeclaredValueAmount}"><text size="20"/></field>
+        <field name="assignButton" title="${uiLabelMap.FinanceAddCollateral}"><submit button-type="button"/></field>
+    </form>
+
+    <!-- Collaterals declared on a loan application -->
+    <grid name="ListLoanApplicationCollaterals" list-name="declaredCollaterals" default-entity-name="LoanApplicationCollateral" paginate="false">
+        <actions>
+            <entity-condition entity-name="LoanApplicationCollateral">
+                <condition-expr field-name="loanApplicationId" from-field="loanApplicationId"/>
+                <order-by field-name="collateralId"/>
+            </entity-condition>
+        </actions>
+        <field name="collateralId" title="${uiLabelMap.FinanceCollateralId}" widget-style="buttontext">
+            <hyperlink description="${collateralId}" target="EditCollateral" also-hidden="false">
+                <parameter param-name="collateralId"/>
+            </hyperlink>
+        </field>
+        <field name="declaredValueAmount" title="${uiLabelMap.FinanceDeclaredValueAmount}"><display/></field>
+        <field name="removeLink" title=" " widget-style="buttontext">
+            <hyperlink description="${uiLabelMap.FinanceRemoveCollateral}" target="removeLoanApplicationCollateral" also-hidden="false">
+                <parameter param-name="loanApplicationId"/>
+                <parameter param-name="collateralId"/>
+            </hyperlink>
+        </field>
+    </grid>
+
+    <!-- Record a valuation for a collateral -->
+    <form name="CreateCollateralValuation" type="single" target="createCollateralValuation">
+        <field name="collateralId"><hidden/></field>
+        <field name="appraisedValueAmount" title="${uiLabelMap.FinanceAppraisedValueAmount}"><text size="20"/></field>
+        <field name="valuationDate" title="${uiLabelMap.FinanceValuationDate}"><date-time type="date"/></field>
+        <field name="valuationMethodEnumId" title="${uiLabelMap.FinanceValuationMethod}">
+            <drop-down allow-empty="false">
+                <entity-options key-field-name="enumId" description="${description}" entity-name="Enumeration">
+                    <entity-constraint name="enumTypeId" value="COLL_VAL_METHOD"/>
+                    <entity-order-by field-name="sequenceId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="valuationButton" title="${uiLabelMap.FinanceAddValuation}"><submit button-type="button"/></field>
+    </form>
+
+    <!-- Valuations for a collateral -->
+    <grid name="ListCollateralValuations" list-name="valuations" default-entity-name="CollateralValuation" paginate="false">
+        <actions>
+            <entity-condition entity-name="CollateralValuation">
+                <condition-expr field-name="collateralId" from-field="collateralId"/>
+                <order-by field-name="valuationDate"/>
+            </entity-condition>
+        </actions>
+        <field name="valuationDate" title="${uiLabelMap.FinanceValuationDate}"><display type="date"/></field>
+        <field name="appraisedValueAmount" title="${uiLabelMap.FinanceAppraisedValueAmount}"><display/></field>
+        <field name="valuationMethodEnumId" title="${uiLabelMap.FinanceValuationMethod}"><display-entity entity-name="Enumeration"/></field>
+        <field name="appraiserPartyId" title="${uiLabelMap.FinanceAppraiserPartyId}"><display/></field>
+    </grid>
+
+    <!-- Collaterals linked (lien) to a loan agreement -->
+    <grid name="ListLoanCollaterals" list-name="linkedCollaterals" default-entity-name="LoanCollateral" paginate="false">
+        <actions>
+            <entity-condition entity-name="LoanCollateral">
+                <condition-expr field-name="loanAgreementId" from-field="loanAgreementId"/>
+                <order-by field-name="fromDate"/>
+            </entity-condition>
+        </actions>
+        <field name="collateralId" title="${uiLabelMap.FinanceCollateralId}" widget-style="buttontext">
+            <hyperlink description="${collateralId}" target="EditCollateral" also-hidden="false">
+                <parameter param-name="collateralId"/>
+            </hyperlink>
+        </field>
+        <field name="fromDate" title="${uiLabelMap.FinanceCreatedDate}"><display type="date"/></field>
+        <field name="thruDate" title="${uiLabelMap.FinanceDueDate}"><display type="date"/></field>
+        <field name="assignedValueAmount" title="${uiLabelMap.FinanceAssignedValueAmount}"><display/></field>
+        <field name="lienDescription" title="${uiLabelMap.FinanceLienDescription}"><display/></field>
+    </grid>
+
+</forms>
