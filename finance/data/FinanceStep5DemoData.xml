@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+
+    Demo data for the finance plugin STEP 5: a business (organization) borrower,
+    a business loan product, a credit line and a business loan application with
+    a guarantor. Depends on the standard demo borrower (DEMO_BORROWER1 from
+    FinanceDemoData.xml) and STEP 5 seed data (credit line types / guarantee types).
+-->
+<entity-engine-xml>
+    <!-- Business borrower (organization) -->
+    <Party partyId="DEMO_BUSINESS1" partyTypeId="PARTY_GROUP"/>
+    <PartyGroup partyId="DEMO_BUSINESS1" groupName="デモ事業会社"/>
+
+    <!-- Business loan product -->
+    <Product productId="DEMO_BIZPROD1" productTypeId="SERVICE"
+            internalName="Demo Business Loan" productName="事業者ローン（デモ）"/>
+    <FinancialProduct productId="DEMO_BIZPROD1" financialProductTypeId="BUSINESS"
+            currencyUomId="JPY" minPrincipalAmount="100000" maxPrincipalAmount="10000000"
+            minTermMonths="1" maxTermMonths="120" defaultAnnualInterestRate="0.050000" requiresCollateral="N"/>
+
+    <!-- Credit line for the business -->
+    <CreditLine creditLineId="DEMO_CREDLINE1" creditLineTypeId="REVOLVING" partyId="DEMO_BUSINESS1"
+            currencyUomId="JPY" fromDate="2026-01-01 00:00:00.0" creditLimitAmount="5000000" description="デモ与信枠"/>
+
+    <!-- A business loan application with a guarantor -->
+    <LoanApplication loanApplicationId="DEMO_LOANAPP_BIZ" productId="DEMO_BIZPROD1"
+            applicantPartyId="DEMO_BUSINESS1" statusId="LOANAPP_RECEIVED" currencyUomId="JPY"
+            requestedPrincipalAmount="3000000" requestedTermMonths="60"
+            purpose="事業資金（デモ）"/>
+    <LoanGuarantor loanApplicationId="DEMO_LOANAPP_BIZ" guarantorPartyId="DEMO_BORROWER1"
+            guaranteeTypeEnumId="GUAR_JOINT" guaranteeAmount="3000000" currencyUomId="JPY"/>
+</entity-engine-xml>

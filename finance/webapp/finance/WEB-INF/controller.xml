@@ -278,6 +278,60 @@ under the License.
         </response>
     </request-map>
 
+    <!-- STEP 5: Business Loans (Credit Line, Guarantor) -->
+    <request-map uri="FindCreditLine">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="FindCreditLine"/>
+    </request-map>
+    <request-map uri="EditCreditLine">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="EditCreditLine"/>
+    </request-map>
+    <request-map uri="createCreditLine">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createCreditLine"/>
+        <response name="success" type="request-redirect" value="EditCreditLine">
+            <redirect-parameter name="creditLineId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditCreditLine"/>
+    </request-map>
+    <request-map uri="updateCreditLine">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="updateCreditLine"/>
+        <response name="success" type="request-redirect" value="EditCreditLine">
+            <redirect-parameter name="creditLineId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditCreditLine">
+            <redirect-parameter name="creditLineId"/>
+        </response>
+    </request-map>
+    <request-map uri="deleteCreditLine">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="deleteCreditLine"/>
+        <response name="success" type="request-redirect" value="FindCreditLine"/>
+        <response name="error" type="request-redirect" value="FindCreditLine"/>
+    </request-map>
+    <request-map uri="assignLoanGuarantor">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="assignLoanGuarantor"/>
+        <response name="success" type="request-redirect" value="ManageLoanApplication">
+            <redirect-parameter name="loanApplicationId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLoanApplication">
+            <redirect-parameter name="loanApplicationId"/>
+        </response>
+    </request-map>
+    <request-map uri="removeLoanGuarantor">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="removeLoanGuarantor"/>
+        <response name="success" type="request-redirect" value="ManageLoanApplication">
+            <redirect-parameter name="loanApplicationId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLoanApplication">
+            <redirect-parameter name="loanApplicationId"/>
+        </response>
+    </request-map>
+
     <!-- View Mappings -->
     <view-map name="main" type="screen" page="component://finance/widget/FinanceScreens.xml#FindLoanApplication"/>
     <view-map name="LookupPartyName" type="screen" page="component://party/widget/partymgr/LookupScreens.xml#LookupPartyName"/>
@@ -293,4 +347,6 @@ under the License.
     <view-map name="ManageLoanAgreement" type="screen" page="component://finance/widget/FinanceStep3Screens.xml#ManageLoanAgreement"/>
     <view-map name="FindCollateral" type="screen" page="component://finance/widget/FinanceStep4Screens.xml#FindCollateral"/>
     <view-map name="EditCollateral" type="screen" page="component://finance/widget/FinanceStep4Screens.xml#EditCollateral"/>
+    <view-map name="FindCreditLine" type="screen" page="component://finance/widget/FinanceStep5Screens.xml#FindCreditLine"/>
+    <view-map name="EditCreditLine" type="screen" page="component://finance/widget/FinanceStep5Screens.xml#EditCreditLine"/>
 </site-conf>

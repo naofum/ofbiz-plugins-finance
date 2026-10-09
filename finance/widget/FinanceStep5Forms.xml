@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://ofbiz.apache.org/Widget-Form" xsi:schemaLocation="http://ofbiz.apache.org/Widget-Form http://ofbiz.apache.org/dtds/widget-form.xsd">
+
+    <!-- Create / edit a credit line -->
+    <form name="EditCreditLine" type="single" target="createCreditLine" default-entity-name="CreditLine">
+        <alt-target use-when="creditLine!=null" target="updateCreditLine"/>
+        <field use-when="creditLine!=null" name="creditLineId" title="${uiLabelMap.FinanceCreditLineId}"><display/></field>
+        <field name="creditLineTypeId" title="${uiLabelMap.FinanceCreditLineTypeId}">
+            <drop-down allow-empty="false">
+                <entity-options key-field-name="creditLineTypeId" description="${description}" entity-name="CreditLineType">
+                    <entity-order-by field-name="description"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="partyId" title="${uiLabelMap.FinanceApplicantPartyId}"><text size="20"/></field>
+        <field name="currencyUomId" title="${uiLabelMap.FinanceCurrencyUomId}"><text size="10"/></field>
+        <field name="creditLimitAmount" title="${uiLabelMap.FinanceCreditLimitAmount}"><text size="20"/></field>
+        <field name="fromDate" title="${uiLabelMap.FinanceFromDate}"><date-time type="date"/></field>
+        <field name="thruDate" title="${uiLabelMap.FinanceThruDate}"><date-time type="date"/></field>
+        <field name="description" title="${uiLabelMap.FinanceCollateralDescription}"><text size="40"/></field>
+        <field name="submitButton" title="${uiLabelMap.CommonSubmit}"><submit button-type="button"/></field>
+    </form>
+
+    <!-- Credit lines list -->
+    <grid name="ListCreditLines" list-name="creditLines" default-entity-name="CreditLine" paginate="false">
+        <actions>
+            <entity-condition entity-name="CreditLine">
+                <order-by field-name="fromDate"/>
+            </entity-condition>
+        </actions>
+        <field name="creditLineId" title="${uiLabelMap.FinanceCreditLineId}" widget-style="buttontext">
+            <hyperlink description="${creditLineId}" target="EditCreditLine" also-hidden="false">
+                <parameter param-name="creditLineId"/>
+            </hyperlink>
+        </field>
+        <field name="creditLineTypeId" title="${uiLabelMap.FinanceCreditLineTypeId}"><display-entity entity-name="CreditLineType"/></field>
+        <field name="partyId" title="${uiLabelMap.FinanceApplicantPartyId}"><display/></field>
+        <field name="creditLimitAmount" title="${uiLabelMap.FinanceCreditLimitAmount}"><display/></field>
+        <field name="fromDate" title="${uiLabelMap.FinanceFromDate}"><display type="date"/></field>
+        <field name="thruDate" title="${uiLabelMap.FinanceThruDate}"><display type="date"/></field>
+    </grid>
+
+    <!-- Record a guarantor on a loan application -->
+    <form name="AssignLoanGuarantor" type="single" target="assignLoanGuarantor">
+        <field name="loanApplicationId"><hidden/></field>
+        <field name="guarantorPartyId" title="${uiLabelMap.FinanceGuarantorPartyId}"><text size="20"/></field>
+        <field name="guaranteeTypeEnumId" title="${uiLabelMap.FinanceGuaranteeType}">
+            <drop-down allow-empty="false">
+                <entity-options key-field-name="enumId" description="${description}" entity-name="Enumeration">
+                    <entity-constraint name="enumTypeId" value="LOAN_GUARANTEE_TYPE"/>
+                    <entity-order-by field-name="sequenceId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="guaranteeAmount" title="${uiLabelMap.FinanceGuaranteeAmount}"><text size="20"/></field>
+        <field name="addGuarantorButton" title="${uiLabelMap.FinanceAddGuarantor}"><submit button-type="button"/></field>
+    </form>
+
+    <!-- Guarantors on a loan application -->
+    <grid name="ListLoanGuarantors" list-name="guarantors" default-entity-name="LoanGuarantor" paginate="false">
+        <actions>
+            <entity-condition entity-name="LoanGuarantor">
+                <condition-expr field-name="loanApplicationId" from-field="loanApplicationId"/>
+                <order-by field-name="guarantorPartyId"/>
+            </entity-condition>
+        </actions>
+        <field name="guarantorPartyId" title="${uiLabelMap.FinanceGuarantorPartyId}"><display/></field>
+        <field name="guaranteeTypeEnumId" title="${uiLabelMap.FinanceGuaranteeType}"><display-entity entity-name="Enumeration"/></field>
+        <field name="guaranteeAmount" title="${uiLabelMap.FinanceGuaranteeAmount}"><display/></field>
+        <field name="removeLink" title=" " widget-style="buttontext">
+            <hyperlink description="${uiLabelMap.FinanceRemoveCollateral}" target="removeLoanGuarantor" also-hidden="false">
+                <parameter param-name="loanApplicationId"/>
+                <parameter param-name="guarantorPartyId"/>
+            </hyperlink>
+        </field>
+    </grid>
+
+</forms>

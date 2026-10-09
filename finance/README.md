@@ -1,17 +1,18 @@
-# Finance プラグイン 仕様（STEP 1〜STEP 4 完了分）
+# Finance プラグイン 仕様（STEP 1〜STEP 5 完了分）
 
 Apache OFBiz 上に構築する独立したファイナンスモジュール。
 *The Data Model Resource Book* の **Financial Services** をベースに、ローン業務を提供する。
 全体計画はリポジトリ直下の `REQUIREMENTS.md` を参照。
 
-このドキュメントは **STEP 1〜STEP 4**（REQUIREMENTS.md の全ステップ）の仕様をまとめたもの。
+このドキュメントは **STEP 1〜STEP 5**（REQUIREMENTS.md の全ステップ）の仕様をまとめたもの。
 
 - STEP 1: ローン申込の CRUD、ステータス遷移、検索一覧 / 登録編集画面
 - STEP 2: 見積（返済計画シミュレーション）、審査、契約（ローン口座＝FinAccount 開設）
 - STEP 3: 月次利息計上、請求（Invoice 生成）、入金消込（Payment 適用）＋単体テスト
 - STEP 4: 担保付ローン（Collateral の登録・評価・紐付け、LTV 上限の強制）＋単体テスト
+- STEP 5: 事業者向けローン（与信枠の限度額チェック、保証人の記録）＋単体テスト
 
-STEP 2 はセクション 9〜12、STEP 3 はセクション 13〜17、STEP 4 はセクション 20 にまとめている。
+STEP 2 はセクション 9〜12、STEP 3 はセクション 13〜17、STEP 4 はセクション 20、STEP 5 はセクション 21 にまとめている。
 実装言語の方針：計算・会計・バッチ＝**Java**、CRUD / ステータス遷移 / 画面データ準備＝**entity-auto / Groovy**。
 
 ---
@@ -42,17 +43,20 @@ plugins/finance/
 │   ├── entitymodel.xml          # STEP 1 エンティティ（方法B）
 │   ├── entitymodel_step2.xml    # STEP 2 エンティティ（見積 / 審査 / 契約）
 │   ├── entitymodel_step3.xml    # STEP 3 エンティティ（請求対応 / 利息計上 / 入金対応）
-│   └── entitymodel_step4.xml    # STEP 4 エンティティ（担保 / 評価 / 紐付け）
+│   ├── entitymodel_step4.xml    # STEP 4 エンティティ（担保 / 評価 / 紐付け）
+│   └── entitymodel_step5.xml    # STEP 5 エンティティ（与信枠 / 保証人）
 ├── servicedef/
 │   ├── services.xml             # STEP 1: CRUD + ステータス遷移 + 権限サービス
 │   ├── services_step2.xml       # STEP 2: 見積 / 審査 / 契約サービス
 │   ├── services_step3.xml       # STEP 3: 経理 / 請求 / 入金サービス（Java）
-│   └── services_step4.xml       # STEP 4: 担保 CRUD / 評価 / 紐付け / LTV サービス
+│   ├── services_step4.xml       # STEP 4: 担保 CRUD / 評価 / 紐付け / LTV サービス
+│   └── services_step5.xml       # STEP 5: 与信枠 / 保証人 / 限度額検証サービス
 ├── src/main/java/org/apache/ofbiz/finance/accounting/
 │   └── FinanceAccountingServices.java   # STEP 3 業務ロジック（Java）
 ├── src/main/groovy/org/apache/ofbiz/finance/test/
 │   ├── LoanLifecycleTests.groovy        # STEP 3 単体テスト（OFBizTestCase）
-│   └── LoanCollateralTests.groovy       # STEP 4 単体テスト（OFBizTestCase）
+│   ├── LoanCollateralTests.groovy       # STEP 4 単体テスト（OFBizTestCase）
+│   └── LoanBusinessLoanTests.groovy     # STEP 5 単体テスト（OFBizTestCase）
 ├── groovyScripts/
 │   ├── SetLoanApplicationStatus.groovy  # STEP 1 ステータス遷移
 │   ├── CreateLoanQuote.groovy           # STEP 2 見積・返済計画算出
@@ -72,7 +76,9 @@ plugins/finance/
 │   ├── FinanceStep3Forms.xml    # STEP 3 利息計上 / 請求 / 入金フォーム・一覧
 │   ├── FinanceStep3Screens.xml  # STEP 3 契約一覧 / 契約管理画面
 │   ├── FinanceStep4Forms.xml    # STEP 4 担保 / 申告 / 評価 / 紐付けフォーム・一覧
-│   └── FinanceStep4Screens.xml  # STEP 4 担保一覧 / 担保編集画面
+│   ├── FinanceStep4Screens.xml  # STEP 4 担保一覧 / 担保編集画面
+│   ├── FinanceStep5Forms.xml    # STEP 5 与信枠 / 保証人フォーム・一覧
+│   └── FinanceStep5Screens.xml  # STEP 5 与信枠一覧 / 与信枠編集画面
 ├── webapp/finance/
 │   ├── index.jsp                # /control/main へリダイレクト
 │   └── WEB-INF/
@@ -87,9 +93,11 @@ plugins/finance/
     ├── FinanceStep2TypeData.xml               # STEP 2 型・ステータス・列挙 seed
     ├── FinanceStep3TypeData.xml               # STEP 3 InvoiceItemType seed
     ├── FinanceStep4TypeData.xml               # STEP 4 担保種別・担保STATUS・評価方法 seed
+    ├── FinanceStep5TypeData.xml               # STEP 5 与信枠種別・保証種別 seed
     ├── FinanceSecurityPermissionSeedData.xml  # 権限 seed データ
     ├── FinanceExchangeRateDemoData.xml         # demo専用 USD/JPY 固定換算レート
     ├── FinanceStep4DemoData.xml                # demo専用 担保付商品・担保・申告
+    ├── FinanceStep5DemoData.xml                # demo専用 事業者商品・与信枠・保証人
     └── FinanceStatusDemoData.xml               # 全業務STATUSのJPYデモスナップショット
 ```
 
@@ -547,9 +555,9 @@ JPY → USD: conversionFactor = 0.006666666667
 
 - 入力バリデーションの一括追加（`type-validate` + サービス実装内の業務ルールチェック）。現状は主要な契約前提条件と型 / DB 制約を実装済み。
 - 多通貨ローンの入金時に利用する為替レート・換算方針（単通貨テストは貸主基準通貨 USD で実施）。
-- 事業者向けローン（与信枠・保証人）への拡張。
 - 延滞管理・督促、繰上返済・条件変更などのライフサイクルイベント。
 - LTV の担保種別別ヘアカット（担保価額の掛目）や複数担保の優先順位管理。
+- 与信枠のリボルビング化（引き出し・返済による利用可能残高の増減）。
 
 ---
 
@@ -747,16 +755,67 @@ JasperReports 7.x は機能がアーティファクト分割されている点�
 
 ---
 
+## 21. STEP 5 事業者向けローン（`entitydef/entitymodel_step5.xml`）
+
+事業者（組織 Party）向けローンを実装する。既存 `party` の組織 Party をそのまま借主として利用し、
+事業者固有の「与信枠（限度額チェックのみ）」と「保証人（任意記録）」を追加する。
+
+### データモデル
+
+| エンティティ | 主キー | 主要フィールド / 関連 | 役割 |
+|---|---|---|---|
+| `CreditLineType` | creditLineTypeId | parentTypeId, hasTable, description | 与信枠種別（REVOLVING / NON_REVOLVING） |
+| `CreditLine` | creditLineId（採番） | creditLineTypeId, partyId→Party, currencyUomId, fromDate/thruDate, creditLimitAmount, description | 事業者への与信枠 |
+| `LoanGuarantor` | loanApplicationId + guarantorPartyId | guarantorPartyId→Party, guaranteeTypeEnumId, guaranteeAmount, currencyUomId, comments | 申込に紐づく保証人（任意） |
+
+- seed（`FinanceStep5TypeData.xml`）: `CreditLineType` 2件、`EnumerationType`=`LOAN_GUARANTEE_TYPE`（連帯/物上/単純保証）。
+
+### サービス（`servicedef/services_step5.xml` ＋ Groovy）
+
+| サービス | 説明 |
+|---|---|
+| createCreditLine / updateCreditLine / deleteCreditLine | 与信枠 CRUD（作成は採番・fromDate デフォルト現在日） |
+| assignLoanGuarantor / removeLoanGuarantor | 保証人の記録・削除（RECEIVED 中のみ、任意） |
+
+内部サービス（`export="false"`）:
+- `financeValidateCreditLimit`: 申込者の有効な与信枠（通貨一致・fromDate/thruDate 有効）を検出し、
+  `既存 ACTIVE 契約の元本合計 + 新規元本 ≤ 限度額` を検証。与信枠が無ければスキップ。
+  ※単純チェックであり、返済による残高減は考慮しない。
+
+### 既存サービスの拡張
+
+- `SetFinanceEntityStatus.groovy`: 審査承認時に与信限度額を検証。
+- `CreateLoanAgreement.groovy`: 契約作成時に与信限度額を再検証。
+
+### 画面
+
+- `FindCreditLine` / `EditCreditLine`（与信枠一覧・登録編集）
+- `ManageLoanApplication` に「保証人」セクションを追加。
+
+### テスト（`LoanBusinessLoanTests.groovy`）
+
+与信枠 CRUD、保証人の記録・削除（RECEIVED 制約）、限度額超過の拒否、限度額内の承認、既存与信の考慮の 5 ケース。
+
+### 検証状況
+
+| 検証項目 | 方法 | 結果 |
+|----------|------|------|
+| entitymodel_step5 / services_step5 / UiLabels / component / widget | 各対応 XSD でスキーマ検証 | TOTAL_ERRORS=0 |
+| Java / Groovy | `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| finance ライフサイクル実行テスト | `gradlew "ofbiz --test component=finance"` | errors=0 / failures=0 |
+
+---
+
 ### 運用メモ
 
 - 新しい seed（型・ステータス・権限）を追加した場合は、**OFBiz クリーン再起動（または全キャッシュクリア）＋再ログイン** で DB・キャッシュに反映する。
   STEP 1 で、権限 seed 投入後に権限キャッシュが古く「このアプリケーションは使用できません」となる事象を確認済み。
 - Java サービスを追加・変更した場合は再ビルド（`classes` タスク）が必要。
 - STEP 3 の消込解除修正は `plugins/finance` 外の `applications/accounting/src/main/groovy/org/apache/ofbiz/accounting/payment/PaymentServices.groovy` を含む。financeプラグインだけをコピーするデプロイでは欠落するため、core差分も同時に適用して `compileGroovy` とfinanceテストを実行する。
-- `gradlew loadDefault` による全データ再投入は未実施。finance の実行テストは `gradlew "ofbiz --test component=finance"` で完了し、tests=25 / errors=0 / failures=0 を確認済み。
+- `gradlew loadDefault` による全データ再投入は未実施。finance の実行テストは `gradlew "ofbiz --test component=finance"` で完了し、tests=35 / errors=0 / failures=0 を確認済み。
 - 権限：webapp の `base-permission="OFBTOOLS,FINANCE"` を満たすため、`FINANCE_ADMIN` を `SUPER` だけでなく
   `FULLADMIN` / `FLEXADMIN` にも付与している（デモの `admin` は `FULLADMIN` 所属で `SUPER` 非所属のため）。
-- デモデータ：`data/FinanceDemoData.xml`（商品・申込者）、`data/FinanceStep4DemoData.xml`（担保付商品・担保・申告）、`data/FinanceStatusDemoData.xml`（全業務STATUSのJPYスナップショット）、`data/FinanceExchangeRateDemoData.xml`（demo専用USD/JPY固定レート）をdemo readerに登録している。UIでローン商品プルダウンが空になる場合はデモデータ未投入が原因。投入は
+- デモデータ：`data/FinanceDemoData.xml`（商品・申込者）、`data/FinanceStep4DemoData.xml`（担保付商品・担保・申告）、`data/FinanceStep5DemoData.xml`（事業者商品・与信枠・保証人）、`data/FinanceStatusDemoData.xml`（全業務STATUSのJPYスナップショット）、`data/FinanceExchangeRateDemoData.xml`（demo専用USD/JPY固定レート）をdemo readerに登録している。UIでローン商品プルダウンが空になる場合はデモデータ未投入が原因。投入は
   `gradlew "ofbiz --load-data readers=demo --load-data component=finance"`（OFBiz停止中、`--load-data` は引数ごとに繰り返す）。為替レートはOFBiz共通エンティティへ入り、同一インスタンス全体に影響するため、本番へは投入しない。
 - 見積書 PDF の日本語：`jasperreports` プラグインに `openpdf-fonts-extra` が必要。JRXML のデフォルトスタイルで
   CJK 組み込みフォント（`HeiseiKakuGo-W5` / `UniJIS-UCS2-H`）を指定している。フォントが無いと日本語が

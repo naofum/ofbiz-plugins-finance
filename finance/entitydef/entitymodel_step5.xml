@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<entitymodel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://ofbiz.apache.org/dtds/entitymodel.xsd">
+    <title>Finance Component Entity Model - STEP 5 (Business Loans: Credit Line, Guarantor)</title>
+    <description>
+        Business loan support: a credit line (limit) assigned to a business party, and
+        optional loan guarantors. The credit line is checked (limit only) at underwriting
+        approval and contract creation. Guarantors are recorded, not enforced.
+    </description>
+    <version>1.0</version>
+
+    <!-- ========================================================= -->
+    <!-- CreditLineType: classification of a credit line           -->
+    <!-- ========================================================= -->
+    <entity entity-name="CreditLineType" package-name="org.apache.ofbiz.finance.credit"
+            title="Credit Line Type">
+        <field name="creditLineTypeId" type="id"><description>e.g. REVOLVING, NON_REVOLVING</description></field>
+        <field name="parentTypeId" type="id"><description>for hierarchical types</description></field>
+        <field name="hasTable" type="indicator"></field>
+        <field name="description" type="description"></field>
+        <prim-key field="creditLineTypeId"/>
+        <relation type="one" title="Parent" fk-name="CREDLINTYP_PAR" rel-entity-name="CreditLineType">
+            <key-map field-name="parentTypeId" rel-field-name="creditLineTypeId"/>
+        </relation>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- CreditLine: a credit limit assigned to a business party   -->
+    <!-- ========================================================= -->
+    <entity entity-name="CreditLine" package-name="org.apache.ofbiz.finance.credit"
+            title="Credit Line (limit for a business party)">
+        <field name="creditLineId" type="id"><description>primary sequenced ID</description></field>
+        <field name="creditLineTypeId" type="id"></field>
+        <field name="partyId" type="id"><description>the borrowing business party</description></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="fromDate" type="date-time"><description>credit line effective start</description></field>
+        <field name="thruDate" type="date-time"><description>null = still effective</description></field>
+        <field name="creditLimitAmount" type="currency-amount"><description>maximum total exposure</description></field>
+        <field name="description" type="description"></field>
+        <prim-key field="creditLineId"/>
+        <relation type="one" fk-name="CREDLIN_TYP" rel-entity-name="CreditLineType">
+            <key-map field-name="creditLineTypeId"/>
+        </relation>
+        <relation type="one" fk-name="CREDLIN_PARTY" rel-entity-name="Party">
+            <key-map field-name="partyId"/>
+        </relation>
+        <relation type="one" fk-name="CREDLIN_UOM" rel-entity-name="Uom">
+            <key-map field-name="currencyUomId" rel-field-name="uomId"/>
+        </relation>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- LoanGuarantor: a guarantor recorded on a loan application -->
+    <!-- (optional, not enforced).                                 -->
+    <!-- ========================================================= -->
+    <entity entity-name="LoanGuarantor" package-name="org.apache.ofbiz.finance.application"
+            title="Loan Guarantor">
+        <field name="loanApplicationId" type="id"></field>
+        <field name="guarantorPartyId" type="id"><description>the party guaranteeing the loan</description></field>
+        <field name="guaranteeTypeEnumId" type="id"><description>e.g. joint / real / simple guarantee</description></field>
+        <field name="guaranteeAmount" type="currency-amount"><description>guaranteed amount (optional)</description></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="comments" type="comment"></field>
+        <prim-key field="loanApplicationId"/>
+        <prim-key field="guarantorPartyId"/>
+        <relation type="one" fk-name="LOANGUAR_APP" rel-entity-name="LoanApplication">
+            <key-map field-name="loanApplicationId"/>
+        </relation>
+        <relation type="one" fk-name="LOANGUAR_PARTY" rel-entity-name="Party">
+            <key-map field-name="guarantorPartyId" rel-field-name="partyId"/>
+        </relation>
+        <relation type="one" fk-name="LOANGUAR_ENUM" rel-entity-name="Enumeration">
+            <key-map field-name="guaranteeTypeEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="LOANGUAR_UOM" rel-entity-name="Uom">
+            <key-map field-name="currencyUomId" rel-field-name="uomId"/>
+        </relation>
+    </entity>
+
+</entitymodel>

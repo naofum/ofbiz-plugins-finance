@@ -65,6 +65,16 @@ under the License.
                                     </section>
                                     <include-grid name="ListLoanApplicationCollaterals" location="component://finance/widget/FinanceStep4Forms.xml"/>
                                 </screenlet>
+
+                                <screenlet title="${uiLabelMap.FinanceGuarantors}">
+                                    <section>
+                                        <condition><if-compare field="loanApplication.statusId" operator="equals" value="LOANAPP_RECEIVED"/></condition>
+                                        <widgets>
+                                            <include-form name="AssignLoanGuarantor" location="component://finance/widget/FinanceStep5Forms.xml"/>
+                                        </widgets>
+                                    </section>
+                                    <include-grid name="ListLoanGuarantors" location="component://finance/widget/FinanceStep5Forms.xml"/>
+                                </screenlet>
                             </widgets>
                             <fail-widgets>
                                 <label text="${uiLabelMap.FinanceLoanApplicationNotFound}"/>

@@ -100,6 +100,17 @@ try {
     return error(e.getMessage())
 }
 
+// 0b) Business loan credit line: the applicant's active credit line must not
+// be exceeded by the new principal plus existing ACTIVE exposure.
+try {
+    runService('financeValidateCreditLimit', [
+            loanApplicationId: app.loanApplicationId,
+            principalAmount  : quote.getBigDecimal('principalAmount'),
+            userLogin        : userLogin])
+} catch (org.apache.ofbiz.service.ExecutionServiceException e) {
+    return error(e.getMessage())
+}
+
 // 1) Open the core loan account and retain its principal receivable GL account.
 Map finAcctResult = runService('createFinAccount', [
         finAccountTypeId   : 'LOAN_ACCOUNT',

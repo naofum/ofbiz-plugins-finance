@@ -31,6 +31,9 @@ under the License.
         <menu-item name="Collaterals" title="${uiLabelMap.FinanceCollateral}">
             <link target="FindCollateral"/>
         </menu-item>
+        <menu-item name="CreditLines" title="${uiLabelMap.FinanceCreditLine}">
+            <link target="FindCreditLine"/>
+        </menu-item>
     </menu>
 
     <menu name="LoanApplicationTabBar" extends="CommonTabBarMenu" extends-resource="component://common/widget/CommonMenus.xml">

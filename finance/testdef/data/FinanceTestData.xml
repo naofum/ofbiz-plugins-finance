@@ -64,4 +64,16 @@ under the License.
             applicantPartyId="TEST_BORROWER1" statusId="LOANAPP_RECEIVED" currencyUomId="USD"
             requestedPrincipalAmount="60000" requestedTermMonths="10"
             purpose="Secured loan test"/>
+
+    <!-- Business (organization) borrower, business product and credit line -->
+    <Party partyId="TEST_BUSINESS1" partyTypeId="PARTY_GROUP"/>
+    <PartyGroup partyId="TEST_BUSINESS1" groupName="Test Business Co."/>
+
+    <Product productId="TEST_BIZPROD1" productTypeId="SERVICE" internalName="Test Business Loan" productName="Test Business Loan"/>
+    <FinancialProduct productId="TEST_BIZPROD1" financialProductTypeId="BUSINESS"
+            currencyUomId="USD" minPrincipalAmount="10000" maxPrincipalAmount="1000000"
+            minTermMonths="1" maxTermMonths="60" defaultAnnualInterestRate="0.100000" requiresCollateral="N"/>
+
+    <CreditLine creditLineId="TEST_CREDLINE1" creditLineTypeId="REVOLVING" partyId="TEST_BUSINESS1"
+            currencyUomId="USD" fromDate="2026-01-01 00:00:00.0" creditLimitAmount="100000" description="Test credit line"/>
 </entity-engine-xml>

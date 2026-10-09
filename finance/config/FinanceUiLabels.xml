@@ -616,4 +616,70 @@ under the License.
         <value xml:lang="en">A released collateral cannot be edited: ${collateralId}</value>
         <value xml:lang="ja">解除済みの担保は変更できません: ${collateralId}</value>
     </property>
+
+    <!-- STEP 5: Business Loans (Credit Line, Guarantor) -->
+    <property key="FinanceCreditLine">
+        <value xml:lang="en">Credit Line</value>
+        <value xml:lang="ja">与信枠</value>
+    </property>
+    <property key="FinanceCreditLines">
+        <value xml:lang="en">Credit Lines</value>
+        <value xml:lang="ja">与信枠一覧</value>
+    </property>
+    <property key="FinanceNewCreditLine">
+        <value xml:lang="en">New Credit Line</value>
+        <value xml:lang="ja">新規与信枠</value>
+    </property>
+    <property key="FinanceEditCreditLine">
+        <value xml:lang="en">Edit Credit Line</value>
+        <value xml:lang="ja">与信枠編集</value>
+    </property>
+    <property key="FinanceCreditLineId">
+        <value xml:lang="en">Credit Line ID</value>
+        <value xml:lang="ja">与信枠ID</value>
+    </property>
+    <property key="FinanceCreditLineTypeId">
+        <value xml:lang="en">Credit Line Type</value>
+        <value xml:lang="ja">与信枠種別</value>
+    </property>
+    <property key="FinanceCreditLimitAmount">
+        <value xml:lang="en">Credit Limit</value>
+        <value xml:lang="ja">与信限度額</value>
+    </property>
+    <property key="FinanceFromDate">
+        <value xml:lang="en">From Date</value>
+        <value xml:lang="ja">開始日</value>
+    </property>
+    <property key="FinanceThruDate">
+        <value xml:lang="en">Thru Date</value>
+        <value xml:lang="ja">終了日</value>
+    </property>
+    <property key="FinanceGuarantor">
+        <value xml:lang="en">Guarantor</value>
+        <value xml:lang="ja">保証人</value>
+    </property>
+    <property key="FinanceGuarantors">
+        <value xml:lang="en">Guarantors</value>
+        <value xml:lang="ja">保証人一覧</value>
+    </property>
+    <property key="FinanceGuarantorPartyId">
+        <value xml:lang="en">Guarantor</value>
+        <value xml:lang="ja">保証人</value>
+    </property>
+    <property key="FinanceGuaranteeType">
+        <value xml:lang="en">Guarantee Type</value>
+        <value xml:lang="ja">保証種別</value>
+    </property>
+    <property key="FinanceGuaranteeAmount">
+        <value xml:lang="en">Guarantee Amount</value>
+        <value xml:lang="ja">保証額</value>
+    </property>
+    <property key="FinanceAddGuarantor">
+        <value xml:lang="en">Add Guarantor</value>
+        <value xml:lang="ja">保証人を追加</value>
+    </property>
+    <property key="FinanceCreditLimitExceeded">
+        <value xml:lang="en">Total exposure ${totalExposure} exceeds the credit limit ${creditLimitAmount} for party ${partyId}.</value>
+        <value xml:lang="ja">与信枠 ${creditLimitAmount} に対し総与信 ${totalExposure} が超過しています: ${partyId}</value>
+    </property>
 </resource>

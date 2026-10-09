@@ -85,6 +85,15 @@ if ('LoanUnderwriting'.equals(entityName) && 'LOANUW_APPROVED'.equals(newStatusI
         } catch (org.apache.ofbiz.service.ExecutionServiceException e) {
             return error(e.getMessage())
         }
+        // Business loans: the applicant's active credit line must not be exceeded.
+        try {
+            runService('financeValidateCreditLimit', [
+                    loanApplicationId: entityValue.loanApplicationId,
+                    principalAmount  : principal,
+                    userLogin        : userLogin])
+        } catch (org.apache.ofbiz.service.ExecutionServiceException e) {
+            return error(e.getMessage())
+        }
     }
 }
 
