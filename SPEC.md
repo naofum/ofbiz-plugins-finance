@@ -1,10 +1,10 @@
-# Finance プラグイン 仕様（STEP 1〜STEP 9 完了分）
+# Finance プラグイン 仕様（STEP 1〜STEP 10 完了分）
 
 Apache OFBiz 上に構築する独立したファイナンスモジュール。
 *The Data Model Resource Book* の **Financial Services** をベースに、ローン業務を提供する。
 全体計画は `REQUIREMENTS.md` を参照。
 
-このドキュメントは **STEP 1〜STEP 9**（REQUIREMENTS.md の全ステップ）の仕様をまとめたもの。
+このドキュメントは **STEP 1〜STEP 10**（REQUIREMENTS.md の全ステップ）の仕様をまとめたもの。
 
 - STEP 1: ローン申込の CRUD、ステータス遷移、検索一覧 / 登録編集画面
 - STEP 2: 見積（返済計画シミュレーション）、審査、契約（ローン口座＝FinAccount 開設）
@@ -15,6 +15,7 @@ Apache OFBiz 上に構築する独立したファイナンスモジュール。
 - STEP 7: 繰上返済・条件変更（再償却・手数料・履歴）＋単体テスト
 - STEP 8: 採算計算の設定化（日割り基準・通貨別端数処理・商品/システム設定階層）
 - STEP 9: 返済スケジュールへの利息計算期間フィールド追加（interestFromDate / interestThruDate）
+- STEP 10: 端算入設定化（PERIOD_BOTH / PERIOD_BACK_EXCL / PERIOD_FRONT_EXCL）と営業日調整（DUEDATE_NONE / FOLLOWING / PRECEDING / MOD_FOLLOW）
 
 STEP 2 はセクション 9〜12、STEP 3 はセクション 13〜17、STEP 4 はセクション 20、STEP 5 はセクション 21、STEP 6 はセクション 22、STEP 7 はセクション 23 にまとめている。
 実装言語の方針：計算・会計・バッチ＝**Java**、CRUD / ステータス遷移 / 画面データ準備＝**entity-auto / Groovy**。
@@ -1056,6 +1057,68 @@ LoanAgreementRepaymentSchedule（契約スナップショット）:
 - 営業日調整（`dueDate` を Modified Following 等で補正）：端算入設定化と同時または次ステップで実施
 
 ### 25-6. 検証
+
+| 検証項目 | 方法 | 結果 |
+|---|---|---|
+| Java / Groovy | `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| finance テスト | `gradlew "ofbiz --test component=finance"` | tests=48 / errors=0 / failures=0 |
+
+---
+
+## 26. STEP 10 — 端算入設定化と営業日調整
+
+### 26-1. 概要
+
+利息計算期間の端算入（期間端を含むかどうか）と、返済期日の営業日調整方式を、
+システム全体および商品単位で設定可能にした。既定値は後方互換性を維持する。
+
+### 26-2. 端算入（LOAN_PERIOD_ENDPT）
+
+| enumId | 記法 | 日数 | 説明 |
+|---|---|---|---|
+| `PERIOD_BOTH` | `[from, to]` | `to - from + 1` | 両端算入（既定・後方互換） |
+| `PERIOD_BACK_EXCL` | `[from, to)` | `to - from` | 後落とし（日本の銀行慣行） |
+| `PERIOD_FRONT_EXCL` | `(from, to]` | `to - from` | 前落とし |
+
+`computeAccrual` のループ境界を `FinanceInterestCalculator.adjustLoopBoundaries()` で調整する。
+
+### 26-3. 営業日調整（LOAN_DUEDATE_CONV）
+
+| enumId | 説明 |
+|---|---|
+| `DUEDATE_NONE` | 調整なし（既定・後方互換） |
+| `DUEDATE_FOLLOWING` | 翌営業日 |
+| `DUEDATE_PRECEDING` | 前営業日 |
+| `DUEDATE_MOD_FOLLOW` | Modified Following（翌営業日が翌月になる場合は前営業日） |
+
+土日を非営業日とする。祝日カレンダーは将来拡張（`TemporalExpression` 等）。
+`dueDate` に適用し、`interestThruDate`（カレンダー上の期日）は変更しない。
+
+### 26-4. 設定解決階層
+
+```
+FinancialProduct.periodEndpointEnumId / dueDateConventionEnumId
+       ↓ null
+SystemProperty / finance.properties キー
+    interest.period.endpoint / duedate.convention
+       ↓ 未設定
+ハードコードフォールバック: PERIOD_BOTH / DUEDATE_NONE
+```
+
+### 26-5. 変更ファイル一覧
+
+| ファイル | 変更内容 |
+|---|---|
+| `data/FinanceStep9TypeData.xml` | `LOAN_PERIOD_ENDPT`・`LOAN_DUEDATE_CONV` Enumeration seed + SystemProperty 既定値 |
+| `config/finance.properties` | `interest.period.endpoint` / `duedate.convention` 既定値を追加 |
+| `entitydef/entitymodel.xml` | `FinancialProduct` に `periodEndpointEnumId` / `dueDateConventionEnumId` フィールド + リレーション追加 |
+| `src/.../FinanceInterestCalculator.java` | `resolvePeriodEndpoint()`・`adjustLoopBoundaries()`・`resolveDueDateConvention()` メソッド追加 |
+| `src/.../BusinessDayCalculator.java` | 新設：`isBusinessDay()`・`following()`・`preceding()`・`modifiedFollowing()`・`adjust()` |
+| `groovyScripts/CreateLoanQuote.groovy` | `dueDateConvId` を解決し `dueDate` に営業日調整を適用。`interestThruDate` はカレンダー値のまま |
+| `src/.../FinancePrepaymentServices.java` | `persistSchedule` で `dueDateConvId` を解決し再償却スケジュールの `dueDate` に適用 |
+| `src/.../FinanceAccountingServices.java` | `computeAccrual` で `periodEndpointId` を解決し `adjustLoopBoundaries()` を呼び出す |
+
+### 26-6. 検証
 
 | 検証項目 | 方法 | 結果 |
 |---|---|---|

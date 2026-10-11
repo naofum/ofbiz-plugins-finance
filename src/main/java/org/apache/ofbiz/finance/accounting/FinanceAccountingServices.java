@@ -525,8 +525,8 @@ public final class FinanceAccountingServices {
     private static AccrualComputation computeAccrual(Delegator delegator, GenericValue agreement,
             Timestamp fromDate, Timestamp thruDate, BigDecimal annualRate) throws GenericEntityException {
         ZoneId zone = ZoneId.systemDefault();
-        LocalDate firstDay = fromDate.toInstant().atZone(zone).toLocalDate();
-        LocalDate lastDay = thruDate.toInstant().atZone(zone).toLocalDate();
+        LocalDate rawFirstDay = fromDate.toInstant().atZone(zone).toLocalDate();
+        LocalDate rawLastDay = thruDate.toInstant().atZone(zone).toLocalDate();
         List<PrincipalPaymentEvent> events = getPrincipalPaymentEvents(delegator, agreement);
         BigDecimal outstanding = defaultZero(agreement.getBigDecimal("principalAmount"));
         BigDecimal accrued = BigDecimal.ZERO;
@@ -534,6 +534,13 @@ public final class FinanceAccountingServices {
         String currencyUomId = agreement.getString("currencyUomId");
         String dayCountConvId = FinanceInterestCalculator.resolveDayCountConvention(delegator, agreement);
         boolean is30_360 = FinanceInterestCalculator.isPeriodBased(dayCountConvId);
+
+        // Apply period endpoint convention to loop boundaries.
+        String periodEndpointId = FinanceInterestCalculator.resolvePeriodEndpoint(delegator, agreement);
+        LocalDate[] bounds = FinanceInterestCalculator.adjustLoopBoundaries(
+                rawFirstDay, rawLastDay, periodEndpointId);
+        LocalDate firstDay = bounds[0];
+        LocalDate lastDay = bounds[1];
 
         // Advance past events that occurred before the accrual window.
         while (eventIndex < events.size() && events.get(eventIndex).date.isBefore(firstDay)) {

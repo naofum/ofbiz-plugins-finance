@@ -63,6 +63,8 @@ under the License.
         <field name="prepaymentFeeRate" type="fixed-point"><description>prepayment fee rate applied to the prepaid principal (e.g. 0.010000 = 1%)</description></field>
         <field name="prepaymentFeeAmount" type="currency-amount"><description>flat prepayment fee; used when prepaymentFeeRate is null</description></field>
         <field name="dayCountConventionEnumId" type="id"><description>Interest day-count convention override for this product (enumId from LOAN_DAY_COUNT_CONV); null = use system default</description></field>
+        <field name="periodEndpointEnumId" type="id"><description>Interest period endpoint convention override (enumId from LOAN_PERIOD_ENDPT); null = use system default</description></field>
+        <field name="dueDateConventionEnumId" type="id"><description>Due-date business-day adjustment convention override (enumId from LOAN_DUEDATE_CONV); null = use system default</description></field>
         <prim-key field="productId"/>
         <relation type="one" fk-name="FINPROD_PROD" rel-entity-name="Product">
             <key-map field-name="productId"/>
@@ -75,6 +77,12 @@ under the License.
         </relation>
         <relation type="one-nofk" title="DayCount" rel-entity-name="Enumeration">
             <key-map field-name="dayCountConventionEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one-nofk" title="PeriodEndpoint" rel-entity-name="Enumeration">
+            <key-map field-name="periodEndpointEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one-nofk" title="DueDateConvention" rel-entity-name="Enumeration">
+            <key-map field-name="dueDateConventionEnumId" rel-field-name="enumId"/>
         </relation>
     </entity>
 

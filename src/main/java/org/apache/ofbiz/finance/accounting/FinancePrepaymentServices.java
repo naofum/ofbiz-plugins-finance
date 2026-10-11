@@ -332,14 +332,17 @@ public final class FinancePrepaymentServices {
             String methodEnumId, long revision, Timestamp eventDate) throws GenericEntityException {
         List<ScheduleRow> rows = amortize(principal, annualRate, termMonths, methodEnumId);
         String currencyUomId = agreement.getString("currencyUomId");
+        String dueDateConvId = FinanceInterestCalculator.resolveDueDateConvention(delegator, agreement);
         // interestFromDate[1] = eventDate + 1 day (the day after the prepayment / modification date)
         // interestFromDate[n] = interestThruDate[n-1] + 1 day
         Timestamp prevThru = null;
         for (ScheduleRow row : rows) {
-            Timestamp dueDate = UtilDateTime.adjustTimestamp(firstDueDate, Calendar.MONTH,
+            Timestamp calendarDue = UtilDateTime.adjustTimestamp(firstDueDate, Calendar.MONTH,
                     row.installmentNumber - 1);
             // interestThruDate = calendar due date (before business-day adjustment)
-            Timestamp interestThru = dueDate;
+            Timestamp interestThru = calendarDue;
+            // Apply business-day adjustment to dueDate.
+            Timestamp dueDate = BusinessDayCalculator.adjust(calendarDue, dueDateConvId);
             Timestamp interestFrom;
             if (prevThru == null) {
                 // First installment: day after the event date

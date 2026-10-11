@@ -42,11 +42,18 @@ import org.apache.ofbiz.entity.util.EntityUtilProperties;
  *   <li>{@code DAY_COUNT_30_360} – 30/360 Bond Basis: period rate = annualRate * days30_360 / 360</li>
  * </ul>
  *
+ * <p>Supports the following period endpoint conventions (enumId from LOAN_PERIOD_ENDPT):
+ * <ul>
+ *   <li>{@code PERIOD_BOTH}       – Both ends inclusive [from, to]:  days = to - from + 1</li>
+ *   <li>{@code PERIOD_BACK_EXCL}  – Back-end exclusive  [from, to):  days = to - from (後落とし)</li>
+ *   <li>{@code PERIOD_FRONT_EXCL} – Front-end exclusive (from, to]:  days = to - from (前落とし)</li>
+ * </ul>
+ *
  * <p>Convention resolution order (highest priority first):
  * <ol>
- *   <li>FinancialProduct.dayCountConventionEnumId (product-level override)</li>
- *   <li>SystemProperty / finance.properties key {@code interest.daycount.convention}</li>
- *   <li>Hard-coded fallback: {@code DAY_COUNT_ACT_365}</li>
+ *   <li>FinancialProduct field override (product-level)</li>
+ *   <li>SystemProperty / finance.properties key</li>
+ *   <li>Hard-coded fallback</li>
  * </ol>
  *
  * <p>Currency rounding is resolved from finance.properties / SystemProperty:
@@ -67,6 +74,8 @@ public final class FinanceInterestCalculator {
 
     /** Hard-coded fallback convention used when nothing is configured. */
     private static final String DEFAULT_DAY_COUNT = "DAY_COUNT_ACT_365";
+    private static final String DEFAULT_PERIOD_ENDPOINT = "PERIOD_BOTH";
+    private static final String DEFAULT_DUEDATE_CONVENTION = "DUEDATE_NONE";
 
     /** Denominators for fixed conventions. */
     private static final BigDecimal D_365 = new BigDecimal("365");
@@ -149,6 +158,116 @@ public final class FinanceInterestCalculator {
         }
 
         return DEFAULT_DAY_COUNT;
+    }
+
+    // -----------------------------------------------------------------------
+    // Period endpoint convention resolution
+    // -----------------------------------------------------------------------
+
+    /**
+     * Resolve the period endpoint convention enumId.
+     * Resolution: FinancialProduct.periodEndpointEnumId → SystemProperty/finance.properties
+     * key {@code interest.period.endpoint} → {@code PERIOD_BOTH}.
+     */
+    public static String resolvePeriodEndpoint(Delegator delegator, GenericValue agreement) {
+        try {
+            String productId = resolveProductId(delegator, agreement);
+            if (UtilValidate.isNotEmpty(productId)) {
+                GenericValue product = EntityQuery.use(delegator)
+                        .from("FinancialProduct").where("productId", productId).cache().queryOne();
+                if (product != null) {
+                    String v = product.getString("periodEndpointEnumId");
+                    if (UtilValidate.isNotEmpty(v)) return v;
+                }
+            }
+        } catch (GenericEntityException e) { /* fall through */ }
+        String sys = EntityUtilProperties.getPropertyValue(
+                FINANCE_RESOURCE, "interest.period.endpoint", null, delegator);
+        return UtilValidate.isNotEmpty(sys) ? sys : DEFAULT_PERIOD_ENDPOINT;
+    }
+
+    /** Resolve period endpoint when only productId is available. */
+    public static String resolvePeriodEndpoint(Delegator delegator, String productId) {
+        if (UtilValidate.isNotEmpty(productId)) {
+            try {
+                GenericValue product = EntityQuery.use(delegator)
+                        .from("FinancialProduct").where("productId", productId).cache().queryOne();
+                if (product != null) {
+                    String v = product.getString("periodEndpointEnumId");
+                    if (UtilValidate.isNotEmpty(v)) return v;
+                }
+            } catch (GenericEntityException e) { /* fall through */ }
+        }
+        String sys = EntityUtilProperties.getPropertyValue(
+                FINANCE_RESOURCE, "interest.period.endpoint", null, delegator);
+        return UtilValidate.isNotEmpty(sys) ? sys : DEFAULT_PERIOD_ENDPOINT;
+    }
+
+    /**
+     * Adjust the loop boundaries (firstDay / lastDay) according to the endpoint convention.
+     *
+     * <ul>
+     *   <li>PERIOD_BOTH:       [from, to]  → firstDay=from, lastDay=to   (no change)</li>
+     *   <li>PERIOD_BACK_EXCL:  [from, to)  → firstDay=from, lastDay=to-1 (後落とし)</li>
+     *   <li>PERIOD_FRONT_EXCL: (from, to]  → firstDay=from+1, lastDay=to (前落とし)</li>
+     * </ul>
+     *
+     * @return {@code LocalDate[]{adjustedFirstDay, adjustedLastDay}}
+     */
+    public static LocalDate[] adjustLoopBoundaries(LocalDate firstDay, LocalDate lastDay,
+            String periodEndpointId) {
+        if (periodEndpointId == null) periodEndpointId = DEFAULT_PERIOD_ENDPOINT;
+        switch (periodEndpointId) {
+            case "PERIOD_BACK_EXCL":
+                return new LocalDate[]{firstDay, lastDay.minusDays(1)};
+            case "PERIOD_FRONT_EXCL":
+                return new LocalDate[]{firstDay.plusDays(1), lastDay};
+            default: // PERIOD_BOTH
+                return new LocalDate[]{firstDay, lastDay};
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // Due-date convention resolution
+    // -----------------------------------------------------------------------
+
+    /**
+     * Resolve the due-date business-day adjustment convention enumId.
+     * Resolution: FinancialProduct.dueDateConventionEnumId → SystemProperty/finance.properties
+     * key {@code duedate.convention} → {@code DUEDATE_NONE}.
+     */
+    public static String resolveDueDateConvention(Delegator delegator, GenericValue agreement) {
+        try {
+            String productId = resolveProductId(delegator, agreement);
+            if (UtilValidate.isNotEmpty(productId)) {
+                GenericValue product = EntityQuery.use(delegator)
+                        .from("FinancialProduct").where("productId", productId).cache().queryOne();
+                if (product != null) {
+                    String v = product.getString("dueDateConventionEnumId");
+                    if (UtilValidate.isNotEmpty(v)) return v;
+                }
+            }
+        } catch (GenericEntityException e) { /* fall through */ }
+        String sys = EntityUtilProperties.getPropertyValue(
+                FINANCE_RESOURCE, "duedate.convention", null, delegator);
+        return UtilValidate.isNotEmpty(sys) ? sys : DEFAULT_DUEDATE_CONVENTION;
+    }
+
+    /** Resolve due-date convention when only productId is available. */
+    public static String resolveDueDateConvention(Delegator delegator, String productId) {
+        if (UtilValidate.isNotEmpty(productId)) {
+            try {
+                GenericValue product = EntityQuery.use(delegator)
+                        .from("FinancialProduct").where("productId", productId).cache().queryOne();
+                if (product != null) {
+                    String v = product.getString("dueDateConventionEnumId");
+                    if (UtilValidate.isNotEmpty(v)) return v;
+                }
+            } catch (GenericEntityException e) { /* fall through */ }
+        }
+        String sys = EntityUtilProperties.getPropertyValue(
+                FINANCE_RESOURCE, "duedate.convention", null, delegator);
+        return UtilValidate.isNotEmpty(sys) ? sys : DEFAULT_DUEDATE_CONVENTION;
     }
 
     // -----------------------------------------------------------------------

@@ -22,6 +22,8 @@ import java.math.RoundingMode
 import org.apache.ofbiz.base.util.UtilDateTime
 import org.apache.ofbiz.base.util.UtilProperties
 import org.apache.ofbiz.entity.GenericValue
+import org.apache.ofbiz.finance.accounting.BusinessDayCalculator
+import org.apache.ofbiz.finance.accounting.FinanceInterestCalculator
 
 // Create a LoanQuote and its repayment schedule from a LoanApplication.
 // Supports EQUAL_PAYMENT (元利均等) and EQUAL_PRINCIPAL (元金均等).
@@ -56,6 +58,9 @@ int scale = 2
 BigDecimal monthlyRate = annualRate.divide(new BigDecimal('12'), 10, RoundingMode.HALF_UP)
 
 java.sql.Timestamp firstPaymentDate = context.firstPaymentDate ?: UtilDateTime.nowTimestamp()
+
+// Resolve due-date business-day adjustment convention for this product.
+String dueDateConvId = FinanceInterestCalculator.resolveDueDateConvention(delegator, app.productId as String)
 
 // Build schedule rows.
 List schedule = []
@@ -133,6 +138,8 @@ for (row in schedule) {
     java.sql.Timestamp due = UtilDateTime.adjustTimestamp(firstPaymentDate, java.util.Calendar.MONTH, (row.n - 1) as int)
     // interestThruDate is the calendar due date (before any business-day adjustment).
     java.sql.Timestamp interestThru = due
+    // Apply business-day adjustment to dueDate (interestThruDate stays as calendar date).
+    due = BusinessDayCalculator.adjust(due, dueDateConvId)
     // interestFromDate: day after the previous installment's thruDate, or for n=1
     // one month before firstPaymentDate + 1 day (provisional estimate).
     java.sql.Timestamp interestFrom
