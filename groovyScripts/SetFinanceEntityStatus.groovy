@@ -20,6 +20,7 @@
 import org.apache.ofbiz.base.util.UtilDateTime
 import org.apache.ofbiz.base.util.UtilProperties
 import org.apache.ofbiz.entity.GenericValue
+import org.apache.ofbiz.finance.common.FinanceContractHelper
 
 // Generic status transition for STEP 2 finance entities.
 // Determines the target entity from whichever primary-key parameter is present.
@@ -108,6 +109,17 @@ if ('LoanUnderwriting'.equals(entityName)) {
     }
 }
 entityValue.store()
+
+// Project loan agreement status onto the common contract ledger (STEP L0).
+if ('LoanAgreement'.equals(entityName) && entityValue.financeContractId) {
+    Map loanToCommonStatus = [
+            LOANAGR_DRAFT    : FinanceContractHelper.STATUS_CONTRACTED,
+            LOANAGR_ACTIVE   : FinanceContractHelper.STATUS_ACTIVE,
+            LOANAGR_CLOSED   : FinanceContractHelper.STATUS_COMPLETED,
+            LOANAGR_CANCELLED: FinanceContractHelper.STATUS_CANCELLED]
+    FinanceContractHelper.updateStatus(delegator, entityValue.financeContractId,
+            (String) loanToCommonStatus.get(newStatusId))
+}
 
 Map result = success()
 result.oldStatusId = oldStatusId

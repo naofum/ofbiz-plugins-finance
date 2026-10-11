@@ -21,6 +21,7 @@ import java.math.BigDecimal
 import org.apache.ofbiz.base.util.UtilDateTime
 import org.apache.ofbiz.base.util.UtilProperties
 import org.apache.ofbiz.entity.GenericValue
+import org.apache.ofbiz.finance.common.FinanceContractHelper
 
 // Create a LoanAgreement from an accepted LoanQuote and open a FinAccount (loan account).
 
@@ -36,6 +37,7 @@ if (existingAgreement != null) {
     Map existingResult = success()
     existingResult.loanAgreementId = existingAgreement.loanAgreementId
     existingResult.finAccountId = existingAgreement.finAccountId
+    existingResult.financeContractId = existingAgreement.financeContractId
     return existingResult
 }
 
@@ -124,10 +126,15 @@ Map finAcctResult = runService('createFinAccount', [
         userLogin          : userLogin])
 String finAccountId = finAcctResult.finAccountId
 
-// 2) Create the draft contract header from the accepted terms.
+// 2) Register the contract in the common ledger (STEP L0), then create the draft
+// loan agreement from the accepted terms. The processing lock lives on FinanceContract.
+String financeContractId = FinanceContractHelper.createContract(delegator,
+        FinanceContractHelper.TYPE_LOAN, borrowerPartyId, app.productId, currencyUomId,
+        quote.getBigDecimal('principalAmount'), agreementDate, FinanceContractHelper.STATUS_CONTRACTED)
 String loanAgreementId = delegator.getNextSeqId('LoanAgreement')
 GenericValue agreement = makeValue('LoanAgreement', [
         loanAgreementId   : loanAgreementId,
+        financeContractId : financeContractId,
         loanApplicationId : quote.loanApplicationId,
         loanQuoteId       : loanQuoteId,
         finAccountId      : finAccountId,
@@ -184,5 +191,6 @@ runService('setLoanApplicationStatus', [
 
 Map result = success()
 result.loanAgreementId = loanAgreementId
+result.financeContractId = financeContractId
 result.finAccountId = finAccountId
 return result

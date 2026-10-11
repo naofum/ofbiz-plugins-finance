@@ -254,6 +254,16 @@ class LoanLifecycleTests extends OFBizTestCase {
                 .where('loanAgreementId', agrResult.loanAgreementId).queryOne()
         assert agreement != null
         assert agreement.statusId == 'LOANAGR_ACTIVE'
+        // Every loan agreement is registered 1:1 in the common contract ledger (STEP L0).
+        assert agreement.financeContractId != null
+        assert agrResult.financeContractId == agreement.financeContractId
+        GenericValue contract = from('FinanceContract')
+                .where('financeContractId', agreement.financeContractId).queryOne()
+        assert contract.contractTypeId == 'LOAN'
+        assert contract.customerPartyId == agreement.borrowerPartyId
+        assert contract.statusId == 'FINCTR_ACTIVE'
+        assert contract.principalAmount.compareTo(agreement.principalAmount) == 0
+        assert contract.currencyUomId == agreement.currencyUomId
         assert from('LoanApplication').where('loanApplicationId', appId).queryOne().statusId == 'LOANAPP_CONTRACTED'
         Map contractedUpdate = dispatcher.runSync('updateLoanApplication', [
                 loanApplicationId: appId, applicantPartyId: 'Company', userLogin: userLogin])
@@ -374,6 +384,10 @@ class LoanLifecycleTests extends OFBizTestCase {
 
         assert ServiceUtil.isSuccess(dispatcher.runSync('setLoanAgreementStatus', [
                 loanAgreementId: loanAgreementId, statusId: 'LOANAGR_CLOSED', userLogin: userLogin]))
+        // The common contract ledger status follows the loan agreement status (STEP L0).
+        GenericValue closedAgreement = from('LoanAgreement').where('loanAgreementId', loanAgreementId).queryOne()
+        assert from('FinanceContract').where('financeContractId', closedAgreement.financeContractId)
+                .queryOne().statusId == 'FINCTR_COMPLETED'
         Map inactiveBilling = dispatcher.runSync('createLoanInstallmentInvoice',
                 [loanAgreementId: loanAgreementId, installmentNumber: 2L, userLogin: userLogin])
         assert ServiceUtil.isError(inactiveBilling)

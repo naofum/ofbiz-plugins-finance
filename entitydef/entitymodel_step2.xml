@@ -146,8 +146,12 @@ under the License.
         <field name="termMonths" type="numeric"></field>
         <field name="agreementDate" type="date-time"></field>
         <field name="firstPaymentDate" type="date-time"></field>
-        <field name="processingLockVersion" type="numeric"><description>optimistic token used to serialize STEP 3 processing</description></field>
+        <field name="processingLockVersion" type="numeric"><description>DEPRECATED since STEP L0: the processing lock lives on FinanceContract.processingLockVersion</description></field>
+        <field name="financeContractId" type="id"><description>FK to the common contract ledger FinanceContract (1:1, STEP L0)</description></field>
         <prim-key field="loanAgreementId"/>
+        <relation type="one" fk-name="LOANAGR_FINCTR" rel-entity-name="FinanceContract">
+            <key-map field-name="financeContractId"/>
+        </relation>
         <relation type="one" fk-name="LOANAGR_APP" rel-entity-name="LoanApplication">
             <key-map field-name="loanApplicationId"/>
         </relation>
@@ -171,6 +175,9 @@ under the License.
         </relation>
         <index name="LOANAGR_QT_UQ" unique="true">
             <index-field name="loanQuoteId"/>
+        </index>
+        <index name="LOANAGR_FINCTR_UQ" unique="true">
+            <index-field name="financeContractId"/>
         </index>
     </entity>
 

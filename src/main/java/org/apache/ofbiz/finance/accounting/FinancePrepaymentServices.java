@@ -553,27 +553,7 @@ public final class FinancePrepaymentServices {
 
     private static GenericValue lockAgreement(Delegator delegator, String loanAgreementId)
             throws GenericEntityException {
-        for (int attempt = 0; attempt < 5; attempt++) {
-            GenericValue agreement = EntityQuery.use(delegator).from("LoanAgreement")
-                    .where("loanAgreementId", loanAgreementId).cache(false).queryOne();
-            if (agreement == null) {
-                return null;
-            }
-            Long currentVersion = agreement.getLong("processingLockVersion");
-            long nextVersion = currentVersion == null ? 1L : currentVersion + 1L;
-            EntityCondition condition = EntityCondition.makeCondition(UtilMisc.toList(
-                    EntityCondition.makeCondition("loanAgreementId", EntityOperator.EQUALS, loanAgreementId),
-                    EntityCondition.makeCondition("processingLockVersion",
-                            EntityOperator.EQUALS, currentVersion)), EntityOperator.AND);
-            int updated = delegator.storeByCondition("LoanAgreement",
-                    UtilMisc.toMap("processingLockVersion", nextVersion), condition);
-            if (updated == 1) {
-                agreement.set("processingLockVersion", nextVersion);
-                return agreement;
-            }
-        }
-        throw new GenericEntityException("Could not acquire processing lock for loan agreement "
-                + loanAgreementId);
+        return FinanceAccountingServices.lockLoanAgreement(delegator, loanAgreementId);
     }
 
     private static String getOrganizationPartyId(GenericValue agreement) throws GenericEntityException {

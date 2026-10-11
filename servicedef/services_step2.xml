@@ -107,6 +107,7 @@ under the License.
         <attribute name="agreementDate" type="Timestamp" mode="IN" optional="true"/>
         <attribute name="loanAgreementId" type="String" mode="OUT" optional="false"/>
         <attribute name="finAccountId" type="String" mode="OUT" optional="false"/>
+        <attribute name="financeContractId" type="String" mode="OUT" optional="true"/>
     </service>
     <service name="setLoanAgreementStatus" engine="groovy"
             location="component://finance/groovyScripts/SetFinanceEntityStatus.groovy" invoke="" auth="true">

@@ -44,6 +44,7 @@ import org.apache.ofbiz.entity.GenericValue;
 import org.apache.ofbiz.entity.condition.EntityCondition;
 import org.apache.ofbiz.entity.condition.EntityOperator;
 import org.apache.ofbiz.entity.util.EntityQuery;
+import org.apache.ofbiz.finance.common.FinanceContractHelper;
 import org.apache.ofbiz.service.DispatchContext;
 import org.apache.ofbiz.service.GenericServiceException;
 import org.apache.ofbiz.service.LocalDispatcher;
@@ -689,28 +690,31 @@ public final class FinanceAccountingServices {
 
     private static GenericValue lockAgreement(Delegator delegator, String loanAgreementId)
             throws GenericEntityException {
-        for (int attempt = 0; attempt < 5; attempt++) {
-            GenericValue agreement = EntityQuery.use(delegator).from("LoanAgreement")
-                    .where("loanAgreementId", loanAgreementId).cache(false).queryOne();
-            if (agreement == null) {
-                return null;
-            }
-            Long currentVersion = agreement.getLong("processingLockVersion");
-            long nextVersion = currentVersion == null ? 1L : currentVersion + 1L;
-            EntityCondition versionCondition = EntityCondition.makeCondition("processingLockVersion",
-                    EntityOperator.EQUALS, currentVersion);
-            EntityCondition condition = EntityCondition.makeCondition(UtilMisc.toList(
-                    EntityCondition.makeCondition("loanAgreementId", EntityOperator.EQUALS, loanAgreementId),
-                    versionCondition), EntityOperator.AND);
-            int updated = delegator.storeByCondition("LoanAgreement",
-                    UtilMisc.toMap("processingLockVersion", nextVersion), condition);
-            if (updated == 1) {
-                agreement.set("processingLockVersion", nextVersion);
-                return agreement;
-            }
+        return lockLoanAgreement(delegator, loanAgreementId);
+    }
+
+    /**
+     * Serialize processing of one loan agreement through the common contract
+     * ledger lock (FinanceContract.processingLockVersion), then re-read the
+     * agreement so the caller sees the state committed before the lock.
+     *
+     * @return the locked agreement, or null when it does not exist
+     */
+    public static GenericValue lockLoanAgreement(Delegator delegator, String loanAgreementId)
+            throws GenericEntityException {
+        GenericValue agreement = EntityQuery.use(delegator).from("LoanAgreement")
+                .where("loanAgreementId", loanAgreementId).cache(false).queryOne();
+        if (agreement == null) {
+            return null;
         }
-        throw new GenericEntityException("Could not acquire processing lock for loan agreement "
-                + loanAgreementId);
+        String financeContractId = agreement.getString("financeContractId");
+        if (UtilValidate.isEmpty(financeContractId)) {
+            throw new GenericEntityException("Loan agreement " + loanAgreementId
+                    + " is not registered in the FinanceContract ledger");
+        }
+        FinanceContractHelper.lock(delegator, financeContractId);
+        return EntityQuery.use(delegator).from("LoanAgreement")
+                .where("loanAgreementId", loanAgreementId).cache(false).queryOne();
     }
 
     private static void postUnpostedTransactions(Delegator delegator, LocalDispatcher dispatcher,
