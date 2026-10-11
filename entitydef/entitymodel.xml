@@ -62,6 +62,7 @@ under the License.
         <field name="lateFeeAnnualRate" type="fixed-point"><description>annual delinquency penalty rate (e.g. 0.146000 = 14.6%); null = no late fee</description></field>
         <field name="prepaymentFeeRate" type="fixed-point"><description>prepayment fee rate applied to the prepaid principal (e.g. 0.010000 = 1%)</description></field>
         <field name="prepaymentFeeAmount" type="currency-amount"><description>flat prepayment fee; used when prepaymentFeeRate is null</description></field>
+        <field name="dayCountConventionEnumId" type="id"><description>Interest day-count convention override for this product (enumId from LOAN_DAY_COUNT_CONV); null = use system default</description></field>
         <prim-key field="productId"/>
         <relation type="one" fk-name="FINPROD_PROD" rel-entity-name="Product">
             <key-map field-name="productId"/>
@@ -71,6 +72,9 @@ under the License.
         </relation>
         <relation type="one" fk-name="FINPROD_UOM" rel-entity-name="Uom">
             <key-map field-name="currencyUomId" rel-field-name="uomId"/>
+        </relation>
+        <relation type="one-nofk" title="DayCount" rel-entity-name="Enumeration">
+            <key-map field-name="dayCountConventionEnumId" rel-field-name="enumId"/>
         </relation>
     </entity>
 

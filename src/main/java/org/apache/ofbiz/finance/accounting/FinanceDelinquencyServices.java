@@ -60,7 +60,6 @@ public final class FinanceDelinquencyServices {
     private static final String RESOURCE = "FinanceUiLabels";
     private static final int SCALE = 2;
     private static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
-    private static final BigDecimal DAYS_IN_YEAR = new BigDecimal("365");
 
     private FinanceDelinquencyServices() {
     }
@@ -189,7 +188,10 @@ public final class FinanceDelinquencyServices {
 
             DelinquencyComputation computation = computeDelinquency(delegator, agreement, endOfDay(accrualDate));
             BigDecimal overdueBalance = computation.overduePrincipal.add(computation.overdueInterest)
-                    .setScale(SCALE, ROUNDING);
+                    .setScale(FinanceInterestCalculator.resolveScale(
+                            agreement.getString("currencyUomId"), delegator),
+                              FinanceInterestCalculator.resolveRoundingMode(
+                            agreement.getString("currencyUomId"), delegator));
             if (overdueBalance.compareTo(BigDecimal.ZERO) <= 0) {
                 Map<String, Object> result = ServiceUtil.returnSuccess();
                 result.put("accrualCreated", Boolean.FALSE);
@@ -224,10 +226,28 @@ public final class FinanceDelinquencyServices {
                 fromDate = new Timestamp(latestAccrual.getTimestamp("thruDate").getTime() + 1L);
             }
 
-            long days = daysInclusive(fromDate, thruDate);
-            BigDecimal lateFee = overdueBalance.multiply(lateFeeRate)
-                    .multiply(new BigDecimal(days))
-                    .divide(DAYS_IN_YEAR, SCALE, ROUNDING);
+            String currencyUomId = agreement.getString("currencyUomId");
+            String dayCountConvId = FinanceInterestCalculator.resolveDayCountConvention(
+                    delegator, agreement);
+            BigDecimal lateFee;
+            if (FinanceInterestCalculator.isPeriodBased(dayCountConvId)) {
+                // 30/360: compute as a single period (overdueBalance is constant).
+                LocalDate from30 = toLocalDate(fromDate);
+                LocalDate thru30 = toLocalDate(thruDate);
+                lateFee = FinanceInterestCalculator.computePeriodInterest30_360(
+                        overdueBalance, lateFeeRate, from30, thru30);
+            } else {
+                // Actual-based: daily loop (overdueBalance is constant across the period).
+                LocalDate loopDay = toLocalDate(fromDate);
+                LocalDate loopEnd = toLocalDate(thruDate);
+                BigDecimal accumulated = BigDecimal.ZERO;
+                for (LocalDate d = loopDay; !d.isAfter(loopEnd); d = d.plusDays(1)) {
+                    accumulated = accumulated.add(FinanceInterestCalculator.computeDailyInterest(
+                            overdueBalance, lateFeeRate, d, dayCountConvId));
+                }
+                lateFee = accumulated;
+            }
+            lateFee = FinanceInterestCalculator.roundInterest(lateFee, currencyUomId, delegator);
 
             String organizationPartyId = getOrganizationPartyId(agreement);
             String acctgTransId = null;
@@ -605,13 +625,6 @@ public final class FinanceDelinquencyServices {
 
     private static LocalDate toLocalDate(Timestamp value) {
         return value.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-    }
-
-    private static long daysInclusive(Timestamp fromDate, Timestamp thruDate) {
-        LocalDate from = toLocalDate(fromDate);
-        LocalDate thru = toLocalDate(thruDate);
-        long days = ChronoUnit.DAYS.between(from, thru) + 1L;
-        return Math.max(days, 0L);
     }
 
     private static BigDecimal defaultZero(BigDecimal value) {

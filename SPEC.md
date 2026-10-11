@@ -1,10 +1,10 @@
-# Finance プラグイン 仕様（STEP 1〜STEP 7 完了分）
+# Finance プラグイン 仕様（STEP 1〜STEP 8 完了分）
 
 Apache OFBiz 上に構築する独立したファイナンスモジュール。
 *The Data Model Resource Book* の **Financial Services** をベースに、ローン業務を提供する。
 全体計画は `REQUIREMENTS.md` を参照。
 
-このドキュメントは **STEP 1〜STEP 7**（REQUIREMENTS.md の全ステップ）の仕様をまとめたもの。
+このドキュメントは **STEP 1〜STEP 8**（REQUIREMENTS.md の全ステップ）の仕様をまとめたもの。
 
 - STEP 1: ローン申込の CRUD、ステータス遷移、検索一覧 / 登録編集画面
 - STEP 2: 見積（返済計画シミュレーション）、審査、契約（ローン口座＝FinAccount 開設）
@@ -13,6 +13,7 @@ Apache OFBiz 上に構築する独立したファイナンスモジュール。
 - STEP 5: 事業者向けローン（与信枠の限度額チェック、保証人の記録）＋単体テスト
 - STEP 6: 延滞管理・督促（延滞判定・遅延損害金計上・督促状・償却）＋単体テスト
 - STEP 7: 繰上返済・条件変更（再償却・手数料・履歴）＋単体テスト
+- STEP 8: 採算計算の設定化（日割り基準・通貨別端数処理・商品/システム設定階層）
 
 STEP 2 はセクション 9〜12、STEP 3 はセクション 13〜17、STEP 4 はセクション 20、STEP 5 はセクション 21、STEP 6 はセクション 22、STEP 7 はセクション 23 にまとめている。
 実装言語の方針：計算・会計・バッチ＝**Java**、CRUD / ステータス遷移 / 画面データ準備＝**entity-auto / Groovy**。
@@ -60,7 +61,8 @@ plugins/finance/
 ├── src/main/java/org/apache/ofbiz/finance/accounting/
 │   ├── FinanceAccountingServices.java    # STEP 3 業務ロジック（Java）
 │   ├── FinanceDelinquencyServices.java   # STEP 6 業務ロジック（Java）
-│   └── FinancePrepaymentServices.java    # STEP 7 業務ロジック（Java）
+│   ├── FinancePrepaymentServices.java    # STEP 7 業務ロジック（Java）
+│   └── FinanceInterestCalculator.java    # STEP 8 利息計算ヘルパー（日割り基準・通貨別丸め）
 ├── src/main/groovy/org/apache/ofbiz/finance/test/
 │   ├── LoanLifecycleTests.groovy        # STEP 3 単体テスト（OFBizTestCase）
 │   ├── LoanCollateralTests.groovy       # STEP 4 単体テスト（OFBizTestCase）
@@ -75,7 +77,8 @@ plugins/finance/
 ├── minilang/
 │   └── FinancePermissionServices.xml    # 権限チェック
 ├── config/
-│   └── FinanceUiLabels.xml      # UI ラベル（en / ja、STEP 1〜3）
+│   ├── FinanceUiLabels.xml      # UI ラベル（en / ja、STEP 1〜3）
+│   └── finance.properties       # STEP 8 利息計算のシステム全体デフォルト設定
 ├── widget/
 │   ├── CommonScreens.xml        # main-decorator
 │   ├── FinanceMenus.xml         # アプリバー / タブバー
@@ -921,8 +924,7 @@ JasperReports 7.x は機能がアーティファクト分割されている点�
 - STEP 7 で `LoanAgreementRepaymentSchedule` に `scheduleRevisionNumber` を PK 追加したため、既存 DB ではテーブル再作成が必要。新規環境は
   `gradlew "ofbiz --load-data readers=seed,seed-initial,demo"` で全投入（finance 含む全コンポーネント）すれば良い。
 - STEP 3 の消込解除修正は `plugins/finance` 外の `applications/accounting/src/main/groovy/org/apache/ofbiz/accounting/payment/PaymentServices.groovy` を含む。financeプラグインだけをコピーするデプロイでは欠落するため、core差分も同時に適用して `compileGroovy` とfinanceテストを実行する。
-- finance の実行テストは `gradlew "ofbiz --test component=finance"` で完了し、tests=48 / errors=0 / failures=0 を確認済み。
-- 権限：webapp の `base-permission="OFBTOOLS,FINANCE"` を満たすため、`FINANCE_ADMIN` を `SUPER` だけでなく
+- finance の実行テストは `gradlew "ofbiz --test component=finance"` で完了し、tests=48 / errors=0 / failures=0 を確認済み。webapp の `base-permission="OFBTOOLS,FINANCE"` を満たすため、`FINANCE_ADMIN` を `SUPER` だけでなく
   `FULLADMIN` / `FLEXADMIN` にも付与している（デモの `admin` は `FULLADMIN` 所属で `SUPER` 非所属のため）。この付与は demo 専用
   （`FinanceSecurityPermissionDemoData.xml`）で、seed は `SUPER` への付与のみ。seed→demo の順序依存を避け、フル投入（`loadDefault` 相当）を成立させるため。
 - デモデータ：`data/FinanceDemoData.xml`（商品・申込者）、`data/FinanceStep4DemoData.xml`（担保付商品・担保・申告）、`data/FinanceStep5DemoData.xml`（事業者商品・与信枠・保証人）、`data/FinanceStep6DemoData.xml`（延滞区分閾値）、`data/FinanceStatusDemoData.xml`（全業務STATUSのJPYスナップショット）、`data/FinanceExchangeRateDemoData.xml`（demo専用USD/JPY固定レート）をdemo readerに登録している。UIでローン商品プルダウンが空になる場合はデモデータ未投入が原因。投入は
@@ -932,4 +934,72 @@ JasperReports 7.x は機能がアーティファクト分割されている点�
   （□にもならず）空白で欠落する。
 - 申込者ルックアップ：`EditLoanApplication` の申込者選択は `component://party/.../LookupScreens.xml#LookupPartyName`
   を使うため、finance controller に `LookupPartyName` の request-map / view-map を登録している。
+
+---
+
+## 24. STEP 8 — 採算計算の設定化
+
+### 24-1. 概要
+
+日割り利息計算方式（日割り基準・通貨別端数処理）をシステム全体および商品単位で設定可能にした。
+見積スケジュール（月割り）と利息計上（日割り）の混在は継続する（方針確定済み）。
+端算入設定はスケジュール側の `interestFromDate`/`interestThruDate` 対応後に実施予定。
+
+### 24-2. 設定解決の階層
+
+```
+FinancialProduct.dayCountConventionEnumId （商品レベル override）
+       ↓ null の場合
+SystemProperty / finance.properties キー "interest.daycount.convention"
+       ↓ 未設定の場合
+ハードコードフォールバック: DAY_COUNT_ACT_365
+```
+
+通貨別端数処理も同様に `finance.properties` / `SystemProperty` で管理：
+
+```
+currency.scale.<currencyUomId>   （例: currency.scale.JPY=0）
+currency.rounding.<currencyUomId> （例: currency.rounding.JPY=DOWN）
+currency.scale.default=2
+currency.rounding.default=HALF_UP
+```
+
+### 24-3. 日割り基準（EnumerationType: LOAN_DAY_COUNT_CONV）
+
+| enumId | enumCode | 説明 |
+|---|---|---|
+| `DAY_COUNT_ACT_365` | ACT_365 | Actual/365 Fixed（既定） |
+| `DAY_COUNT_ACT_360` | ACT_360 | Actual/360 |
+| `DAY_COUNT_ACT_ACT` | ACT_ACT | Actual/Actual ISDA（閏年考慮） |
+| `DAY_COUNT_30_360`  | 30_360  | 30/360 Bond Basis |
+
+30/360 は日次ループ非互換のため、元利支払イベントで期間分割して計算する。
+
+### 24-4. 通貨別端数処理（ROUND_DOWN: enumId）
+
+| 通貨 | scale | rounding |
+|---|---|---|
+| JPY | 0 | DOWN（切り捨て） |
+| USD | 2 | HALF_UP |
+| EUR | 2 | HALF_UP |
+| その他 | 2 | HALF_UP |
+
+### 24-5. 変更ファイル一覧
+
+| ファイル | 変更内容 |
+|---|---|
+| `entitydef/entitymodel.xml` | `FinancialProduct` に `dayCountConventionEnumId` フィールド追加 |
+| `data/FinanceStep8TypeData.xml` | `LOAN_DAY_COUNT_CONV`・`LOAN_ROUNDING_MODE` Enumeration seed、`SystemProperty` 既定値 |
+| `config/finance.properties` | システム全体のデフォルト設定（日割り基準・通貨別 scale/rounding） |
+| `src/.../FinanceInterestCalculator.java` | 利息計算ヘルパー新設（日割り基準・通貨別丸め・設定解決） |
+| `src/.../FinanceAccountingServices.java` | `computeAccrual` をヘルパー経由に変更（30/360 期間分割対応含む） |
+| `src/.../FinancePrepaymentServices.java` | `persistSchedule` で通貨別丸めを適用（`amortize` は月割りのまま） |
+| `src/.../FinanceDelinquencyServices.java` | `runLateFeeAccrual` をヘルパー経由に変更（30/360 対応・通貨別丸め） |
+
+### 24-6. 検証
+
+| 検証項目 | 方法 | 結果 |
+|---|---|---|
+| Java | `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| finance テスト | `gradlew "ofbiz --test component=finance"` | tests=48 / errors=0 / failures=0 |
 

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<entity-engine-xml>
+    <!-- ============================================================ -->
+    <!-- Day-count convention (日割り計算基準)                          -->
+    <!-- NOTE: enumTypeId is type "id" (VARCHAR(20)); <= 20 chars.    -->
+    <!-- NOTE: enumId is type "id" (VARCHAR(20)); <= 20 chars.        -->
+    <!-- ============================================================ -->
+    <EnumerationType description="Loan Interest Day-Count Convention" enumTypeId="LOAN_DAY_COUNT_CONV" hasTable="N"/>
+    <Enumeration description="Actual/365 Fixed (実日数/365)" enumCode="ACT_365" enumId="DAY_COUNT_ACT_365"
+                 sequenceId="01" enumTypeId="LOAN_DAY_COUNT_CONV"/>
+    <Enumeration description="Actual/360 (実日数/360)" enumCode="ACT_360" enumId="DAY_COUNT_ACT_360"
+                 sequenceId="02" enumTypeId="LOAN_DAY_COUNT_CONV"/>
+    <Enumeration description="Actual/Actual ISDA (実日数/実年日数)" enumCode="ACT_ACT" enumId="DAY_COUNT_ACT_ACT"
+                 sequenceId="03" enumTypeId="LOAN_DAY_COUNT_CONV"/>
+    <Enumeration description="30/360 Bond Basis (各月30日/年360日)" enumCode="30_360" enumId="DAY_COUNT_30_360"
+                 sequenceId="04" enumTypeId="LOAN_DAY_COUNT_CONV"/>
+
+    <!-- ============================================================ -->
+    <!-- Currency rounding mode (通貨別端数処理)                        -->
+    <!-- ============================================================ -->
+    <EnumerationType description="Loan Interest Rounding Mode" enumTypeId="LOAN_ROUNDING_MODE" hasTable="N"/>
+    <Enumeration description="Round Down / Truncate (切り捨て)" enumCode="DOWN" enumId="ROUND_DOWN"
+                 sequenceId="01" enumTypeId="LOAN_ROUNDING_MODE"/>
+    <Enumeration description="Round Half-Up (四捨五入)" enumCode="HALF_UP" enumId="ROUND_HALF_UP"
+                 sequenceId="02" enumTypeId="LOAN_ROUNDING_MODE"/>
+    <Enumeration description="Round Up / Ceiling (切り上げ)" enumCode="UP" enumId="ROUND_UP"
+                 sequenceId="03" enumTypeId="LOAN_ROUNDING_MODE"/>
+
+    <!-- ============================================================ -->
+    <!-- SystemProperty defaults (system-wide interest calc settings) -->
+    <!-- These can be overridden at runtime via webtools SystemProperty-->
+    <!-- ============================================================ -->
+    <!-- System-wide default day-count convention: Actual/365 Fixed   -->
+    <SystemProperty systemResourceId="finance" systemPropertyId="interest.daycount.convention"
+                    systemPropertyValue="DAY_COUNT_ACT_365"
+                    description="Default interest day-count convention for all loan products (enumId from LOAN_DAY_COUNT_CONV)"/>
+</entity-engine-xml>

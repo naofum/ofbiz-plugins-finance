@@ -331,18 +331,25 @@ public final class FinancePrepaymentServices {
             BigDecimal principal, BigDecimal annualRate, int termMonths, Timestamp firstDueDate,
             String methodEnumId, long revision) throws GenericEntityException {
         List<ScheduleRow> rows = amortize(principal, annualRate, termMonths, methodEnumId);
+        String currencyUomId = agreement.getString("currencyUomId");
         for (ScheduleRow row : rows) {
             Timestamp dueDate = UtilDateTime.adjustTimestamp(firstDueDate, Calendar.MONTH,
                     row.installmentNumber - 1);
+            // Apply currency-appropriate rounding to interest and derived amounts.
+            BigDecimal interest = FinanceInterestCalculator.roundInterest(
+                    row.interestAmount, currencyUomId, delegator);
+            BigDecimal payment = row.principalAmount.add(interest)
+                    .setScale(FinanceInterestCalculator.resolveScale(currencyUomId, delegator),
+                              FinanceInterestCalculator.resolveRoundingMode(currencyUomId, delegator));
             GenericValue value = delegator.makeValue("LoanAgreementRepaymentSchedule");
             value.set("loanAgreementId", agreement.getString("loanAgreementId"));
             value.set("scheduleRevisionNumber", revision);
             value.set("installmentNumber", (long) row.installmentNumber);
             value.set("loanQuoteId", agreement.getString("loanQuoteId"));
             value.set("dueDate", dueDate);
-            value.set("paymentAmount", row.paymentAmount);
+            value.set("paymentAmount", payment);
             value.set("principalAmount", row.principalAmount);
-            value.set("interestAmount", row.interestAmount);
+            value.set("interestAmount", interest);
             value.set("remainingBalance", row.remainingBalance);
             value.create();
         }
@@ -353,12 +360,13 @@ public final class FinancePrepaymentServices {
         BigDecimal monthlyRate = annualRate.divide(TWELVE, 10, ROUNDING);
         List<ScheduleRow> rows = new ArrayList<>();
         BigDecimal balance = principal;
+        // Use high intermediate precision; final rounding is applied by persistSchedule.
         if ("LOAN_RPM_EQUAL_PRIN".equals(methodEnumId)) {
             BigDecimal principalPortion = principal.divide(new BigDecimal(termMonths), SCALE, ROUNDING);
             for (int i = 1; i <= termMonths; i++) {
-                BigDecimal interest = balance.multiply(monthlyRate).setScale(SCALE, ROUNDING);
+                BigDecimal interest = balance.multiply(monthlyRate).setScale(10, ROUNDING);
                 BigDecimal thisPrincipal = (i == termMonths) ? balance : principalPortion;
-                BigDecimal payment = thisPrincipal.add(interest).setScale(SCALE, ROUNDING);
+                BigDecimal payment = thisPrincipal.add(interest);
                 balance = balance.subtract(thisPrincipal).setScale(SCALE, ROUNDING);
                 rows.add(new ScheduleRow(i, payment, thisPrincipal, interest, balance));
             }
@@ -373,12 +381,12 @@ public final class FinancePrepaymentServices {
                         .divide(pow.subtract(BigDecimal.ONE), SCALE, ROUNDING);
             }
             for (int i = 1; i <= termMonths; i++) {
-                BigDecimal interest = balance.multiply(monthlyRate).setScale(SCALE, ROUNDING);
+                BigDecimal interest = balance.multiply(monthlyRate).setScale(10, ROUNDING);
                 BigDecimal thisPrincipal;
                 BigDecimal payment;
                 if (i == termMonths) {
                     thisPrincipal = balance;
-                    payment = balance.add(interest).setScale(SCALE, ROUNDING);
+                    payment = balance.add(interest);
                 } else {
                     thisPrincipal = monthlyPayment.subtract(interest).setScale(SCALE, ROUNDING);
                     payment = monthlyPayment;

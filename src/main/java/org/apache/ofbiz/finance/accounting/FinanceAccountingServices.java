@@ -531,22 +531,62 @@ public final class FinanceAccountingServices {
         BigDecimal outstanding = defaultZero(agreement.getBigDecimal("principalAmount"));
         BigDecimal accrued = BigDecimal.ZERO;
         int eventIndex = 0;
+        String currencyUomId = agreement.getString("currencyUomId");
+        String dayCountConvId = FinanceInterestCalculator.resolveDayCountConvention(delegator, agreement);
+        boolean is30_360 = FinanceInterestCalculator.isPeriodBased(dayCountConvId);
 
+        // Advance past events that occurred before the accrual window.
         while (eventIndex < events.size() && events.get(eventIndex).date.isBefore(firstDay)) {
             outstanding = outstanding.subtract(events.get(eventIndex).principalAmount).max(BigDecimal.ZERO);
             eventIndex++;
         }
-        for (LocalDate day = firstDay; !day.isAfter(lastDay); day = day.plusDays(1)) {
-            while (eventIndex < events.size() && !events.get(eventIndex).date.isAfter(day)) {
-                outstanding = outstanding.subtract(events.get(eventIndex).principalAmount).max(BigDecimal.ZERO);
-                eventIndex++;
+
+        if (is30_360) {
+            // 30/360: split at each principal-reduction event and compute period interest.
+            LocalDate periodStart = firstDay;
+            while (periodStart.compareTo(lastDay) <= 0) {
+                // Determine end of current sub-period (next event date - 1, or lastDay).
+                LocalDate periodEnd = lastDay;
+                for (int i = eventIndex; i < events.size(); i++) {
+                    LocalDate evDate = events.get(i).date;
+                    if (!evDate.isAfter(lastDay) && evDate.isAfter(periodStart)) {
+                        periodEnd = evDate.minusDays(1);
+                        break;
+                    }
+                }
+                // Accumulate interest for sub-period.
+                if (!periodEnd.isBefore(periodStart)) {
+                    accrued = accrued.add(FinanceInterestCalculator.computePeriodInterest30_360(
+                            outstanding, annualRate, periodStart, periodEnd));
+                }
+                // Advance past events whose date falls at periodEnd+1 (= start of next sub-period).
+                periodStart = periodEnd.plusDays(1);
+                while (eventIndex < events.size()
+                        && !events.get(eventIndex).date.isAfter(periodStart)) {
+                    outstanding = outstanding.subtract(events.get(eventIndex).principalAmount)
+                            .max(BigDecimal.ZERO);
+                    eventIndex++;
+                }
             }
-            BigDecimal dailyInterest = outstanding.multiply(annualRate)
-                    .divide(new BigDecimal("365"), 12, ROUNDING);
-            accrued = accrued.add(dailyInterest);
+        } else {
+            // Actual-based conventions: daily loop.
+            for (LocalDate day = firstDay; !day.isAfter(lastDay); day = day.plusDays(1)) {
+                while (eventIndex < events.size() && !events.get(eventIndex).date.isAfter(day)) {
+                    outstanding = outstanding.subtract(events.get(eventIndex).principalAmount)
+                            .max(BigDecimal.ZERO);
+                    eventIndex++;
+                }
+                accrued = accrued.add(FinanceInterestCalculator.computeDailyInterest(
+                        outstanding, annualRate, day, dayCountConvId));
+            }
         }
-        return new AccrualComputation(outstanding.setScale(SCALE, ROUNDING),
-                accrued.setScale(SCALE, ROUNDING));
+
+        // Apply currency-appropriate rounding to the final accrued amount.
+        BigDecimal roundedAccrued = FinanceInterestCalculator.roundInterest(accrued, currencyUomId, delegator);
+        BigDecimal roundedOutstanding = outstanding.setScale(
+                FinanceInterestCalculator.resolveScale(currencyUomId, delegator),
+                FinanceInterestCalculator.resolveRoundingMode(currencyUomId, delegator));
+        return new AccrualComputation(roundedOutstanding, roundedAccrued);
     }
 
     private static List<PrincipalPaymentEvent> getPrincipalPaymentEvents(Delegator delegator,
