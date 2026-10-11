@@ -61,7 +61,11 @@ under the License.
                 <parameter param-name="loanAgreementId"/>
             </hyperlink>
         </field>
-        <field name="borrowerPartyId" title="${uiLabelMap.FinanceApplicantPartyId}" sort-field="true"><display/></field>
+        <field name="borrowerPartyId" title="${uiLabelMap.FinanceApplicantPartyId}" sort-field="true">
+            <display-entity entity-name="PartyNameView" key-field-name="partyId"
+                    description="${firstName} ${middleName} ${lastName} ${groupName} [${partyId}]"
+                    also-hidden="false"/>
+        </field>
         <field name="principalAmount" title="${uiLabelMap.FinanceRequestedPrincipalAmount}"><display type="currency" currency="${currencyUomId}"/></field>
         <field name="annualInterestRate" title="${uiLabelMap.FinanceAnnualInterestRate}">
             <display description="${annualInterestRate * 100}%"/>
@@ -88,7 +92,11 @@ under the License.
         </field>
         <field name="finAccountId" title="${uiLabelMap.FinanceFinAccountId}"><display/></field>
         <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem"/></field>
-        <field name="borrowerPartyId" title="${uiLabelMap.FinanceApplicantPartyId}"><display/></field>
+        <field name="borrowerPartyId" title="${uiLabelMap.FinanceApplicantPartyId}">
+            <display-entity entity-name="PartyNameView" key-field-name="partyId"
+                    description="${firstName} ${middleName} ${lastName} ${groupName} [${partyId}]"
+                    also-hidden="false"/>
+        </field>
         <field name="currencyUomId" title="${uiLabelMap.FinanceCurrencyUomId}"><display/></field>
         <field name="principalAmount" title="${uiLabelMap.FinanceRequestedPrincipalAmount}">
             <display type="currency" currency="${loanAgreement.currencyUomId}"/>

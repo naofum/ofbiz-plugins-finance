@@ -57,7 +57,11 @@ under the License.
                 <parameter param-name="loanApplicationId"/>
             </hyperlink>
         </field>
-        <field name="applicantPartyId" title="${uiLabelMap.FinanceApplicantPartyId}" sort-field="true"><display/></field>
+        <field name="applicantPartyId" title="${uiLabelMap.FinanceApplicantPartyId}" sort-field="true">
+            <display-entity entity-name="PartyNameView" key-field-name="partyId"
+                    description="${firstName} ${middleName} ${lastName} ${groupName} [${partyId}]"
+                    also-hidden="false"/>
+        </field>
         <field name="productId" title="${uiLabelMap.FinanceProductId}" sort-field="true"><display/></field>
         <field name="requestedPrincipalAmount" title="${uiLabelMap.FinanceRequestedPrincipalAmount}"><display type="currency" currency="${currencyUomId}"/></field>
         <field name="requestedTermMonths" title="${uiLabelMap.FinanceRequestedTermMonths}"><display/></field>
@@ -81,6 +85,11 @@ under the License.
             </drop-down>
         </field>
         <field name="applicantPartyId" title="${uiLabelMap.FinanceApplicantPartyId}"><lookup target-form-name="LookupPartyName"/></field>
+        <field name="applicantPartyId_display" entry-name="applicantPartyId" title=" ">
+            <display-entity entity-name="PartyNameView" key-field-name="partyId"
+                    description="${firstName} ${middleName} ${lastName} ${groupName}"
+                    also-hidden="false"/>
+        </field>
         <field name="currencyUomId" title="${uiLabelMap.FinanceCurrencyUomId}">
             <drop-down allow-empty="true">
                 <entity-options key-field-name="uomId" description="${abbreviation} - ${description}" entity-name="Uom">
