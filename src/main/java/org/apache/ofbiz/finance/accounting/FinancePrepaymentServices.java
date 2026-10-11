@@ -266,7 +266,7 @@ public final class FinancePrepaymentServices {
             termMonths = Math.max(future.size(), 1);
         }
         persistSchedule(delegator, agreement, remainingPrincipal, annualRate, termMonths,
-                firstDueDate, methodEnumId, revision);
+                firstDueDate, methodEnumId, revision, prepaymentDate);
     }
 
     private static void regenerateAfterModification(Delegator delegator, GenericValue agreement,
@@ -283,7 +283,7 @@ public final class FinancePrepaymentServices {
         long elapsed = elapsedInstallments(delegator, agreement, effectiveDate);
         int termMonths = (int) Math.max(newTermMonths - elapsed, 1L);
         persistSchedule(delegator, agreement, remainingPrincipal, newRate, termMonths,
-                firstDueDate, methodEnumId, revision);
+                firstDueDate, methodEnumId, revision, effectiveDate);
     }
 
     private static int computeTermReductionMonths(Delegator delegator, GenericValue agreement,
@@ -329,12 +329,25 @@ public final class FinancePrepaymentServices {
 
     private static void persistSchedule(Delegator delegator, GenericValue agreement,
             BigDecimal principal, BigDecimal annualRate, int termMonths, Timestamp firstDueDate,
-            String methodEnumId, long revision) throws GenericEntityException {
+            String methodEnumId, long revision, Timestamp eventDate) throws GenericEntityException {
         List<ScheduleRow> rows = amortize(principal, annualRate, termMonths, methodEnumId);
         String currencyUomId = agreement.getString("currencyUomId");
+        // interestFromDate[1] = eventDate + 1 day (the day after the prepayment / modification date)
+        // interestFromDate[n] = interestThruDate[n-1] + 1 day
+        Timestamp prevThru = null;
         for (ScheduleRow row : rows) {
             Timestamp dueDate = UtilDateTime.adjustTimestamp(firstDueDate, Calendar.MONTH,
                     row.installmentNumber - 1);
+            // interestThruDate = calendar due date (before business-day adjustment)
+            Timestamp interestThru = dueDate;
+            Timestamp interestFrom;
+            if (prevThru == null) {
+                // First installment: day after the event date
+                interestFrom = new Timestamp(eventDate.getTime() + 86_400_000L);
+            } else {
+                interestFrom = new Timestamp(prevThru.getTime() + 86_400_000L);
+            }
+            prevThru = interestThru;
             // Apply currency-appropriate rounding to interest and derived amounts.
             BigDecimal interest = FinanceInterestCalculator.roundInterest(
                     row.interestAmount, currencyUomId, delegator);
@@ -347,6 +360,8 @@ public final class FinancePrepaymentServices {
             value.set("installmentNumber", (long) row.installmentNumber);
             value.set("loanQuoteId", agreement.getString("loanQuoteId"));
             value.set("dueDate", dueDate);
+            value.set("interestFromDate", interestFrom);
+            value.set("interestThruDate", interestThru);
             value.set("paymentAmount", payment);
             value.set("principalAmount", row.principalAmount);
             value.set("interestAmount", interest);

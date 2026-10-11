@@ -122,6 +122,17 @@ class LoanLifecycleTests extends OFBizTestCase {
         }
         assert principalSum.setScale(2).compareTo(new BigDecimal('120000.00')) == 0
         assert schedule[-1].getBigDecimal('remainingBalance').compareTo(BigDecimal.ZERO) == 0
+
+        // interestThruDate[n] must equal dueDate; interestFromDate[n+1] = interestThruDate[n] + 1 day.
+        for (GenericValue row : schedule) {
+            assert row.getTimestamp('interestThruDate') != null
+            assert row.getTimestamp('interestFromDate') != null
+            assert row.getTimestamp('interestThruDate') == row.getTimestamp('dueDate')
+        }
+        for (int i = 1; i < schedule.size(); i++) {
+            long expectedFrom = schedule[i - 1].getTimestamp('interestThruDate').getTime() + 86_400_000L
+            assert schedule[i].getTimestamp('interestFromDate').getTime() == expectedFrom
+        }
     }
 
     // Equal-principal calculation must use the seed ID and decrease payments over time.
@@ -265,6 +276,16 @@ class LoanLifecycleTests extends OFBizTestCase {
             assert confirmedSchedule[i].loanQuoteId == loanQuoteId
             assert confirmedSchedule[i].paymentAmount.compareTo(quoteSchedule[i].paymentAmount) == 0
             assert confirmedSchedule[i].remainingBalance.compareTo(quoteSchedule[i].remainingBalance) == 0
+        }
+
+        // interestFromDate[1] in the agreement schedule must be agreementDate + 1 day.
+        GenericValue confirmedAgreement = from('LoanAgreement')
+                .where('loanAgreementId', agrResult.loanAgreementId).queryOne()
+        long expectedFirstFrom = confirmedAgreement.getTimestamp('agreementDate').getTime() + 86_400_000L
+        assert confirmedSchedule[0].getTimestamp('interestFromDate').getTime() == expectedFirstFrom
+        // interestThruDate must equal dueDate for all rows.
+        for (GenericValue row : confirmedSchedule) {
+            assert row.getTimestamp('interestThruDate') == row.getTimestamp('dueDate')
         }
 
         Map retryResult = dispatcher.runSync('createLoanAgreement', [loanQuoteId: loanQuoteId, userLogin: userLogin])

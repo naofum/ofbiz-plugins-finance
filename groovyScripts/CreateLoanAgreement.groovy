@@ -144,17 +144,27 @@ agreement.create()
 
 // 3) Snapshot the accepted quote schedule. Subsequent quote edits cannot alter
 // billing terms for this agreement.
+// interestFromDate for the first installment is set to agreementDate + 1 day
+// (= the day after the contract execution date), overriding the provisional
+// value stored in the source LoanRepaymentSchedule.
+java.sql.Timestamp agreementDatePlusOne = new java.sql.Timestamp(agreementDate.getTime() + 86_400_000L)
 for (GenericValue source : sourceSchedule) {
+    long installmentNum = (source.installmentNumber as Long)
+    java.sql.Timestamp interestFrom = (installmentNum == 1L)
+            ? agreementDatePlusOne
+            : source.getTimestamp('interestFromDate')
     makeValue('LoanAgreementRepaymentSchedule', [
-            loanAgreementId      : loanAgreementId,
-            scheduleRevisionNumber: 1L,
-            installmentNumber    : source.installmentNumber,
-            loanQuoteId          : loanQuoteId,
-            dueDate              : source.dueDate,
-            paymentAmount        : source.paymentAmount,
-            principalAmount      : source.principalAmount,
-            interestAmount       : source.interestAmount,
-            remainingBalance     : source.remainingBalance]).create()
+            loanAgreementId        : loanAgreementId,
+            scheduleRevisionNumber : 1L,
+            installmentNumber      : source.installmentNumber,
+            loanQuoteId            : loanQuoteId,
+            dueDate                : source.dueDate,
+            interestFromDate       : interestFrom,
+            interestThruDate       : source.getTimestamp('interestThruDate'),
+            paymentAmount          : source.paymentAmount,
+            principalAmount        : source.principalAmount,
+            interestAmount         : source.interestAmount,
+            remainingBalance       : source.remainingBalance]).create()
 }
 
 // 3b) Link declared collateral to the agreement (lien), assigning each its

@@ -124,12 +124,32 @@ GenericValue quote = makeValue('LoanQuote', [
 quote.create()
 
 // Persist schedule rows.
+// interestThruDate[n] = firstPaymentDate + (n-1) months  (= dueDate, calendar value)
+// interestFromDate[1] = firstPaymentDate - 1 month + 1 day  (provisional; overwritten with
+//                       agreementDate+1 when the agreement is created)
+// interestFromDate[n] = interestThruDate[n-1] + 1 day  (n >= 2)
+java.sql.Timestamp prevThru = null
 for (row in schedule) {
     java.sql.Timestamp due = UtilDateTime.adjustTimestamp(firstPaymentDate, java.util.Calendar.MONTH, (row.n - 1) as int)
+    // interestThruDate is the calendar due date (before any business-day adjustment).
+    java.sql.Timestamp interestThru = due
+    // interestFromDate: day after the previous installment's thruDate, or for n=1
+    // one month before firstPaymentDate + 1 day (provisional estimate).
+    java.sql.Timestamp interestFrom
+    if (prevThru == null) {
+        // n=1: reverse-calculate from firstPaymentDate (provisional; replaced at agreement time)
+        java.sql.Timestamp oneMonthBefore = UtilDateTime.adjustTimestamp(firstPaymentDate, java.util.Calendar.MONTH, -1)
+        interestFrom = new java.sql.Timestamp(oneMonthBefore.getTime() + 86_400_000L)
+    } else {
+        interestFrom = new java.sql.Timestamp(prevThru.getTime() + 86_400_000L)
+    }
+    prevThru = interestThru
     GenericValue line = makeValue('LoanRepaymentSchedule', [
             loanQuoteId      : loanQuoteId,
             installmentNumber: (row.n as BigDecimal),
             dueDate          : due,
+            interestFromDate : interestFrom,
+            interestThruDate : interestThru,
             paymentAmount    : row.payment,
             principalAmount  : row.principal,
             interestAmount   : row.interest,

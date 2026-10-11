@@ -1,10 +1,10 @@
-# Finance プラグイン 仕様（STEP 1〜STEP 8 完了分）
+# Finance プラグイン 仕様（STEP 1〜STEP 9 完了分）
 
 Apache OFBiz 上に構築する独立したファイナンスモジュール。
 *The Data Model Resource Book* の **Financial Services** をベースに、ローン業務を提供する。
 全体計画は `REQUIREMENTS.md` を参照。
 
-このドキュメントは **STEP 1〜STEP 8**（REQUIREMENTS.md の全ステップ）の仕様をまとめたもの。
+このドキュメントは **STEP 1〜STEP 9**（REQUIREMENTS.md の全ステップ）の仕様をまとめたもの。
 
 - STEP 1: ローン申込の CRUD、ステータス遷移、検索一覧 / 登録編集画面
 - STEP 2: 見積（返済計画シミュレーション）、審査、契約（ローン口座＝FinAccount 開設）
@@ -14,6 +14,7 @@ Apache OFBiz 上に構築する独立したファイナンスモジュール。
 - STEP 6: 延滞管理・督促（延滞判定・遅延損害金計上・督促状・償却）＋単体テスト
 - STEP 7: 繰上返済・条件変更（再償却・手数料・履歴）＋単体テスト
 - STEP 8: 採算計算の設定化（日割り基準・通貨別端数処理・商品/システム設定階層）
+- STEP 9: 返済スケジュールへの利息計算期間フィールド追加（interestFromDate / interestThruDate）
 
 STEP 2 はセクション 9〜12、STEP 3 はセクション 13〜17、STEP 4 はセクション 20、STEP 5 はセクション 21、STEP 6 はセクション 22、STEP 7 はセクション 23 にまとめている。
 実装言語の方針：計算・会計・バッチ＝**Java**、CRUD / ステータス遷移 / 画面データ準備＝**entity-auto / Groovy**。
@@ -1001,5 +1002,63 @@ currency.rounding.default=HALF_UP
 | 検証項目 | 方法 | 結果 |
 |---|---|---|
 | Java | `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| finance テスト | `gradlew "ofbiz --test component=finance"` | tests=48 / errors=0 / failures=0 |
+
+---
+
+## 25. STEP 9 — 返済スケジュールへの利息計算期間フィールド追加
+
+### 25-1. 概要
+
+`LoanRepaymentSchedule` と `LoanAgreementRepaymentSchedule` に `interestFromDate`/`interestThruDate` を追加し、各回の利息計算対象期間を明示的に保持する。これにより将来の端算入設定化・営業日調整との基盤を整える。
+
+### 25-2. フィールド設計
+
+| フィールド | 型 | 説明 |
+|---|---|---|
+| `interestFromDate` | `date-time` | 利息計算期間の開始日（inclusive） |
+| `interestThruDate` | `date-time` | 利息計算期間の終了日（inclusive）。現時点では `dueDate`（カレンダー上の期日）と同値 |
+
+`dueDate` は将来の営業日調整で変わる可能性があるが、`interestThruDate` はカレンダー上の期日を保持する。
+
+### 25-3. 各回の計算ルール
+
+```
+LoanRepaymentSchedule（見積）:
+  interestThruDate[n] = firstPaymentDate + (n-1)ヶ月  ← dueDate と同値
+  interestFromDate[1] = firstPaymentDate - 1ヶ月 + 1日  ← 仮値（契約確定時に上書き）
+  interestFromDate[n] = interestThruDate[n-1] + 1日  （n >= 2）
+
+LoanAgreementRepaymentSchedule（契約スナップショット）:
+  interestThruDate[n] = 見積と同値（コピー）
+  interestFromDate[1] = agreementDate + 1日  ← 契約日翌日で上書き（日本銀行慣行）
+  interestFromDate[n] = 見積と同値（コピー）  （n >= 2）
+
+再償却（persistSchedule）:
+  interestFromDate[1] = prepaymentDate / modificationDate + 1日
+  以降は同じ連鎖計算
+```
+
+### 25-4. 変更ファイル一覧
+
+| ファイル | 変更内容 |
+|---|---|
+| `entitydef/entitymodel_step2.xml` | `LoanRepaymentSchedule`・`LoanAgreementRepaymentSchedule` 両エンティティに `interestFromDate`/`interestThruDate` フィールド追加 |
+| `groovyScripts/CreateLoanQuote.groovy` | スケジュール行生成ループで `interestFromDate`/`interestThruDate` を計算・設定 |
+| `groovyScripts/CreateLoanAgreement.groovy` | スナップショット時に `interestFromDate[1]` を `agreementDate+1日` で設定、n>=2 は見積値をコピー |
+| `src/.../FinancePrepaymentServices.java` | `persistSchedule` に `eventDate` 引数を追加、各行の `interestFromDate`/`interestThruDate` を設定 |
+| `src/.../LoanLifecycleTests.groovy` | `testCreateQuoteAndSchedule`・`testCreateAgreementWithConfirmedSchedule` に期間フィールドのアサーション追加 |
+| `src/.../LoanPrepaymentTests.groovy` | `testPartialPrepaymentAmountReduction` に再償却後スケジュールの期間フィールドアサーション追加 |
+
+### 25-5. 残タスク
+
+- 端算入（`PERIOD_BOTH` / `PERIOD_BACK_EXCL` 等）の設定化：`interestFromDate`/`interestThruDate` が確定した後に実施
+- 営業日調整（`dueDate` を Modified Following 等で補正）：端算入設定化と同時または次ステップで実施
+
+### 25-6. 検証
+
+| 検証項目 | 方法 | 結果 |
+|---|---|---|
+| Java / Groovy | `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
 | finance テスト | `gradlew "ofbiz --test component=finance"` | tests=48 / errors=0 / failures=0 |
 

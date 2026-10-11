@@ -132,6 +132,11 @@ class LoanPrepaymentTests extends OFBizTestCase {
         assert revision2.size() == 12
         assert principalSum(loanAgreementId, 2L).setScale(2)
                 .compareTo(new BigDecimal('100000.00')) == 0
+        // interestThruDate must equal dueDate; interestFromDate continuity must hold.
+        for (GenericValue row : revision2) {
+            assert row.getTimestamp('interestFromDate') != null
+            assert row.getTimestamp('interestThruDate') == row.getTimestamp('dueDate')
+        }
     }
 
     // Partial prepayment (term reduction) shortens the remaining schedule.

@@ -64,6 +64,8 @@ under the License.
         <field name="loanQuoteId" type="id"></field>
         <field name="installmentNumber" type="numeric"><description>1-based installment sequence</description></field>
         <field name="dueDate" type="date-time"></field>
+        <field name="interestFromDate" type="date-time"><description>start of interest accrual period for this installment (inclusive)</description></field>
+        <field name="interestThruDate" type="date-time"><description>end of interest accrual period for this installment (inclusive); normally equals dueDate before business-day adjustment</description></field>
         <field name="paymentAmount" type="currency-amount"><description>total payment for this installment</description></field>
         <field name="principalAmount" type="currency-amount"><description>principal portion</description></field>
         <field name="interestAmount" type="currency-amount"><description>interest portion</description></field>
@@ -83,6 +85,8 @@ under the License.
         <field name="installmentNumber" type="numeric"><description>1-based installment sequence</description></field>
         <field name="loanQuoteId" type="id"><description>source accepted quote</description></field>
         <field name="dueDate" type="date-time"></field>
+        <field name="interestFromDate" type="date-time"><description>start of interest accrual period for this installment (inclusive)</description></field>
+        <field name="interestThruDate" type="date-time"><description>end of interest accrual period for this installment (inclusive); normally equals dueDate before business-day adjustment</description></field>
         <field name="paymentAmount" type="currency-amount"></field>
         <field name="principalAmount" type="currency-amount"></field>
         <field name="interestAmount" type="currency-amount"></field>
