@@ -22,8 +22,8 @@ import java.math.RoundingMode
 import org.apache.ofbiz.base.util.UtilDateTime
 import org.apache.ofbiz.base.util.UtilProperties
 import org.apache.ofbiz.entity.GenericValue
-import org.apache.ofbiz.finance.accounting.BusinessDayCalculator
-import org.apache.ofbiz.finance.accounting.FinanceInterestCalculator
+import org.apache.ofbiz.finance.common.BusinessDayCalculator
+import org.apache.ofbiz.finance.common.FinanceInterestCalculator
 
 // Create a LoanQuote and its repayment schedule from a LoanApplication.
 // Supports EQUAL_PAYMENT (元利均等) and EQUAL_PRINCIPAL (元金均等).

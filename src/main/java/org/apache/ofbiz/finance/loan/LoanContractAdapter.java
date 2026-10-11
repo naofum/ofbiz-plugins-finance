@@ -17,7 +17,7 @@
  * under the License.
  *******************************************************************************/
 
-package org.apache.ofbiz.finance.accounting;
+package org.apache.ofbiz.finance.loan;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

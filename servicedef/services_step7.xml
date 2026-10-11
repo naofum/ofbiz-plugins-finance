@@ -28,7 +28,7 @@ under the License.
     <!-- Prepayment                                                    -->
     <!-- ============================================================= -->
     <service name="createLoanPrepayment" engine="java"
-            location="org.apache.ofbiz.finance.accounting.FinancePrepaymentServices" invoke="createLoanPrepayment" auth="true">
+            location="org.apache.ofbiz.finance.loan.FinancePrepaymentServices" invoke="createLoanPrepayment" auth="true">
         <description>Make a full or partial prepayment and re-amortize the remaining schedule</description>
         <permission-service service-name="financePaymentPermission" main-action="CREATE"/>
         <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
@@ -47,7 +47,7 @@ under the License.
     <!-- Loan modification                                             -->
     <!-- ============================================================= -->
     <service name="createLoanModification" engine="java"
-            location="org.apache.ofbiz.finance.accounting.FinancePrepaymentServices" invoke="createLoanModification" auth="true">
+            location="org.apache.ofbiz.finance.loan.FinancePrepaymentServices" invoke="createLoanModification" auth="true">
         <description>Change the interest rate and/or term and re-amortize the remaining schedule</description>
         <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
         <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>

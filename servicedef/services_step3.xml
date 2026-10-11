@@ -28,7 +28,7 @@ under the License.
     <!-- Monthly interest accrual (Java)                               -->
     <!-- ============================================================= -->
     <service name="runMonthlyInterestAccrual" engine="java"
-            location="org.apache.ofbiz.finance.accounting.FinanceAccountingServices" invoke="runMonthlyInterestAccrual" auth="true">
+            location="org.apache.ofbiz.finance.loan.FinanceAccountingServices" invoke="runMonthlyInterestAccrual" auth="true">
         <description>Compute and record monthly interest accrual for a loan agreement</description>
         <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
         <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
@@ -41,7 +41,7 @@ under the License.
     </service>
 
     <service name="runMonthlyInterestAccrualInternal" engine="java" export="false"
-            location="org.apache.ofbiz.finance.accounting.FinanceAccountingServices" invoke="runMonthlyInterestAccrual" auth="true">
+            location="org.apache.ofbiz.finance.loan.FinanceAccountingServices" invoke="runMonthlyInterestAccrual" auth="true">
         <description>Internal monthly interest accrual used by billing and batch wrappers</description>
         <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
         <attribute name="accrualDate" type="Timestamp" mode="IN" optional="true"/>
@@ -53,7 +53,7 @@ under the License.
     </service>
 
     <service name="runLoanMonthlyAccountingBatch" engine="java"
-            location="org.apache.ofbiz.finance.accounting.FinanceAccountingServices" invoke="runLoanMonthlyAccountingBatch" auth="true">
+            location="org.apache.ofbiz.finance.loan.FinanceAccountingServices" invoke="runLoanMonthlyAccountingBatch" auth="true">
         <description>Accrue interest and create all installment invoices due through the processing date for active loans</description>
         <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
         <attribute name="processingDate" type="Timestamp" mode="IN" optional="true"/>
@@ -67,7 +67,7 @@ under the License.
     <!-- Installment billing - create Invoice (Java)                   -->
     <!-- ============================================================= -->
     <service name="createLoanInstallmentInvoice" engine="java"
-            location="org.apache.ofbiz.finance.accounting.FinanceAccountingServices" invoke="createLoanInstallmentInvoice" auth="true">
+            location="org.apache.ofbiz.finance.loan.FinanceAccountingServices" invoke="createLoanInstallmentInvoice" auth="true">
         <description>Bill one repayment installment by creating an Invoice (principal + interest)</description>
         <permission-service service-name="financeBillingPermission" main-action="CREATE"/>
         <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
@@ -78,7 +78,7 @@ under the License.
     </service>
 
     <service name="createLoanInstallmentInvoiceInternal" engine="java" export="false"
-            location="org.apache.ofbiz.finance.accounting.FinanceAccountingServices" invoke="createLoanInstallmentInvoice" auth="true">
+            location="org.apache.ofbiz.finance.loan.FinanceAccountingServices" invoke="createLoanInstallmentInvoice" auth="true">
         <description>Internal installment billing used by the monthly accounting batch</description>
         <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
         <attribute name="installmentNumber" type="Long" mode="IN" optional="false"/>
@@ -91,7 +91,7 @@ under the License.
     <!-- Payment receipt / settlement (Java)                           -->
     <!-- ============================================================= -->
     <service name="receiveLoanPayment" engine="java"
-            location="org.apache.ofbiz.finance.accounting.FinanceAccountingServices" invoke="receiveLoanPayment" auth="true">
+            location="org.apache.ofbiz.finance.loan.FinanceAccountingServices" invoke="receiveLoanPayment" auth="true">
         <description>Receive a loan payment and apply it to an installment invoice</description>
         <permission-service service-name="financePaymentPermission" main-action="CREATE"/>
         <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>

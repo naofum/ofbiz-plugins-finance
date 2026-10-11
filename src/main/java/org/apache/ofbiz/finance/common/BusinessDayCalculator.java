@@ -17,7 +17,7 @@
  * under the License.
  *******************************************************************************/
 
-package org.apache.ofbiz.finance.accounting;
+package org.apache.ofbiz.finance.common;
 
 import java.sql.Timestamp;
 import java.time.DayOfWeek;

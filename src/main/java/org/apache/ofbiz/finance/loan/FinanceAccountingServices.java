@@ -17,7 +17,7 @@
  * under the License.
  *******************************************************************************/
 
-package org.apache.ofbiz.finance.accounting;
+package org.apache.ofbiz.finance.loan;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -44,6 +44,7 @@ import org.apache.ofbiz.entity.GenericValue;
 import org.apache.ofbiz.entity.condition.EntityCondition;
 import org.apache.ofbiz.entity.condition.EntityOperator;
 import org.apache.ofbiz.entity.util.EntityQuery;
+import org.apache.ofbiz.finance.common.FinanceInterestCalculator;
 import org.apache.ofbiz.finance.common.FinanceContractHelper;
 import org.apache.ofbiz.service.DispatchContext;
 import org.apache.ofbiz.service.GenericServiceException;
