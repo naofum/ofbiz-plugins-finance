@@ -124,6 +124,16 @@ class LoanDelinquencyTests extends OFBizTestCase {
         assert delinquency.daysPastDue >= 31L && delinquency.daysPastDue <= 60L
         assert delinquency.delinquencyLevelEnumId == 'DELINQ_D2'
         assert delinquency.overduePrincipalAmount.compareTo(BigDecimal.ZERO) > 0
+        // STEP L0: delinquency records are keyed by the common contract ledger.
+        String financeContractId = from('LoanAgreement').where('loanAgreementId', loanAgreementId)
+                .queryOne().financeContractId
+        assert delinquency.financeContractId == financeContractId
+
+        // The batch can also be addressed by financeContractId and stays idempotent per day.
+        Map byContract = dispatcher.runSync('runLoanDelinquencyBatch', [
+                financeContractId: financeContractId, userLogin: userLogin])
+        assert ServiceUtil.isSuccess(byContract)
+        assert byContract.createdDelinquencyCount == 0L
     }
 
     // Late fee accrues on the overdue balance and posts a balanced GL journal.
@@ -171,6 +181,21 @@ class LoanDelinquencyTests extends OFBizTestCase {
         GenericValue notice = from('LoanDunningNotice')
                 .where('loanAgreementId', loanAgreementId, 'dunningLevelEnumId', 'DUN_L2').queryOne()
         assert notice != null
+
+        // STEP L0: a notice can be recorded by financeContractId; the loan key is still filled.
+        String financeContractId = from('LoanAgreement').where('loanAgreementId', loanAgreementId)
+                .queryOne().financeContractId
+        assert notice.financeContractId == financeContractId
+        Map byContract = dispatcher.runSync('createLoanDunningNotice', [
+                financeContractId: financeContractId, dunningLevelEnumId: 'DUN_L3', userLogin: userLogin])
+        assert ServiceUtil.isSuccess(byContract)
+        assert byContract.noticeCreated
+        GenericValue contractNotice = from('LoanDunningNotice')
+                .where('loanDunningNoticeId', byContract.loanDunningNoticeId).queryOne()
+        assert contractNotice.loanAgreementId == loanAgreementId
+
+        assert ServiceUtil.isError(dispatcher.runSync('createLoanDunningNotice', [
+                financeContractId: 'NO_SUCH_CONTRACT', dunningLevelEnumId: 'DUN_L2', userLogin: userLogin]))
     }
 
     // At D3 (write-off flag) the invoice is written off and an action recorded.

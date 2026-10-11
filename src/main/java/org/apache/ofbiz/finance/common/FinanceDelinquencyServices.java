@@ -17,14 +17,12 @@
  * under the License.
  *******************************************************************************/
 
-package org.apache.ofbiz.finance.accounting;
+package org.apache.ofbiz.finance.common;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +30,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
 
-import org.apache.ofbiz.accounting.invoice.InvoiceWorker;
 import org.apache.ofbiz.base.util.Debug;
 import org.apache.ofbiz.base.util.UtilDateTime;
 import org.apache.ofbiz.base.util.UtilMisc;
@@ -41,35 +38,38 @@ import org.apache.ofbiz.base.util.UtilValidate;
 import org.apache.ofbiz.entity.Delegator;
 import org.apache.ofbiz.entity.GenericEntityException;
 import org.apache.ofbiz.entity.GenericValue;
-import org.apache.ofbiz.entity.condition.EntityCondition;
-import org.apache.ofbiz.entity.condition.EntityOperator;
 import org.apache.ofbiz.entity.util.EntityQuery;
+import org.apache.ofbiz.finance.accounting.FinanceInterestCalculator;
 import org.apache.ofbiz.service.DispatchContext;
 import org.apache.ofbiz.service.GenericServiceException;
 import org.apache.ofbiz.service.LocalDispatcher;
 import org.apache.ofbiz.service.ServiceUtil;
 
 /**
- * Finance STEP 6 services: delinquency detection / classification, late fee
- * (penalty interest) accrual, dunning notice recording and write-off / legal
- * actions.
+ * Common delinquency engine (STEP 6, generalized in STEP L0): delinquency
+ * detection / classification, late fee (penalty interest) accrual, dunning
+ * notice recording and write-off / legal actions.
+ *
+ * <p>The engine works on {@code FinanceContract}. Everything that depends on the
+ * contract type (agreement, confirmed schedule, invoices) is delegated to the
+ * {@link FinanceContractAdapter} registered for the contract type. The existing
+ * service interfaces accept {@code loanAgreementId} (resolved through the loan
+ * adapter) or {@code financeContractId}.
  */
 public final class FinanceDelinquencyServices {
 
     private static final String MODULE = FinanceDelinquencyServices.class.getName();
     private static final String RESOURCE = "FinanceUiLabels";
-    private static final int SCALE = 2;
-    private static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
 
     private FinanceDelinquencyServices() {
     }
 
     /**
-     * Daily delinquency batch. For every active agreement it detects past-due
-     * installments, computes days past due, classifies the agreement against its
-     * product's {@code FinancialProductDelinquency} configuration, records a
-     * {@code LoanDelinquency} snapshot and triggers write-off / legal actions
-     * when the classification flags them. Idempotent per processing day.
+     * Daily delinquency batch. For every ACTIVE contract (or the requested one) it
+     * computes days past due, classifies the contract against its product's
+     * {@code FinancialProductDelinquency} configuration, records a delinquency
+     * snapshot and triggers write-off / legal actions when the classification
+     * flags them. Idempotent per processing day.
      */
     public static Map<String, Object> runLoanDelinquencyBatch(DispatchContext dctx,
             Map<String, Object> context) {
@@ -78,7 +78,6 @@ public final class FinanceDelinquencyServices {
         Locale locale = (Locale) context.get("locale");
         GenericValue userLogin = (GenericValue) context.get("userLogin");
         Timestamp processingDate = (Timestamp) context.get("processingDate");
-        String requestedAgreementId = (String) context.get("loanAgreementId");
         if (processingDate == null) {
             processingDate = UtilDateTime.nowTimestamp();
         }
@@ -88,52 +87,55 @@ public final class FinanceDelinquencyServices {
         long createdDelinquencyCount = 0;
         long createdActionCount = 0;
         try {
-            List<GenericValue> agreements = new ArrayList<>();
-            if (UtilValidate.isNotEmpty(requestedAgreementId)) {
-                GenericValue agreement = EntityQuery.use(delegator).from("LoanAgreement")
-                        .where("loanAgreementId", requestedAgreementId).queryOne();
-                if (agreement == null) {
-                    return recordNotFound("LoanAgreement", requestedAgreementId, locale);
+            List<GenericValue> contracts = new ArrayList<>();
+            String requestedId = FinanceContractAdapters.requestedAgreementId(context);
+            if (UtilValidate.isNotEmpty(requestedId)) {
+                GenericValue contract = findRequestedContract(delegator, context);
+                if (contract == null) {
+                    return recordNotFound(requestedEntityName(context), requestedId, locale);
                 }
-                agreements.add(agreement);
+                contracts.add(contract);
             } else {
-                agreements = EntityQuery.use(delegator).from("LoanAgreement")
-                        .where("statusId", "LOANAGR_ACTIVE").orderBy("loanAgreementId").queryList();
+                contracts = EntityQuery.use(delegator).from("FinanceContract")
+                        .where("statusId", FinanceContractHelper.STATUS_ACTIVE)
+                        .orderBy("financeContractId").queryList();
             }
 
-            for (GenericValue agreement : agreements) {
-                GenericValue locked = lockAgreement(delegator, agreement.getString("loanAgreementId"));
-                if (locked == null) {
+            for (GenericValue contract : contracts) {
+                FinanceContractAdapter adapter = FinanceContractAdapters.forType(contract.getString("contractTypeId"));
+                if (adapter == null) {
                     continue;
                 }
-                String loanAgreementId = locked.getString("loanAgreementId");
-                DelinquencyComputation computation = computeDelinquency(delegator, locked, asOfDate);
-                if (computation.daysPastDue <= 0) {
+                String financeContractId = contract.getString("financeContractId");
+                FinanceContractHelper.lock(delegator, financeContractId);
+                GenericValue agreement = adapter.findAgreement(delegator, financeContractId);
+                if (agreement == null) {
+                    continue;
+                }
+                DelinquencyComputation computation = adapter.computeDelinquency(delegator, agreement, asOfDate);
+                if (computation.getDaysPastDue() <= 0) {
                     processedAgreementCount++;
                     continue;
                 }
 
-                GenericValue classification = classifyDelinquency(delegator, locked, computation.daysPastDue);
+                GenericValue classification = classifyDelinquency(delegator,
+                        contract.getString("productId"), computation.getDaysPastDue());
                 String delinquencyLevelEnumId = classification == null
                         ? "DELINQ_D1" : classification.getString("delinquencyLevelEnumId");
 
-                boolean createdSnapshot = createDelinquencySnapshot(delegator, locked,
-                        asOfDate, computation, delinquencyLevelEnumId);
-                if (createdSnapshot) {
+                if (createDelinquencySnapshot(delegator, contract, adapter, agreement,
+                        asOfDate, computation, delinquencyLevelEnumId)) {
                     createdDelinquencyCount++;
                 }
-
-                if (classification != null
-                        && "Y".equals(classification.getString("writeoffFlag"))) {
-                    if (performWriteOff(delegator, dispatcher, locked, computation,
-                            asOfDate, userLogin)) {
+                if (classification != null && "Y".equals(classification.getString("writeoffFlag"))) {
+                    if (performWriteOff(delegator, dispatcher, contract, adapter, agreement,
+                            computation, asOfDate, userLogin)) {
                         createdActionCount++;
                     }
                 }
-                if (classification != null
-                        && "Y".equals(classification.getString("legalActionFlag"))) {
-                    if (recordAction(delegator, locked, "DELINQ_ACT_LEGAL", asOfDate,
-                            null, null, null, "Legal action flag")) {
+                if (classification != null && "Y".equals(classification.getString("legalActionFlag"))) {
+                    if (recordAction(delegator, contract, adapter, agreement, "DELINQ_ACT_LEGAL",
+                            asOfDate, null, null, null, "Legal action flag")) {
                         createdActionCount++;
                     }
                 }
@@ -152,9 +154,9 @@ public final class FinanceDelinquencyServices {
     }
 
     /**
-     * Accrue late fee (penalty interest) on the overdue balance for one
-     * agreement and post a balanced GL journal: debit interest receivable,
-     * credit late fee income. Re-running the same period is idempotent.
+     * Accrue late fee (penalty interest) on the overdue balance of one contract
+     * and post a balanced GL journal: debit interest receivable, credit late fee
+     * income. Re-running the same period is idempotent.
      */
     public static Map<String, Object> runLateFeeAccrual(DispatchContext dctx,
             Map<String, Object> context) {
@@ -162,36 +164,46 @@ public final class FinanceDelinquencyServices {
         LocalDispatcher dispatcher = dctx.getDispatcher();
         Locale locale = (Locale) context.get("locale");
         GenericValue userLogin = (GenericValue) context.get("userLogin");
-        String loanAgreementId = (String) context.get("loanAgreementId");
         Timestamp accrualDate = (Timestamp) context.get("accrualDate");
         if (accrualDate == null) {
             accrualDate = UtilDateTime.nowTimestamp();
         }
 
         try {
-            GenericValue agreement = lockAgreement(delegator, loanAgreementId);
-            if (agreement == null) {
-                return recordNotFound("LoanAgreement", loanAgreementId, locale);
+            GenericValue contract = findRequestedContract(delegator, context);
+            FinanceContractAdapter adapter = contract == null ? null
+                    : FinanceContractAdapters.forType(contract.getString("contractTypeId"));
+            if (contract == null || adapter == null) {
+                return recordNotFound(requestedEntityName(context),
+                        FinanceContractAdapters.requestedAgreementId(context), locale);
             }
-            if (!"LOANAGR_ACTIVE".equals(agreement.getString("statusId"))) {
+            String financeContractId = contract.getString("financeContractId");
+            FinanceContractHelper.lock(delegator, financeContractId);
+            GenericValue agreement = adapter.findAgreement(delegator, financeContractId);
+            if (agreement == null) {
+                return recordNotFound(adapter.getAgreementEntityName(),
+                        FinanceContractAdapters.requestedAgreementId(context), locale);
+            }
+            String agreementId = agreement.getString(adapter.getAgreementIdField());
+            if (!adapter.isActive(agreement)) {
                 return ServiceUtil.returnError(UtilProperties.getMessage(RESOURCE,
-                        "FinanceAgreementNotActive",
-                        UtilMisc.toMap("loanAgreementId", loanAgreementId), locale));
+                        "FinanceAgreementNotActive", UtilMisc.toMap("loanAgreementId", agreementId), locale));
             }
 
-            BigDecimal lateFeeRate = resolveLateFeeRate(delegator, agreement);
+            String productId = contract.getString("productId");
+            BigDecimal lateFeeRate = resolveLateFeeRate(delegator, productId);
             if (lateFeeRate == null) {
                 Map<String, Object> result = ServiceUtil.returnSuccess();
                 result.put("accrualCreated", Boolean.FALSE);
                 return result;
             }
 
-            DelinquencyComputation computation = computeDelinquency(delegator, agreement, endOfDay(accrualDate));
-            BigDecimal overdueBalance = computation.overduePrincipal.add(computation.overdueInterest)
-                    .setScale(FinanceInterestCalculator.resolveScale(
-                            agreement.getString("currencyUomId"), delegator),
-                              FinanceInterestCalculator.resolveRoundingMode(
-                            agreement.getString("currencyUomId"), delegator));
+            String currencyUomId = contract.getString("currencyUomId");
+            DelinquencyComputation computation = adapter.computeDelinquency(delegator, agreement,
+                    endOfDay(accrualDate));
+            BigDecimal overdueBalance = computation.getOverdueTotal()
+                    .setScale(FinanceInterestCalculator.resolveScale(currencyUomId, delegator),
+                            FinanceInterestCalculator.resolveRoundingMode(currencyUomId, delegator));
             if (overdueBalance.compareTo(BigDecimal.ZERO) <= 0) {
                 Map<String, Object> result = ServiceUtil.returnSuccess();
                 result.put("accrualCreated", Boolean.FALSE);
@@ -208,7 +220,7 @@ public final class FinanceDelinquencyServices {
             Timestamp fromDate = monthStart;
             GenericValue latestAccrual = null;
             for (GenericValue row : EntityQuery.use(delegator).from("LoanLateFeeAccrual")
-                    .where("loanAgreementId", loanAgreementId).queryList()) {
+                    .where("financeContractId", financeContractId).queryList()) {
                 Timestamp rowFrom = row.getTimestamp("fromDate");
                 Timestamp rowThru = row.getTimestamp("thruDate");
                 if (rowFrom == null || rowThru == null || rowFrom.after(monthEnd)
@@ -226,22 +238,17 @@ public final class FinanceDelinquencyServices {
                 fromDate = new Timestamp(latestAccrual.getTimestamp("thruDate").getTime() + 1L);
             }
 
-            String currencyUomId = agreement.getString("currencyUomId");
-            String dayCountConvId = FinanceInterestCalculator.resolveDayCountConvention(
-                    delegator, agreement);
+            String dayCountConvId = FinanceInterestCalculator.resolveDayCountConvention(delegator, productId);
             BigDecimal lateFee;
             if (FinanceInterestCalculator.isPeriodBased(dayCountConvId)) {
                 // 30/360: compute as a single period (overdueBalance is constant).
-                LocalDate from30 = toLocalDate(fromDate);
-                LocalDate thru30 = toLocalDate(thruDate);
                 lateFee = FinanceInterestCalculator.computePeriodInterest30_360(
-                        overdueBalance, lateFeeRate, from30, thru30);
+                        overdueBalance, lateFeeRate, toLocalDate(fromDate), toLocalDate(thruDate));
             } else {
                 // Actual-based: daily loop (overdueBalance is constant across the period).
-                LocalDate loopDay = toLocalDate(fromDate);
-                LocalDate loopEnd = toLocalDate(thruDate);
                 BigDecimal accumulated = BigDecimal.ZERO;
-                for (LocalDate d = loopDay; !d.isAfter(loopEnd); d = d.plusDays(1)) {
+                LocalDate loopEnd = toLocalDate(thruDate);
+                for (LocalDate d = toLocalDate(fromDate); !d.isAfter(loopEnd); d = d.plusDays(1)) {
                     accumulated = accumulated.add(FinanceInterestCalculator.computeDailyInterest(
                             overdueBalance, lateFeeRate, d, dayCountConvId));
                 }
@@ -249,35 +256,33 @@ public final class FinanceDelinquencyServices {
             }
             lateFee = FinanceInterestCalculator.roundInterest(lateFee, currencyUomId, delegator);
 
-            String organizationPartyId = getOrganizationPartyId(agreement);
+            String organizationPartyId = adapter.getOrganizationPartyId(delegator, agreement);
             String acctgTransId = null;
             if (lateFee.compareTo(BigDecimal.ZERO) > 0) {
-                String debitGlAccountId = findGlAccountId(delegator, organizationPartyId,
-                        "INTRSTINC_RECEIVABLE");
-                String creditGlAccountId = findGlAccountId(delegator, organizationPartyId,
-                        "LATE_FEE_INCOME");
+                String debitGlAccountId = findGlAccountId(delegator, organizationPartyId, "INTRSTINC_RECEIVABLE");
+                String creditGlAccountId = findGlAccountId(delegator, organizationPartyId, "LATE_FEE_INCOME");
                 if (debitGlAccountId == null) {
                     return glMappingMissing(organizationPartyId, "INTRSTINC_RECEIVABLE", locale);
                 }
                 if (creditGlAccountId == null) {
                     return glMappingMissing(organizationPartyId, "LATE_FEE_INCOME", locale);
                 }
-                acctgTransId = postGlTransaction(delegator, dispatcher, agreement,
-                        "Loan late fee " + loanAgreementId + " " + fromDate, accrualDate,
+                acctgTransId = postGlTransaction(dispatcher, contract,
+                        adapter.getDescriptionPrefix() + " late fee " + agreementId + " " + fromDate, accrualDate,
                         lateFee, debitGlAccountId, creditGlAccountId, organizationPartyId, userLogin);
             }
 
-            String loanLateFeeAccrualId = delegator.getNextSeqId("LoanLateFeeAccrual");
             GenericValue accrual = delegator.makeValue("LoanLateFeeAccrual");
-            accrual.set("loanLateFeeAccrualId", loanLateFeeAccrualId);
-            accrual.set("loanAgreementId", loanAgreementId);
+            accrual.set("loanLateFeeAccrualId", delegator.getNextSeqId("LoanLateFeeAccrual"));
+            accrual.set("financeContractId", financeContractId);
+            accrual.setNonPKFields(adapter.getAgreementKeyFields(agreement));
             accrual.set("accrualDate", accrualDate);
             accrual.set("fromDate", fromDate);
             accrual.set("thruDate", thruDate);
-            accrual.set("overduePrincipal", computation.overduePrincipal);
-            accrual.set("overdueInterest", computation.overdueInterest);
+            accrual.set("overduePrincipal", computation.getOverduePrincipal());
+            accrual.set("overdueInterest", computation.getOverdueInterest());
             accrual.set("lateFeeAmount", lateFee);
-            accrual.set("currencyUomId", agreement.getString("currencyUomId"));
+            accrual.set("currencyUomId", currencyUomId);
             accrual.set("acctgTransId", acctgTransId);
             accrual.set("createdDate", UtilDateTime.nowTimestamp());
             accrual.create();
@@ -288,27 +293,31 @@ public final class FinanceDelinquencyServices {
         }
     }
 
-    /** Record a dunning notice for an agreement at the requested dunning level. */
+    /** Record a dunning notice for a contract at the requested dunning level. */
     public static Map<String, Object> createLoanDunningNotice(DispatchContext dctx,
             Map<String, Object> context) {
         Delegator delegator = dctx.getDelegator();
         Locale locale = (Locale) context.get("locale");
-        String loanAgreementId = (String) context.get("loanAgreementId");
         String dunningLevelEnumId = (String) context.get("dunningLevelEnumId");
         Timestamp noticeDate = (Timestamp) context.get("noticeDate");
         if (noticeDate == null) {
             noticeDate = UtilDateTime.nowTimestamp();
         }
         try {
-            GenericValue agreement = EntityQuery.use(delegator).from("LoanAgreement")
-                    .where("loanAgreementId", loanAgreementId).queryOne();
+            GenericValue contract = findRequestedContract(delegator, context);
+            FinanceContractAdapter adapter = contract == null ? null
+                    : FinanceContractAdapters.forType(contract.getString("contractTypeId"));
+            GenericValue agreement = adapter == null ? null
+                    : adapter.findAgreement(delegator, contract.getString("financeContractId"));
             if (agreement == null) {
-                return recordNotFound("LoanAgreement", loanAgreementId, locale);
+                return recordNotFound(requestedEntityName(context),
+                        FinanceContractAdapters.requestedAgreementId(context), locale);
             }
+            String financeContractId = contract.getString("financeContractId");
             GenericValue existing = EntityQuery.use(delegator).from("LoanDunningNotice")
-                    .where("loanAgreementId", loanAgreementId,
+                    .where("financeContractId", financeContractId,
                             "dunningLevelEnumId", dunningLevelEnumId,
-                            "noticeDate", noticeDate).queryOne();
+                            "noticeDate", noticeDate).queryFirst();
             if (existing != null) {
                 Map<String, Object> result = ServiceUtil.returnSuccess();
                 result.put("loanDunningNoticeId", existing.getString("loanDunningNoticeId"));
@@ -319,7 +328,8 @@ public final class FinanceDelinquencyServices {
             String loanDunningNoticeId = delegator.getNextSeqId("LoanDunningNotice");
             GenericValue notice = delegator.makeValue("LoanDunningNotice");
             notice.set("loanDunningNoticeId", loanDunningNoticeId);
-            notice.set("loanAgreementId", loanAgreementId);
+            notice.set("financeContractId", financeContractId);
+            notice.setNonPKFields(adapter.getAgreementKeyFields(agreement));
             notice.set("dunningLevelEnumId", dunningLevelEnumId);
             notice.set("noticeDate", noticeDate);
             notice.set("comments", context.get("comments"));
@@ -339,69 +349,30 @@ public final class FinanceDelinquencyServices {
     // Helpers
     // =====================================================================
 
-    private static DelinquencyComputation computeDelinquency(Delegator delegator, GenericValue agreement,
-            Timestamp asOfDate) throws GenericEntityException {
-        BigDecimal overduePrincipal = BigDecimal.ZERO;
-        BigDecimal overdueInterest = BigDecimal.ZERO;
-        Timestamp oldestDueDate = null;
-
-        List<GenericValue> schedule = EntityQuery.use(delegator)
-                .from("LoanAgreementRepaymentSchedule")
-                .where("loanAgreementId", agreement.getString("loanAgreementId"),
-                        "scheduleRevisionNumber",
-                        FinanceAccountingServices.currentScheduleRevision(delegator,
-                                agreement.getString("loanAgreementId")))
-                .orderBy("dueDate", "installmentNumber").queryList();
-        for (GenericValue installment : schedule) {
-            Timestamp dueDate = installment.getTimestamp("dueDate");
-            if (dueDate == null || dueDate.after(asOfDate)) {
-                continue;
-            }
-            BigDecimal scheduledPrincipal = defaultZero(installment.getBigDecimal("principalAmount"));
-            BigDecimal scheduledInterest = defaultZero(installment.getBigDecimal("interestAmount"));
-            BigDecimal overdueForInstallment = scheduledPrincipal.add(scheduledInterest);
-
-            GenericValue link = EntityQuery.use(delegator).from("LoanInstallmentInvoice")
-                    .where("loanAgreementId", agreement.getString("loanAgreementId"),
-                            "installmentNumber", installment.getLong("installmentNumber")).queryOne();
-            if (link != null && link.getString("invoiceId") != null) {
-                GenericValue invoice = EntityQuery.use(delegator).from("Invoice")
-                        .where("invoiceId", link.getString("invoiceId")).queryOne();
-                if (invoice != null && ("INVOICE_PAID".equals(invoice.getString("statusId"))
-                        || "INVOICE_WRITEOFF".equals(invoice.getString("statusId"))
-                        || "INVOICE_CANCELLED".equals(invoice.getString("statusId")))) {
-                    continue;
-                }
-                BigDecimal notApplied = defaultZero(InvoiceWorker.getInvoiceNotApplied(invoice));
-                overdueForInstallment = notApplied;
-            }
-            BigDecimal unappliedInterest = overdueForInstallment.min(scheduledInterest);
-            BigDecimal unappliedPrincipal = overdueForInstallment.subtract(unappliedInterest)
-                    .min(scheduledPrincipal).max(BigDecimal.ZERO);
-            overdueInterest = overdueInterest.add(unappliedInterest);
-            overduePrincipal = overduePrincipal.add(unappliedPrincipal);
-            if (oldestDueDate == null) {
-                oldestDueDate = dueDate;
-            }
+    private static GenericValue findRequestedContract(Delegator delegator, Map<String, Object> context)
+            throws GenericEntityException {
+        String financeContractId = FinanceContractAdapters.resolveContractId(delegator, context);
+        if (UtilValidate.isEmpty(financeContractId)) {
+            return null;
         }
-
-        long daysPastDue = 0;
-        if (oldestDueDate != null) {
-            LocalDate dueDay = toLocalDate(oldestDueDate);
-            LocalDate asOfDay = toLocalDate(asOfDate);
-            daysPastDue = ChronoUnit.DAYS.between(dueDay, asOfDay);
-            if (daysPastDue < 0) {
-                daysPastDue = 0;
-            }
-        }
-        return new DelinquencyComputation(daysPastDue,
-                overduePrincipal.setScale(SCALE, ROUNDING),
-                overdueInterest.setScale(SCALE, ROUNDING));
+        return EntityQuery.use(delegator).from("FinanceContract")
+                .where("financeContractId", financeContractId).queryOne();
     }
 
-    private static GenericValue classifyDelinquency(Delegator delegator, GenericValue agreement,
+    private static String requestedEntityName(Map<String, Object> context) {
+        if (UtilValidate.isNotEmpty((String) context.get("financeContractId"))) {
+            return "FinanceContract";
+        }
+        for (FinanceContractAdapter adapter : FinanceContractAdapters.all()) {
+            if (UtilValidate.isNotEmpty((String) context.get(adapter.getAgreementIdField()))) {
+                return adapter.getAgreementEntityName();
+            }
+        }
+        return "FinanceContract";
+    }
+
+    private static GenericValue classifyDelinquency(Delegator delegator, String productId,
             long daysPastDue) throws GenericEntityException {
-        String productId = resolveProductId(delegator, agreement);
         if (productId == null) {
             return null;
         }
@@ -417,24 +388,24 @@ public final class FinanceDelinquencyServices {
         return null;
     }
 
-    private static boolean createDelinquencySnapshot(Delegator delegator, GenericValue agreement,
-            Timestamp asOfDate, DelinquencyComputation computation, String levelEnumId)
-            throws GenericEntityException {
+    private static boolean createDelinquencySnapshot(Delegator delegator, GenericValue contract,
+            FinanceContractAdapter adapter, GenericValue agreement, Timestamp asOfDate,
+            DelinquencyComputation computation, String levelEnumId) throws GenericEntityException {
+        String financeContractId = contract.getString("financeContractId");
         GenericValue existing = EntityQuery.use(delegator).from("LoanDelinquency")
-                .where("loanAgreementId", agreement.getString("loanAgreementId"),
-                        "asOfDate", asOfDate).queryOne();
+                .where("financeContractId", financeContractId, "asOfDate", asOfDate).queryFirst();
         if (existing != null) {
             return false;
         }
-        String loanDelinquencyId = delegator.getNextSeqId("LoanDelinquency");
         GenericValue snapshot = delegator.makeValue("LoanDelinquency");
-        snapshot.set("loanDelinquencyId", loanDelinquencyId);
-        snapshot.set("loanAgreementId", agreement.getString("loanAgreementId"));
+        snapshot.set("loanDelinquencyId", delegator.getNextSeqId("LoanDelinquency"));
+        snapshot.set("financeContractId", financeContractId);
+        snapshot.setNonPKFields(adapter.getAgreementKeyFields(agreement));
         snapshot.set("asOfDate", asOfDate);
-        snapshot.set("daysPastDue", computation.daysPastDue);
+        snapshot.set("daysPastDue", computation.getDaysPastDue());
         snapshot.set("delinquencyLevelEnumId", levelEnumId);
-        snapshot.set("overduePrincipalAmount", computation.overduePrincipal);
-        snapshot.set("overdueInterestAmount", computation.overdueInterest);
+        snapshot.set("overduePrincipalAmount", computation.getOverduePrincipal());
+        snapshot.set("overdueInterestAmount", computation.getOverdueInterest());
         snapshot.set("lateFeeAccruedAmount", BigDecimal.ZERO);
         snapshot.set("createdDate", UtilDateTime.nowTimestamp());
         snapshot.create();
@@ -442,67 +413,61 @@ public final class FinanceDelinquencyServices {
     }
 
     private static boolean performWriteOff(Delegator delegator, LocalDispatcher dispatcher,
-            GenericValue agreement, DelinquencyComputation computation, Timestamp asOfDate,
-            GenericValue userLogin) throws GenericEntityException, GenericServiceException {
-        if (!recordAction(delegator, agreement, "DELINQ_ACT_WRITEOFF", asOfDate,
-                computation.overduePrincipal.add(computation.overdueInterest), null, null,
-                "Write-off delinquent balance")) {
+            GenericValue contract, FinanceContractAdapter adapter, GenericValue agreement,
+            DelinquencyComputation computation, Timestamp asOfDate, GenericValue userLogin)
+            throws GenericEntityException, GenericServiceException {
+        if (!recordAction(delegator, contract, adapter, agreement, "DELINQ_ACT_WRITEOFF", asOfDate,
+                computation.getOverdueTotal(), null, null, "Write-off delinquent balance")) {
             return false;
         }
-        // Mark overdue invoices as written off.
-        List<GenericValue> links = EntityQuery.use(delegator).from("LoanInstallmentInvoice")
-                .where("loanAgreementId", agreement.getString("loanAgreementId")).queryList();
-        for (GenericValue link : links) {
-            GenericValue invoice = link.getString("invoiceId") == null ? null
-                    : EntityQuery.use(delegator).from("Invoice")
-                            .where("invoiceId", link.getString("invoiceId")).queryOne();
-            if (invoice == null || "INVOICE_PAID".equals(invoice.getString("statusId"))
-                    || "INVOICE_WRITEOFF".equals(invoice.getString("statusId"))) {
-                continue;
-            }
+        // Mark the open invoices of the contract as written off.
+        for (String invoiceId : adapter.findOpenInvoiceIds(delegator, agreement)) {
             Map<String, Object> statusResult = dispatcher.runSync("setInvoiceStatus",
-                    UtilMisc.toMap("invoiceId", invoice.getString("invoiceId"),
-                            "statusId", "INVOICE_WRITEOFF", "userLogin", userLogin));
+                    UtilMisc.toMap("invoiceId", invoiceId, "statusId", "INVOICE_WRITEOFF",
+                            "userLogin", userLogin));
             if (ServiceUtil.isError(statusResult)) {
                 throw new GenericServiceException(ServiceUtil.getErrorMessage(statusResult));
             }
         }
         // Post write-off GL: expense against principal and interest receivables.
-        String organizationPartyId = getOrganizationPartyId(agreement);
+        String agreementId = agreement.getString(adapter.getAgreementIdField());
+        String organizationPartyId = adapter.getOrganizationPartyId(delegator, agreement);
         String writeOffGlAccountId = findGlAccountId(delegator, organizationPartyId, "WRITEOFF");
         String principalReceivable = findGlAccountId(delegator, organizationPartyId, "ACCOUNTS_RECEIVABLE");
         String interestReceivable = findGlAccountId(delegator, organizationPartyId, "INTRSTINC_RECEIVABLE");
         if (writeOffGlAccountId != null && principalReceivable != null
-                && computation.overduePrincipal.compareTo(BigDecimal.ZERO) > 0) {
-            postGlTransaction(delegator, dispatcher, agreement,
-                    "Loan write-off principal " + agreement.getString("loanAgreementId"),
-                    asOfDate, computation.overduePrincipal, writeOffGlAccountId,
+                && computation.getOverduePrincipal().compareTo(BigDecimal.ZERO) > 0) {
+            postGlTransaction(dispatcher, contract,
+                    adapter.getDescriptionPrefix() + " write-off principal " + agreementId,
+                    asOfDate, computation.getOverduePrincipal(), writeOffGlAccountId,
                     principalReceivable, organizationPartyId, userLogin);
         }
         if (writeOffGlAccountId != null && interestReceivable != null
-                && computation.overdueInterest.compareTo(BigDecimal.ZERO) > 0) {
-            postGlTransaction(delegator, dispatcher, agreement,
-                    "Loan write-off interest " + agreement.getString("loanAgreementId"),
-                    asOfDate, computation.overdueInterest, writeOffGlAccountId,
+                && computation.getOverdueInterest().compareTo(BigDecimal.ZERO) > 0) {
+            postGlTransaction(dispatcher, contract,
+                    adapter.getDescriptionPrefix() + " write-off interest " + agreementId,
+                    asOfDate, computation.getOverdueInterest(), writeOffGlAccountId,
                     interestReceivable, organizationPartyId, userLogin);
         }
         return true;
     }
 
-    private static boolean recordAction(Delegator delegator, GenericValue agreement,
-            String actionTypeEnumId, Timestamp actionDate, BigDecimal amount, String invoiceId,
-            String acctgTransId, String comments) throws GenericEntityException {
+    private static boolean recordAction(Delegator delegator, GenericValue contract,
+            FinanceContractAdapter adapter, GenericValue agreement, String actionTypeEnumId,
+            Timestamp actionDate, BigDecimal amount, String invoiceId, String acctgTransId,
+            String comments) throws GenericEntityException {
+        String financeContractId = contract.getString("financeContractId");
         GenericValue existing = EntityQuery.use(delegator).from("LoanDelinquencyAction")
-                .where("loanAgreementId", agreement.getString("loanAgreementId"),
+                .where("financeContractId", financeContractId,
                         "actionTypeEnumId", actionTypeEnumId,
-                        "actionDate", actionDate).queryOne();
+                        "actionDate", actionDate).queryFirst();
         if (existing != null) {
             return false;
         }
-        String loanDelinquencyActionId = delegator.getNextSeqId("LoanDelinquencyAction");
         GenericValue action = delegator.makeValue("LoanDelinquencyAction");
-        action.set("loanDelinquencyActionId", loanDelinquencyActionId);
-        action.set("loanAgreementId", agreement.getString("loanAgreementId"));
+        action.set("loanDelinquencyActionId", delegator.getNextSeqId("LoanDelinquencyAction"));
+        action.set("financeContractId", financeContractId);
+        action.setNonPKFields(adapter.getAgreementKeyFields(agreement));
         action.set("actionTypeEnumId", actionTypeEnumId);
         action.set("actionDate", actionDate);
         action.set("amount", amount);
@@ -513,9 +478,8 @@ public final class FinanceDelinquencyServices {
         return true;
     }
 
-    private static BigDecimal resolveLateFeeRate(Delegator delegator, GenericValue agreement)
+    private static BigDecimal resolveLateFeeRate(Delegator delegator, String productId)
             throws GenericEntityException {
-        String productId = resolveProductId(delegator, agreement);
         if (productId == null) {
             return null;
         }
@@ -524,29 +488,22 @@ public final class FinanceDelinquencyServices {
         return product == null ? null : product.getBigDecimal("lateFeeAnnualRate");
     }
 
-    private static String resolveProductId(Delegator delegator, GenericValue agreement)
-            throws GenericEntityException {
-        GenericValue application = EntityQuery.use(delegator).from("LoanApplication")
-                .where("loanApplicationId", agreement.getString("loanApplicationId")).queryOne();
-        return application == null ? null : application.getString("productId");
-    }
-
-    private static String postGlTransaction(Delegator delegator, LocalDispatcher dispatcher,
-            GenericValue agreement, String description, Timestamp transactionDate, BigDecimal amount,
+    private static String postGlTransaction(LocalDispatcher dispatcher, GenericValue contract,
+            String description, Timestamp transactionDate, BigDecimal amount,
             String debitGlAccountId, String creditGlAccountId, String organizationPartyId,
-            GenericValue userLogin) throws GenericEntityException, GenericServiceException {
+            GenericValue userLogin) throws GenericServiceException {
         Map<String, Object> glInput = new HashMap<>();
         glInput.put("acctgTransTypeId", "OTHER_INTERNAL");
         glInput.put("description", description);
         glInput.put("transactionDate", transactionDate);
         glInput.put("isPosted", "N");
         glInput.put("glFiscalTypeId", "ACTUAL");
-        glInput.put("partyId", agreement.getString("borrowerPartyId"));
+        glInput.put("partyId", contract.getString("customerPartyId"));
         glInput.put("organizationPartyId", organizationPartyId);
         glInput.put("amount", amount);
         glInput.put("origAmount", amount);
-        glInput.put("currencyUomId", agreement.getString("currencyUomId"));
-        glInput.put("origCurrencyUomId", agreement.getString("currencyUomId"));
+        glInput.put("currencyUomId", contract.getString("currencyUomId"));
+        glInput.put("origCurrencyUomId", contract.getString("currencyUomId"));
         glInput.put("debitGlAccountId", debitGlAccountId);
         glInput.put("creditGlAccountId", creditGlAccountId);
         glInput.put("userLogin", userLogin);
@@ -561,16 +518,6 @@ public final class FinanceDelinquencyServices {
             throw new GenericServiceException(ServiceUtil.getErrorMessage(postResult));
         }
         return acctgTransId;
-    }
-
-    private static GenericValue lockAgreement(Delegator delegator, String loanAgreementId)
-            throws GenericEntityException {
-        return FinanceAccountingServices.lockLoanAgreement(delegator, loanAgreementId);
-    }
-
-    private static String getOrganizationPartyId(GenericValue agreement) throws GenericEntityException {
-        GenericValue finAccount = agreement.getRelatedOne("FinAccount", false);
-        return finAccount == null ? null : finAccount.getString("organizationPartyId");
     }
 
     private static String findGlAccountId(Delegator delegator, String organizationPartyId,
@@ -607,10 +554,6 @@ public final class FinanceDelinquencyServices {
         return value.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
     }
 
-    private static BigDecimal defaultZero(BigDecimal value) {
-        return value == null ? BigDecimal.ZERO : value;
-    }
-
     private static Map<String, Object> lateFeeResult(GenericValue accrual, boolean created) {
         Map<String, Object> result = ServiceUtil.returnSuccess();
         result.put("loanLateFeeAccrualId", accrual.getString("loanLateFeeAccrualId"));
@@ -632,18 +575,5 @@ public final class FinanceDelinquencyServices {
         return ServiceUtil.returnError(UtilProperties.getMessage(RESOURCE, "FinanceGlAccountMappingMissing",
                 UtilMisc.toMap("organizationPartyId", organizationPartyId,
                         "glAccountTypeId", glAccountTypeId), locale));
-    }
-
-    private static final class DelinquencyComputation {
-        private final long daysPastDue;
-        private final BigDecimal overduePrincipal;
-        private final BigDecimal overdueInterest;
-
-        private DelinquencyComputation(long daysPastDue, BigDecimal overduePrincipal,
-                BigDecimal overdueInterest) {
-            this.daysPastDue = daysPastDue;
-            this.overduePrincipal = overduePrincipal;
-            this.overdueInterest = overdueInterest;
-        }
     }
 }

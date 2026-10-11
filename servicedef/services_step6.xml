@@ -28,11 +28,12 @@ under the License.
     <!-- Delinquency batch (detection, classification, write-off)      -->
     <!-- ============================================================= -->
     <service name="runLoanDelinquencyBatch" engine="java"
-            location="org.apache.ofbiz.finance.accounting.FinanceDelinquencyServices" invoke="runLoanDelinquencyBatch" auth="true">
+            location="org.apache.ofbiz.finance.common.FinanceDelinquencyServices" invoke="runLoanDelinquencyBatch" auth="true">
         <description>Detect and classify delinquent loans; record snapshots and write-off / legal actions</description>
         <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
         <attribute name="processingDate" type="Timestamp" mode="IN" optional="true"/>
         <attribute name="loanAgreementId" type="String" mode="IN" optional="true"/>
+        <attribute name="financeContractId" type="String" mode="IN" optional="true"/>
         <attribute name="processedAgreementCount" type="Long" mode="OUT" optional="true"/>
         <attribute name="createdDelinquencyCount" type="Long" mode="OUT" optional="true"/>
         <attribute name="createdActionCount" type="Long" mode="OUT" optional="true"/>
@@ -42,10 +43,11 @@ under the License.
     <!-- Late fee (penalty interest) accrual + GL                      -->
     <!-- ============================================================= -->
     <service name="runLateFeeAccrual" engine="java"
-            location="org.apache.ofbiz.finance.accounting.FinanceDelinquencyServices" invoke="runLateFeeAccrual" auth="true">
+            location="org.apache.ofbiz.finance.common.FinanceDelinquencyServices" invoke="runLateFeeAccrual" auth="true">
         <description>Accrue late fee on the overdue balance and post the GL journal</description>
         <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
-        <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="loanAgreementId" type="String" mode="IN" optional="true"/>
+        <attribute name="financeContractId" type="String" mode="IN" optional="true"/>
         <attribute name="accrualDate" type="Timestamp" mode="IN" optional="true"/>
         <attribute name="loanLateFeeAccrualId" type="String" mode="OUT" optional="true"/>
         <attribute name="acctgTransId" type="String" mode="OUT" optional="true"/>
@@ -56,9 +58,10 @@ under the License.
     </service>
 
     <service name="runLateFeeAccrualInternal" engine="java" export="false"
-            location="org.apache.ofbiz.finance.accounting.FinanceDelinquencyServices" invoke="runLateFeeAccrual" auth="true">
+            location="org.apache.ofbiz.finance.common.FinanceDelinquencyServices" invoke="runLateFeeAccrual" auth="true">
         <description>Internal late fee accrual (no permission check)</description>
-        <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="loanAgreementId" type="String" mode="IN" optional="true"/>
+        <attribute name="financeContractId" type="String" mode="IN" optional="true"/>
         <attribute name="accrualDate" type="Timestamp" mode="IN" optional="true"/>
         <attribute name="loanLateFeeAccrualId" type="String" mode="OUT" optional="true"/>
         <attribute name="acctgTransId" type="String" mode="OUT" optional="true"/>
@@ -72,10 +75,11 @@ under the License.
     <!-- Dunning notice recording                                      -->
     <!-- ============================================================= -->
     <service name="createLoanDunningNotice" engine="java"
-            location="org.apache.ofbiz.finance.accounting.FinanceDelinquencyServices" invoke="createLoanDunningNotice" auth="true">
+            location="org.apache.ofbiz.finance.common.FinanceDelinquencyServices" invoke="createLoanDunningNotice" auth="true">
         <description>Record a dunning notice for a loan agreement</description>
         <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
-        <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="loanAgreementId" type="String" mode="IN" optional="true"/>
+        <attribute name="financeContractId" type="String" mode="IN" optional="true"/>
         <attribute name="dunningLevelEnumId" type="String" mode="IN" optional="false"/>
         <attribute name="noticeDate" type="Timestamp" mode="IN" optional="true"/>
         <attribute name="comments" type="String" mode="IN" optional="true"/>

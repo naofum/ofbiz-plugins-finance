@@ -70,7 +70,11 @@ under the License.
         <field name="overdueInterestAmount" type="currency-amount"></field>
         <field name="lateFeeAccruedAmount" type="currency-amount"><description>cumulative late fee accrued to date</description></field>
         <field name="createdDate" type="date-time"></field>
+        <field name="financeContractId" type="id"><description>FK to the common contract ledger (STEP L0); loanAgreementId is kept for backward compatibility and is empty for non-loan contracts</description></field>
         <prim-key field="loanDelinquencyId"/>
+        <relation type="one" fk-name="LOANDEL_FINCTR" rel-entity-name="FinanceContract">
+            <key-map field-name="financeContractId"/>
+        </relation>
         <relation type="one" fk-name="LOANDEL_AGR" rel-entity-name="LoanAgreement">
             <key-map field-name="loanAgreementId"/>
         </relation>
@@ -80,6 +84,9 @@ under the License.
         <index name="LOANDEL_DATE_UQ" unique="true">
             <index-field name="loanAgreementId"/>
             <index-field name="asOfDate"/>
+        </index>
+        <index name="LOANDEL_FINCTR_IDX">
+            <index-field name="financeContractId"/>
         </index>
     </entity>
 
@@ -99,7 +106,11 @@ under the License.
         <field name="currencyUomId" type="id"></field>
         <field name="acctgTransId" type="id"><description>optional link to a posted AcctgTrans (GL)</description></field>
         <field name="createdDate" type="date-time"></field>
+        <field name="financeContractId" type="id"><description>FK to the common contract ledger (STEP L0); loanAgreementId is kept for backward compatibility and is empty for non-loan contracts</description></field>
         <prim-key field="loanLateFeeAccrualId"/>
+        <relation type="one" fk-name="LOANLFA_FINCTR" rel-entity-name="FinanceContract">
+            <key-map field-name="financeContractId"/>
+        </relation>
         <relation type="one" fk-name="LOANLFA_AGR" rel-entity-name="LoanAgreement">
             <key-map field-name="loanAgreementId"/>
         </relation>
@@ -112,6 +123,9 @@ under the License.
         <index name="LOANLFA_MONTH_UQ" unique="true">
             <index-field name="loanAgreementId"/>
             <index-field name="fromDate"/>
+        </index>
+        <index name="LOANLFA_FINCTR_IDX">
+            <index-field name="financeContractId"/>
         </index>
     </entity>
 
@@ -127,7 +141,11 @@ under the License.
         <field name="sentDate" type="date-time"><description>null until sent</description></field>
         <field name="communicationEventId" type="id"><description>optional link to a party CommunicationEvent</description></field>
         <field name="comments" type="comment"></field>
+        <field name="financeContractId" type="id"><description>FK to the common contract ledger (STEP L0); loanAgreementId is kept for backward compatibility and is empty for non-loan contracts</description></field>
         <prim-key field="loanDunningNoticeId"/>
+        <relation type="one" fk-name="LOANDUN_FINCTR" rel-entity-name="FinanceContract">
+            <key-map field-name="financeContractId"/>
+        </relation>
         <relation type="one" fk-name="LOANDUN_AGR" rel-entity-name="LoanAgreement">
             <key-map field-name="loanAgreementId"/>
         </relation>
@@ -141,6 +159,9 @@ under the License.
             <index-field name="loanAgreementId"/>
             <index-field name="dunningLevelEnumId"/>
             <index-field name="noticeDate"/>
+        </index>
+        <index name="LOANDUN_FINCTR_IDX">
+            <index-field name="financeContractId"/>
         </index>
     </entity>
 
@@ -158,7 +179,11 @@ under the License.
         <field name="invoiceId" type="id"><description>optional invoice written off</description></field>
         <field name="acctgTransId" type="id"><description>optional GL write-off transaction</description></field>
         <field name="comments" type="comment"></field>
+        <field name="financeContractId" type="id"><description>FK to the common contract ledger (STEP L0); loanAgreementId is kept for backward compatibility and is empty for non-loan contracts</description></field>
         <prim-key field="loanDelinquencyActionId"/>
+        <relation type="one" fk-name="LOANDELACT_FINCTR" rel-entity-name="FinanceContract">
+            <key-map field-name="financeContractId"/>
+        </relation>
         <relation type="one" fk-name="LOANDELACT_AGR" rel-entity-name="LoanAgreement">
             <key-map field-name="loanAgreementId"/>
         </relation>
@@ -175,6 +200,9 @@ under the License.
             <index-field name="loanAgreementId"/>
             <index-field name="actionTypeEnumId"/>
             <index-field name="actionDate"/>
+        </index>
+        <index name="LOANDELACT_FINCTR_IDX">
+            <index-field name="financeContractId"/>
         </index>
     </entity>
 
