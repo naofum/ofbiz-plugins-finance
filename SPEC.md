@@ -2,7 +2,7 @@
 
 Apache OFBiz 上に構築する独立したファイナンスモジュール。
 *The Data Model Resource Book* の **Financial Services** をベースに、ローン業務を提供する。
-全体計画はリポジトリ直下の `REQUIREMENTS.md` を参照。
+全体計画は `REQUIREMENTS.md` を参照。
 
 このドキュメントは **STEP 1〜STEP 7**（REQUIREMENTS.md の全ステップ）の仕様をまとめたもの。
 

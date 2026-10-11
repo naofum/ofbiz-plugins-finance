@@ -4,7 +4,7 @@
 - Apache OFBiz Webアプリケーション
 - The Data Model Resource BookのFinance Servicesモデルに準拠する
 - 開発対象のfinance機能は `plugins/finance/` にある。
-- 要件定義は `finance/REQUIREMENTS.md`、financeの詳細仕様・運用記録は `finance/README.md` を正とする。
+- 要件定義は `REQUIREMENTS.md`、financeの詳細仕様・運用記録は `SPEC.md` を正とする。
 - Windows環境では `gradlew.bat` を使用する。
 
 ## Finance Domain Rules
@@ -47,7 +47,7 @@
 
 ## Change Boundaries
 - finance機能は原則として `plugins/finance/` に実装する。
-- core変更が必要な場合は、理由、影響範囲、代替案、検証結果を `plugins/finance/README.md` に記録する。
+- core変更が必要な場合は、理由、影響範囲、代替案、検証結果を `SPEC.md` に記録する。
 - 現在、消込解除の整合性のため次のcore修正が含まれる。
 
   ```text
