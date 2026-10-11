@@ -370,6 +370,28 @@ under the License.
         <response name="error" type="view" value="ManageLoanAgreement"/>
     </request-map>
 
+    <!-- STEP 7: Prepayment / Loan Modification -->
+    <request-map uri="createLoanPrepayment">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createLoanPrepayment"/>
+        <response name="success" type="request-redirect" value="ManageLoanAgreement">
+            <redirect-parameter name="loanAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLoanAgreement">
+            <redirect-parameter name="loanAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="createLoanModification">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createLoanModification"/>
+        <response name="success" type="request-redirect" value="ManageLoanAgreement">
+            <redirect-parameter name="loanAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLoanAgreement">
+            <redirect-parameter name="loanAgreementId"/>
+        </response>
+    </request-map>
+
     <!-- View Mappings -->
     <view-map name="main" type="screen" page="component://finance/widget/FinanceScreens.xml#FindLoanApplication"/>
     <view-map name="LookupPartyName" type="screen" page="component://party/widget/partymgr/LookupScreens.xml#LookupPartyName"/>

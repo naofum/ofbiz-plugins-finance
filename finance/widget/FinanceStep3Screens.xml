@@ -90,6 +90,16 @@ under the License.
                                     <include-grid name="ListDelinquencyActions" location="component://finance/widget/FinanceStep6Forms.xml"/>
                                 </screenlet>
 
+                                <screenlet title="${uiLabelMap.FinancePrepayment}">
+                                    <include-form name="CreateLoanPrepayment" location="component://finance/widget/FinanceStep7Forms.xml"/>
+                                    <include-grid name="ListLoanPrepayments" location="component://finance/widget/FinanceStep7Forms.xml"/>
+                                </screenlet>
+
+                                <screenlet title="${uiLabelMap.FinanceLoanModification}">
+                                    <include-form name="CreateLoanModification" location="component://finance/widget/FinanceStep7Forms.xml"/>
+                                    <include-grid name="ListLoanModifications" location="component://finance/widget/FinanceStep7Forms.xml"/>
+                                </screenlet>
+
                                 <section>
                                     <condition><if-has-permission permission="FINANCE_ACCOUNTING" action="_CREATE"/></condition>
                                     <widgets>

@@ -79,6 +79,7 @@ under the License.
     <entity entity-name="LoanAgreementRepaymentSchedule" package-name="org.apache.ofbiz.finance.agreement"
             table-name="LOAN_AGR_REPAY_SCHED" title="Loan Agreement Repayment Schedule Item">
         <field name="loanAgreementId" type="id"></field>
+        <field name="scheduleRevisionNumber" type="numeric"><description>revision of the schedule; 1 = original, incremented on prepayment / modification</description></field>
         <field name="installmentNumber" type="numeric"><description>1-based installment sequence</description></field>
         <field name="loanQuoteId" type="id"><description>source accepted quote</description></field>
         <field name="dueDate" type="date-time"></field>
@@ -87,6 +88,7 @@ under the License.
         <field name="interestAmount" type="currency-amount"></field>
         <field name="remainingBalance" type="currency-amount"></field>
         <prim-key field="loanAgreementId"/>
+        <prim-key field="scheduleRevisionNumber"/>
         <prim-key field="installmentNumber"/>
         <relation type="one" fk-name="LARSC_AGR" rel-entity-name="LoanAgreement">
             <key-map field-name="loanAgreementId"/>

@@ -34,7 +34,7 @@ under the License.
     <FinancialProduct productId="DEMO_LOANPROD1" financialProductTypeId="PERSONAL_UNSECURED"
             currencyUomId="JPY" minPrincipalAmount="10000" maxPrincipalAmount="1000000"
             minTermMonths="1" maxTermMonths="60" defaultAnnualInterestRate="0.150000" requiresCollateral="N"
-            lateFeeAnnualRate="0.146000"/>
+            lateFeeAnnualRate="0.146000" prepaymentFeeRate="0.010000"/>
 
     <!-- A received loan application ready for quoting -->
     <LoanApplication loanApplicationId="DEMO_LOANAPP1" productId="DEMO_LOANPROD1"

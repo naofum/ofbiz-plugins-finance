@@ -46,19 +46,7 @@ under the License.
 
     <!-- super user -->
     <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="SUPER" permissionId="FINANCE_ADMIN"/>
-
-    <!-- Stock administrative groups (the demo "admin" user belongs to FULLADMIN,
-         not SUPER), so grant them FINANCE_ADMIN too. Without this, admin cannot
-         pass the finance webapp base-permission "OFBTOOLS,FINANCE". -->
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="FULLADMIN" permissionId="FINANCE_ADMIN"/>
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="FLEXADMIN" permissionId="FINANCE_ADMIN"/>
     <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="SUPER" permissionId="FINANCE_ACCOUNTING_CREATE"/>
     <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="SUPER" permissionId="FINANCE_BILLING_CREATE"/>
     <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="SUPER" permissionId="FINANCE_PAYMENT_CREATE"/>
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="FULLADMIN" permissionId="FINANCE_ACCOUNTING_CREATE"/>
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="FULLADMIN" permissionId="FINANCE_BILLING_CREATE"/>
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="FULLADMIN" permissionId="FINANCE_PAYMENT_CREATE"/>
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="FLEXADMIN" permissionId="FINANCE_ACCOUNTING_CREATE"/>
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="FLEXADMIN" permissionId="FINANCE_BILLING_CREATE"/>
-    <SecurityGroupPermission fromDate="2001-05-13 12:00:00.0" groupId="FLEXADMIN" permissionId="FINANCE_PAYMENT_CREATE"/>
 </entity-engine-xml>

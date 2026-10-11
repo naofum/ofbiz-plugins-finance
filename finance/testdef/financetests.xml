@@ -42,4 +42,8 @@ under the License.
         <junit-test-suite class-name="org.apache.ofbiz.finance.test.LoanDelinquencyTests"/>
     </test-case>
 
+    <test-case case-name="loan-prepayment-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.LoanPrepaymentTests"/>
+    </test-case>
+
 </test-suite>

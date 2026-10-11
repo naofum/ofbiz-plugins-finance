@@ -42,11 +42,7 @@ under the License.
 
     <!-- ============ Late fee income GL account ============ -->
     <GlAccountType description="Late Fee Income" glAccountTypeId="LATE_FEE_INCOME" hasTable="N" parentTypeId="INCOME"/>
-    <GlAccount parentGlAccountId="810000" glAccountId="810100" accountCode="810100"
+    <GlAccount glAccountId="810100" accountCode="810100"
             glAccountClassId="CASH_INCOME" glAccountTypeId="LATE_FEE_INCOME" glResourceTypeId="MONEY"
             accountName="LATE FEE INCOME"/>
-    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LATE_FEE_INCOME" glAccountId="810100"/>
-    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="WRITEOFF" glAccountId="517000"/>
-    <GlAccountOrganization glAccountId="810100" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
-    <GlAccountOrganization glAccountId="517000" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
 </entity-engine-xml>

@@ -760,4 +760,66 @@ under the License.
         <value xml:lang="en">Legal Action</value>
         <value xml:lang="ja">法的手続き</value>
     </property>
+
+    <!-- STEP 7: Prepayment / Loan Modification -->
+    <property key="FinancePrepayment">
+        <value xml:lang="en">Prepayment</value>
+        <value xml:lang="ja">繰上返済</value>
+    </property>
+    <property key="FinancePrepayments">
+        <value xml:lang="en">Prepayments</value>
+        <value xml:lang="ja">繰上返済一覧</value>
+    </property>
+    <property key="FinancePrepaymentType">
+        <value xml:lang="en">Prepayment Type</value>
+        <value xml:lang="ja">繰上返済種別</value>
+    </property>
+    <property key="FinancePrepaymentDate">
+        <value xml:lang="en">Prepayment Date</value>
+        <value xml:lang="ja">繰上返済日</value>
+    </property>
+    <property key="FinancePenaltyAmount">
+        <value xml:lang="en">Prepayment Fee</value>
+        <value xml:lang="ja">繰上返済手数料</value>
+    </property>
+    <property key="FinanceCreatePrepayment">
+        <value xml:lang="en">Make Prepayment</value>
+        <value xml:lang="ja">繰上返済を実行</value>
+    </property>
+    <property key="FinanceLoanModification">
+        <value xml:lang="en">Loan Modification</value>
+        <value xml:lang="ja">条件変更</value>
+    </property>
+    <property key="FinanceModificationType">
+        <value xml:lang="en">Modification Type</value>
+        <value xml:lang="ja">変更種別</value>
+    </property>
+    <property key="FinanceNewAnnualInterestRate">
+        <value xml:lang="en">New Annual Interest Rate</value>
+        <value xml:lang="ja">変更後年利</value>
+    </property>
+    <property key="FinanceNewTermMonths">
+        <value xml:lang="en">New Term (months)</value>
+        <value xml:lang="ja">変更後期間（月）</value>
+    </property>
+    <property key="FinanceEffectiveDate">
+        <value xml:lang="en">Effective Date</value>
+        <value xml:lang="ja">適用日</value>
+    </property>
+    <property key="FinanceModificationReason">
+        <value xml:lang="en">Reason</value>
+        <value xml:lang="ja">変更理由</value>
+    </property>
+    <property key="FinanceCreateModification">
+        <value xml:lang="en">Modify Loan</value>
+        <value xml:lang="ja">条件変更を実行</value>
+    </property>
+    <property key="FinancePrepaymentExceedsBalance">
+        <value xml:lang="en">Prepayment amount exceeds the outstanding principal: ${loanAgreementId}</value>
+        <value xml:lang="ja">繰上返済額が残元本を超えています: ${loanAgreementId}</value>
+    </property>
+    <property key="FinanceModificationNoChange">
+        <value xml:lang="en">No condition change was specified.</value>
+        <value xml:lang="ja">変更する条件が指定されていません。</value>
+    </property>
 </resource>

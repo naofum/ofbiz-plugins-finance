@@ -85,9 +85,18 @@ jrParameters.lenderAddress     = lenderAddress
     jrParameters.put(key, UtilProperties.getMessage('FinanceUiLabels', key, locale))
 }
 
-// Overdue installments: schedule rows with a due date not after today.
+// Overdue installments: schedule rows (current revision) with a due date not
+// after today.
+long currentRevision = 1L
+for (GenericValue s : from('LoanAgreementRepaymentSchedule')
+        .where('loanAgreementId', loanAgreementId).queryList()) {
+    if (s.get('scheduleRevisionNumber') != null
+            && (s.get('scheduleRevisionNumber') as long) > currentRevision) {
+        currentRevision = s.get('scheduleRevisionNumber') as long
+    }
+}
 List<GenericValue> scheduleValues = from('LoanAgreementRepaymentSchedule')
-        .where('loanAgreementId', loanAgreementId)
+        .where('loanAgreementId', loanAgreementId, 'scheduleRevisionNumber', currentRevision)
         .orderBy('installmentNumber')
         .queryList()
 

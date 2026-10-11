@@ -327,7 +327,10 @@ public final class FinanceDelinquencyServices {
 
         List<GenericValue> schedule = EntityQuery.use(delegator)
                 .from("LoanAgreementRepaymentSchedule")
-                .where("loanAgreementId", agreement.getString("loanAgreementId"))
+                .where("loanAgreementId", agreement.getString("loanAgreementId"),
+                        "scheduleRevisionNumber",
+                        FinanceAccountingServices.currentScheduleRevision(delegator,
+                                agreement.getString("loanAgreementId")))
                 .orderBy("dueDate", "installmentNumber").queryList();
         for (GenericValue installment : schedule) {
             Timestamp dueDate = installment.getTimestamp("dueDate");

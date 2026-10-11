@@ -146,14 +146,15 @@ agreement.create()
 // billing terms for this agreement.
 for (GenericValue source : sourceSchedule) {
     makeValue('LoanAgreementRepaymentSchedule', [
-            loanAgreementId   : loanAgreementId,
-            installmentNumber : source.installmentNumber,
-            loanQuoteId       : loanQuoteId,
-            dueDate           : source.dueDate,
-            paymentAmount     : source.paymentAmount,
-            principalAmount   : source.principalAmount,
-            interestAmount    : source.interestAmount,
-            remainingBalance  : source.remainingBalance]).create()
+            loanAgreementId      : loanAgreementId,
+            scheduleRevisionNumber: 1L,
+            installmentNumber    : source.installmentNumber,
+            loanQuoteId          : loanQuoteId,
+            dueDate              : source.dueDate,
+            paymentAmount        : source.paymentAmount,
+            principalAmount      : source.principalAmount,
+            interestAmount       : source.interestAmount,
+            remainingBalance     : source.remainingBalance]).create()
 }
 
 // 3b) Link declared collateral to the agreement (lien), assigning each its

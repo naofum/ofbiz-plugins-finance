@@ -240,7 +240,8 @@ public final class FinanceAccountingServices {
                 // processing date can never hide the receivable available at billing.
                 List<GenericValue> schedule = EntityQuery.use(delegator)
                         .from("LoanAgreementRepaymentSchedule")
-                        .where("loanAgreementId", loanAgreementId)
+                        .where("loanAgreementId", loanAgreementId,
+                                "scheduleRevisionNumber", currentScheduleRevision(delegator, loanAgreementId))
                         .orderBy("dueDate", "installmentNumber").queryList();
                 for (GenericValue installment : schedule) {
                     Timestamp dueDate = installment.getTimestamp("dueDate");
@@ -314,6 +315,7 @@ public final class FinanceAccountingServices {
             GenericValue scheduleRow = EntityQuery.use(delegator)
                     .from("LoanAgreementRepaymentSchedule")
                     .where("loanAgreementId", loanAgreementId,
+                            "scheduleRevisionNumber", currentScheduleRevision(delegator, loanAgreementId),
                             "installmentNumber", installmentNumber).queryOne();
             if (scheduleRow == null) {
                 return recordNotFound("LoanAgreementRepaymentSchedule",
@@ -583,6 +585,20 @@ public final class FinanceAccountingServices {
                 previousPrincipalPaid = principalPaid;
             }
         }
+        // Prepayments also reduce the outstanding principal (first-class events).
+        for (GenericValue prepayment : EntityQuery.use(delegator).from("LoanPrepayment")
+                .where("loanAgreementId", agreement.getString("loanAgreementId")).queryList()) {
+            BigDecimal prepaidPrincipal = defaultZero(prepayment.getBigDecimal("principalAmount"));
+            if (prepaidPrincipal.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+            Timestamp prepaymentDate = prepayment.getTimestamp("prepaymentDate");
+            if (prepaymentDate == null) {
+                prepaymentDate = UtilDateTime.nowTimestamp();
+            }
+            LocalDate effectiveDay = prepaymentDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            events.add(new PrincipalPaymentEvent(effectiveDay, prepaidPrincipal));
+        }
         events.sort(Comparator.comparing(value -> value.date));
         return events;
     }
@@ -605,6 +621,23 @@ public final class FinanceAccountingServices {
                     defaultZero(row.getBigDecimal("accruedInterestAppliedAmount")));
         }
         return accrued.subtract(alreadyApplied).max(BigDecimal.ZERO).setScale(SCALE, ROUNDING);
+    }
+
+    /**
+     * Returns the current (highest) schedule revision number for an agreement.
+     * Defaults to 1 when no schedule rows exist yet.
+     */
+    public static long currentScheduleRevision(Delegator delegator, String loanAgreementId)
+            throws GenericEntityException {
+        long maxRevision = 0;
+        for (GenericValue row : EntityQuery.use(delegator).from("LoanAgreementRepaymentSchedule")
+                .where("loanAgreementId", loanAgreementId).queryList()) {
+            Long revision = row.getLong("scheduleRevisionNumber");
+            if (revision != null && revision > maxRevision) {
+                maxRevision = revision;
+            }
+        }
+        return maxRevision == 0 ? 1L : maxRevision;
     }
 
     private static GenericValue lockAgreement(Delegator delegator, String loanAgreementId)

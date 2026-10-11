@@ -27,4 +27,11 @@ under the License.
     <FinancialProductDelinquency productId="DEMO_LOANPROD1" delinquencyLevelEnumId="DELINQ_D2" minDaysPastDue="31" maxDaysPastDue="60" dunningLevelEnumId="DUN_L2" writeoffFlag="N" legalActionFlag="N"/>
     <FinancialProductDelinquency productId="DEMO_LOANPROD1" delinquencyLevelEnumId="DELINQ_D3" minDaysPastDue="61" maxDaysPastDue="90" dunningLevelEnumId="DUN_L3" writeoffFlag="Y" legalActionFlag="N"/>
     <FinancialProductDelinquency productId="DEMO_LOANPROD1" delinquencyLevelEnumId="DELINQ_D4" minDaysPastDue="91" dunningLevelEnumId="DUN_L4" writeoffFlag="Y" legalActionFlag="Y"/>
+
+    <!-- GL account defaults and organization assignments for the late fee and
+         write-off accounts (depend on the demo Company and 517000 account). -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LATE_FEE_INCOME" glAccountId="810100"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="WRITEOFF" glAccountId="517000"/>
+    <GlAccountOrganization glAccountId="810100" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountOrganization glAccountId="517000" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
 </entity-engine-xml>
