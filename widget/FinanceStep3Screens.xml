@@ -72,6 +72,14 @@ under the License.
                         <section>
                             <condition><not><if-empty field="loanAgreement"/></not></condition>
                             <widgets>
+                                <container style="button-bar">
+                                    <link target="PrintLoanAgreement.pdf"
+                                            text="${uiLabelMap.FinancePrintAgreementPdf}"
+                                            style="buttontext pdf">
+                                        <parameter param-name="loanAgreementId" from-field="loanAgreement.loanAgreementId"/>
+                                    </link>
+                                </container>
+
                                 <screenlet title="${uiLabelMap.FinanceLoanAgreement}">
                                     <include-form name="ViewLoanAgreementHeader" location="component://finance/widget/FinanceStep3Forms.xml"/>
                                 </screenlet>

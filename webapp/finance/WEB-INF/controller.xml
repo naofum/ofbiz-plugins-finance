@@ -97,6 +97,12 @@ under the License.
         <response name="success" type="view" value="LoanQuotePdf"/>
         <response name="error" type="view" value="ViewLoanQuote"/>
     </request-map>
+    <request-map uri="PrintLoanAgreement.pdf">
+        <security https="true" auth="true"/>
+        <event type="groovy" path="component://finance/groovyScripts/PrepareLoanAgreementReport.groovy"/>
+        <response name="success" type="view" value="LoanAgreementPdf"/>
+        <response name="error" type="view" value="ManageLoanAgreement"/>
+    </request-map>
     <request-map uri="createLoanQuote">
         <security https="true" auth="true"/>
         <event type="groovy" path="component://finance/groovyScripts/CreateLoanQuoteFromUi.groovy"/>
@@ -402,6 +408,10 @@ under the License.
     <!-- Loan quote PDF rendered by the JasperReports view handler. -->
     <view-map name="LoanQuotePdf" type="jasperreports"
             page="component://finance/webapp/finance/reports/LoanQuoteReport.jrxml"
+            content-type="application/pdf"/>
+    <!-- Loan agreement (契約書) PDF rendered by the JasperReports view handler. -->
+    <view-map name="LoanAgreementPdf" type="jasperreports"
+            page="component://finance/webapp/finance/reports/LoanAgreementReport.jrxml"
             content-type="application/pdf"/>
     <view-map name="FindLoanAgreement" type="screen" page="component://finance/widget/FinanceStep3Screens.xml#FindLoanAgreement"/>
     <view-map name="ManageLoanAgreement" type="screen" page="component://finance/widget/FinanceStep3Screens.xml#ManageLoanAgreement"/>

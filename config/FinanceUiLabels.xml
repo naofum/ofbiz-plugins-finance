@@ -188,6 +188,103 @@ under the License.
         <value xml:lang="en">Loan Agreement</value>
         <value xml:lang="ja">契約</value>
     </property>
+    <property key="FinancePrintAgreementPdf">
+        <value xml:lang="en">Print Contract (PDF)</value>
+        <value xml:lang="ja">契約書印刷 (PDF)</value>
+    </property>
+    <property key="FinanceAgreementIdMissing">
+        <value xml:lang="en">Loan Agreement ID is required.</value>
+        <value xml:lang="ja">契約IDが指定されていません。</value>
+    </property>
+    <property key="FinanceLoanAgreementNotFound">
+        <value xml:lang="en">Loan Agreement {loanAgreementId} not found.</value>
+        <value xml:lang="ja">契約 {loanAgreementId} が見つかりません。</value>
+    </property>
+    <!-- Loan agreement PDF labels -->
+    <property key="FinanceAgreementPdfTitle">
+        <value xml:lang="en">Loan Agreement</value>
+        <value xml:lang="ja">金銭消費貸借契約書</value>
+    </property>
+    <property key="FinanceAgreementPdfAgreementNo">
+        <value xml:lang="en">Agreement No.</value>
+        <value xml:lang="ja">契約番号</value>
+    </property>
+    <property key="FinanceAgreementPdfAgreementDate">
+        <value xml:lang="en">Agreement Date</value>
+        <value xml:lang="ja">契約日</value>
+    </property>
+    <property key="FinanceAgreementPdfFirstPaymentDate">
+        <value xml:lang="en">First Payment Date</value>
+        <value xml:lang="ja">初回返済日</value>
+    </property>
+    <property key="FinanceAgreementPdfLender">
+        <value xml:lang="en">Lender</value>
+        <value xml:lang="ja">貸付人</value>
+    </property>
+    <property key="FinanceAgreementPdfBorrower">
+        <value xml:lang="en">Borrower</value>
+        <value xml:lang="ja">借入人</value>
+    </property>
+    <property key="FinanceAgreementPdfPrincipal">
+        <value xml:lang="en">Principal Amount</value>
+        <value xml:lang="ja">借入元本</value>
+    </property>
+    <property key="FinanceAgreementPdfAnnualRate">
+        <value xml:lang="en">Annual Interest Rate</value>
+        <value xml:lang="ja">適用利率（年）</value>
+    </property>
+    <property key="FinanceAgreementPdfTermMonths">
+        <value xml:lang="en">Term (months)</value>
+        <value xml:lang="ja">返済期間（月）</value>
+    </property>
+    <property key="FinanceAgreementPdfRepaymentMethod">
+        <value xml:lang="en">Repayment Method</value>
+        <value xml:lang="ja">返済方式</value>
+    </property>
+    <property key="FinanceAgreementPdfCurrency">
+        <value xml:lang="en">Currency</value>
+        <value xml:lang="ja">通貨</value>
+    </property>
+    <property key="FinanceAgreementPdfScheduleTitle">
+        <value xml:lang="en">Confirmed Repayment Schedule</value>
+        <value xml:lang="ja">確定返済表</value>
+    </property>
+    <property key="FinanceAgreementPdfColInstallment">
+        <value xml:lang="en">No.</value>
+        <value xml:lang="ja">回次</value>
+    </property>
+    <property key="FinanceAgreementPdfColFromDate">
+        <value xml:lang="en">Interest From</value>
+        <value xml:lang="ja">利息開始日</value>
+    </property>
+    <property key="FinanceAgreementPdfColThruDate">
+        <value xml:lang="en">Interest Thru</value>
+        <value xml:lang="ja">利息終了日</value>
+    </property>
+    <property key="FinanceAgreementPdfColDueDate">
+        <value xml:lang="en">Due Date</value>
+        <value xml:lang="ja">返済日</value>
+    </property>
+    <property key="FinanceAgreementPdfColPayment">
+        <value xml:lang="en">Payment</value>
+        <value xml:lang="ja">返済額</value>
+    </property>
+    <property key="FinanceAgreementPdfColPrincipal">
+        <value xml:lang="en">Principal</value>
+        <value xml:lang="ja">元本</value>
+    </property>
+    <property key="FinanceAgreementPdfColInterest">
+        <value xml:lang="en">Interest</value>
+        <value xml:lang="ja">利息</value>
+    </property>
+    <property key="FinanceAgreementPdfColBalance">
+        <value xml:lang="en">Balance</value>
+        <value xml:lang="ja">残高</value>
+    </property>
+    <property key="FinanceAgreementPdfPage">
+        <value xml:lang="en">page</value>
+        <value xml:lang="ja">ページ</value>
+    </property>
     <property key="FinanceLoanAgreements">
         <value xml:lang="en">Loan Agreements</value>
         <value xml:lang="ja">ローン契約一覧</value>
