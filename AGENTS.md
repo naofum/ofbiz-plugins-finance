@@ -4,8 +4,10 @@
 - Apache OFBiz Webアプリケーション
 - The Data Model Resource BookのFinance Servicesモデルに準拠する
 - 開発対象のfinance機能は `plugins/finance/` にある。
-- 要件定義は `REQUIREMENTS.md`、financeの詳細仕様・運用記録は `SPEC.md` を正とする。
+- 要件定義は `REQUIREMENTS.md`（ローン）と `REQUIREMENTS_LEASE.md`（共通層・リース、STEP L0〜）、詳細仕様・運用記録は `SPEC_COMMON.md`（共通層）・`SPEC.md`（ローン層）・`SPEC_LEASE.md`（リース層）を正とする。
 - Windows環境では `gradlew.bat` を使用する。
+- リース業務は同一プラグイン内に追加する。プラグイン内は共通層・ローン層・リース層に分け、依存は「ローン層→共通層」「リース層→共通層」のみとする。ローン層とリース層は互いを参照しない（詳細は `REQUIREMENTS_LEASE.md` 1.2）。
+- 下記の Domain Rules / Accounting Rules は現行のローン業務のもの。共通・ローン・リースへの書き分けは STEP L0 の実装と同時に行う。
 
 ## Finance Domain Rules
 - LoanApplicationは作成時に必ず `LOANAPP_RECEIVED`。内容更新はRECEIVED中だけに限定し、状態変更は専用ステータス遷移サービスのみを使用する。
@@ -47,7 +49,7 @@
 
 ## Change Boundaries
 - finance機能は原則として `plugins/finance/` に実装する。
-- core変更が必要な場合は、理由、影響範囲、代替案、検証結果を `SPEC.md` に記録する。
+- core変更が必要な場合は、理由、影響範囲、代替案、検証結果を、その変更を必要とした層の仕様書（共通層は `SPEC_COMMON.md`、ローン層は `SPEC.md`、リース層は `SPEC_LEASE.md`）に記録する。
 - 現在、消込解除の整合性のため次のcore修正が含まれる。
 
   ```text

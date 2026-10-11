@@ -3,6 +3,8 @@
 Apache OFBiz 上に構築する独立したファイナンスモジュール。
 *The Data Model Resource Book* の **Financial Services** をベースに、ローン業務を提供する。
 全体計画は `REQUIREMENTS.md` を参照。
+共通層（STEP L0 で切り出す `FinanceContract`・契約ロック・審査・与信・延滞など）の仕様は `SPEC_COMMON.md`、
+リース業務（STEP L1〜）の仕様は `SPEC_LEASE.md` に記録する。L0 で共通層へ移した節は、要約と `SPEC_COMMON.md` への参照に置き換える。
 
 このドキュメントは **STEP 1〜STEP 10**（REQUIREMENTS.md の全ステップ）の仕様をまとめたもの。
 
