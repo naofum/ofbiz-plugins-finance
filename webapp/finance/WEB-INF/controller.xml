@@ -338,6 +338,22 @@ under the License.
         </response>
     </request-map>
 
+    <!-- STEP L0: customer-level summary across loan and lease contracts -->
+    <request-map uri="FinanceCustomerSummary">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="FinanceCustomerSummary"/>
+    </request-map>
+    <!-- Open the layer screen of a FinanceContract: the event returns the
+         contract type and sets the layer agreement id as a request attribute. -->
+    <request-map uri="ViewFinanceContract">
+        <security https="true" auth="true"/>
+        <event type="groovy" path="component://finance/groovyScripts/ViewFinanceContract.groovy"/>
+        <response name="LOAN" type="request-redirect" value="ManageLoanAgreement">
+            <redirect-parameter name="loanAgreementId"/>
+        </response>
+        <response name="error" type="view" value="FinanceCustomerSummary"/>
+    </request-map>
+
     <!-- STEP 6: Delinquency / Late Fee / Dunning -->
     <request-map uri="FindLoanDelinquency">
         <security https="true" auth="true"/>
@@ -420,6 +436,7 @@ under the License.
     <view-map name="FindCreditLine" type="screen" page="component://finance/widget/FinanceStep5Screens.xml#FindCreditLine"/>
     <view-map name="EditCreditLine" type="screen" page="component://finance/widget/FinanceStep5Screens.xml#EditCreditLine"/>
     <view-map name="FindLoanDelinquency" type="screen" page="component://finance/widget/FinanceStep6Screens.xml#FindLoanDelinquency"/>
+    <view-map name="FinanceCustomerSummary" type="screen" page="component://finance/widget/FinanceCommonScreens.xml#FinanceCustomerSummary"/>
     <view-map name="DunningNoticePdf" type="jasperreports"
             page="component://finance/webapp/finance/reports/DunningNotice.jrxml"
             content-type="application/pdf"/>

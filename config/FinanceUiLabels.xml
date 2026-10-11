@@ -943,4 +943,49 @@ under the License.
         <value xml:lang="en">No condition change was specified.</value>
         <value xml:lang="ja">変更する条件が指定されていません。</value>
     </property>
+    <!-- STEP L0: common contract ledger / customer summary -->
+    <property key="FinanceCustomerSummary">
+        <value xml:lang="en">Customers</value>
+        <value xml:lang="ja">顧客照会</value>
+    </property>
+    <property key="FinanceFindCustomer">
+        <value xml:lang="en">Find Customer</value>
+        <value xml:lang="ja">顧客を検索</value>
+    </property>
+    <property key="FinanceCustomer">
+        <value xml:lang="en">Customer</value>
+        <value xml:lang="ja">顧客</value>
+    </property>
+    <property key="FinanceCustomerPartyId">
+        <value xml:lang="en">Customer</value>
+        <value xml:lang="ja">顧客</value>
+    </property>
+    <property key="FinanceCustomerContracts">
+        <value xml:lang="en">Contracts (Loan / Lease)</value>
+        <value xml:lang="ja">契約一覧（ローン／リース）</value>
+    </property>
+    <property key="FinanceActiveExposure">
+        <value xml:lang="en">Active Exposure</value>
+        <value xml:lang="ja">与信残高（有効契約）</value>
+    </property>
+    <property key="FinanceContractId">
+        <value xml:lang="en">Contract ID</value>
+        <value xml:lang="ja">共通契約ID</value>
+    </property>
+    <property key="FinanceContractType">
+        <value xml:lang="en">Contract Type</value>
+        <value xml:lang="ja">契約種別</value>
+    </property>
+    <property key="FinanceAgreementId">
+        <value xml:lang="en">Agreement ID</value>
+        <value xml:lang="ja">契約番号</value>
+    </property>
+    <property key="FinanceNoticeDate">
+        <value xml:lang="en">Notice Date</value>
+        <value xml:lang="ja">通知日</value>
+    </property>
+    <property key="FinanceSentDate">
+        <value xml:lang="en">Sent Date</value>
+        <value xml:lang="ja">送付日</value>
+    </property>
 </resource>

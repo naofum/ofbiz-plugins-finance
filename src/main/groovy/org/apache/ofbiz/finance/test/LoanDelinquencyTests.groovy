@@ -19,7 +19,9 @@
 package org.apache.ofbiz.finance.test
 
 import java.math.BigDecimal
+import org.apache.ofbiz.base.util.UtilDateTime
 import org.apache.ofbiz.entity.GenericValue
+import org.apache.ofbiz.finance.common.FinanceContractHelper
 import org.apache.ofbiz.service.ServiceUtil
 import org.apache.ofbiz.service.testtools.OFBizTestCase
 
@@ -230,5 +232,44 @@ class LoanDelinquencyTests extends OFBizTestCase {
         GenericValue legal = from('LoanDelinquencyAction')
                 .where('loanAgreementId', loanAgreementId, 'actionTypeEnumId', 'DELINQ_ACT_LEGAL').queryOne()
         assert legal != null
+    }
+
+    // STEP L0: the customer summary lists contracts of every type with their latest
+    // delinquency and dunning notices, resolved through the common contract ledger.
+    void testCustomerSummaryAcrossContracts() {
+        GenericValue userLogin = admin()
+        String loanAgreementId = setupDelinquentAgreement(45L, userLogin)
+        assert ServiceUtil.isSuccess(dispatcher.runSync('runLoanDelinquencyBatch', [
+                loanAgreementId: loanAgreementId, userLogin: userLogin]))
+        assert ServiceUtil.isSuccess(dispatcher.runSync('createLoanDunningNotice', [
+                loanAgreementId: loanAgreementId, dunningLevelEnumId: 'DUN_L1', userLogin: userLogin]))
+        String loanContractId = from('LoanAgreement').where('loanAgreementId', loanAgreementId)
+                .queryOne().financeContractId
+
+        // A lease contract without a registered layer adapter is still listed.
+        String leaseContractId = FinanceContractHelper.createContract(delegator, 'LEASE', 'TEST_BORROWER1',
+                'TEST_LOANPROD1', 'USD', new BigDecimal('1000.00'), UtilDateTime.nowTimestamp(), 'FINCTR_CANCELLED')
+
+        Map summary = dispatcher.runSync('getFinanceCustomerSummary', [
+                customerPartyId: 'TEST_BORROWER1', userLogin: userLogin])
+        assert ServiceUtil.isSuccess(summary)
+
+        Map loanRow = summary.contracts.find { it.financeContractId == loanContractId }
+        assert loanRow != null
+        assert loanRow.contractTypeId == 'LOAN'
+        assert loanRow.agreementId == loanAgreementId
+        Map leaseRow = summary.contracts.find { it.financeContractId == leaseContractId }
+        assert leaseRow != null
+        assert leaseRow.agreementId == null
+
+        Map delinquencyRow = summary.latestDelinquencies.find { it.financeContractId == loanContractId }
+        assert delinquencyRow != null
+        assert delinquencyRow.agreementId == loanAgreementId
+        assert delinquencyRow.daysPastDue > 0L
+        assert summary.dunningNotices.any { it.financeContractId == loanContractId }
+
+        assert summary.activeExposure.compareTo(new BigDecimal('120000.00')) >= 0
+        assert summary.activeExposure.compareTo(
+                FinanceContractHelper.sumActivePrincipal(delegator, 'TEST_BORROWER1')) == 0
     }
 }

@@ -59,6 +59,7 @@ under the License.
     <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceStatusDemoData.xml"/>
 
     <!-- service resources -->
+    <service-resource type="model" loader="main" location="servicedef/services_common.xml"/>
     <service-resource type="model" loader="main" location="servicedef/services.xml"/>
     <service-resource type="model" loader="main" location="servicedef/services_step2.xml"/>
     <service-resource type="model" loader="main" location="servicedef/services_step3.xml"/>
