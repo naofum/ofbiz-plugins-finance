@@ -116,7 +116,12 @@ under the License.
         <field name="reviewerPartyId" type="id"><description>Party who performed the review</description></field>
         <field name="reviewDate" type="date-time"></field>
         <field name="comments" type="comment"></field>
+        <field name="applicationTypeId" type="id"><description>business of the reviewed application: LOAN or LEASE (FinanceContractType, STEP L0)</description></field>
+        <field name="applicationId" type="id"><description>id of the reviewed application in its layer (loanApplicationId / leaseApplicationId, STEP L0)</description></field>
         <prim-key field="loanUnderwritingId"/>
+        <relation type="one" fk-name="LOANUW_APPTYP" rel-entity-name="FinanceContractType">
+            <key-map field-name="applicationTypeId" rel-field-name="contractTypeId"/>
+        </relation>
         <relation type="one" fk-name="LOANUW_APP" rel-entity-name="LoanApplication">
             <key-map field-name="loanApplicationId"/>
         </relation>
@@ -126,6 +131,10 @@ under the License.
         <relation type="one" fk-name="LOANUW_RVWR" rel-entity-name="Party">
             <key-map field-name="reviewerPartyId" rel-field-name="partyId"/>
         </relation>
+        <index name="LOANUW_APP_IDX">
+            <index-field name="applicationTypeId"/>
+            <index-field name="applicationId"/>
+        </index>
     </entity>
 
     <!-- ========================================================= -->

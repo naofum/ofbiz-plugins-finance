@@ -71,6 +71,8 @@ under the License.
             <exclude field-name="statusId"/>
             <exclude field-name="decision"/>
             <exclude field-name="reviewDate"/>
+            <exclude field-name="applicationTypeId"/>
+            <exclude field-name="applicationId"/>
         </auto-attributes>
         <override name="loanApplicationId" optional="false"/>
     </service>
@@ -84,6 +86,8 @@ under the License.
             <exclude field-name="decision"/>
             <exclude field-name="reviewDate"/>
             <exclude field-name="loanApplicationId"/>
+            <exclude field-name="applicationTypeId"/>
+            <exclude field-name="applicationId"/>
         </auto-attributes>
     </service>
     <service name="setLoanUnderwritingStatus" engine="groovy"

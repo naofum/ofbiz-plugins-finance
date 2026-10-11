@@ -206,6 +206,9 @@ class LoanLifecycleTests extends OFBizTestCase {
                 .where('loanUnderwritingId', uwResult.loanUnderwritingId).queryOne()
         assert underwriting.statusId == 'LOANUW_IN_REVIEW'
         assert underwriting.decision == 'PENDING'
+        // STEP L0: the review carries a generic application reference.
+        assert underwriting.applicationTypeId == 'LOAN'
+        assert underwriting.applicationId == application.loanApplicationId
         assert ServiceUtil.isSuccess(dispatcher.runSync('setLoanUnderwritingStatus', [
                 loanUnderwritingId: underwriting.loanUnderwritingId,
                 statusId: 'LOANUW_APPROVED', userLogin: userLogin]))

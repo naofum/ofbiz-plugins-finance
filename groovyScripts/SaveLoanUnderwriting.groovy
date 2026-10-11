@@ -27,6 +27,9 @@ if (loanUnderwritingId == null) {
     underwriting = makeValue('LoanUnderwriting', [
             loanUnderwritingId       : loanUnderwritingId,
             loanApplicationId        : context.loanApplicationId,
+            // STEP L0: generic application reference used by the common review rules.
+            applicationTypeId        : 'LOAN',
+            applicationId            : context.loanApplicationId,
             statusId                 : 'LOANUW_IN_REVIEW',
             decision                 : 'PENDING',
             creditScore              : context.creditScore,
