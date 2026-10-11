@@ -21,6 +21,7 @@ import java.math.BigDecimal
 import org.apache.ofbiz.base.util.UtilDateTime
 import org.apache.ofbiz.base.util.UtilProperties
 import org.apache.ofbiz.entity.GenericValue
+import org.apache.ofbiz.finance.common.FinanceContractHelper
 
 // Internal shared validation used by underwriting approval and agreement
 // creation. When the applicant has an active credit line (limit-only check),
@@ -66,12 +67,9 @@ if (activeLine == null) {
     return result
 }
 
-BigDecimal outstanding = BigDecimal.ZERO
-List<GenericValue> agreements = from('LoanAgreement')
-        .where('borrowerPartyId', applicantPartyId, 'statusId', 'LOANAGR_ACTIVE').queryList()
-for (GenericValue agreement : agreements) {
-    outstanding = outstanding.add(agreement.getBigDecimal('principalAmount') ?: BigDecimal.ZERO)
-}
+// Exposure is aggregated across loan and lease contracts through the common
+// contract ledger (STEP L0): the principal of the customer's ACTIVE FinanceContracts.
+BigDecimal outstanding = FinanceContractHelper.sumActivePrincipal(delegator, applicantPartyId)
 
 BigDecimal limit = activeLine.getBigDecimal('creditLimitAmount')
 BigDecimal total = outstanding.add(principalAmount)

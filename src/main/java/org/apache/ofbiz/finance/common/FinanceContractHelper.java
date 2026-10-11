@@ -95,6 +95,27 @@ public final class FinanceContractHelper {
     }
 
     /**
+     * Credit exposure of a customer across all contract types (loan + lease):
+     * the sum of {@code principalAmount} of the customer's ACTIVE contracts.
+     * Repayments are not netted, matching the STEP 5 credit-limit rule.
+     */
+    public static BigDecimal sumActivePrincipal(Delegator delegator, String customerPartyId)
+            throws GenericEntityException {
+        BigDecimal total = BigDecimal.ZERO;
+        if (UtilValidate.isEmpty(customerPartyId)) {
+            return total;
+        }
+        for (GenericValue contract : EntityQuery.use(delegator).from("FinanceContract")
+                .where("customerPartyId", customerPartyId, "statusId", STATUS_ACTIVE).queryList()) {
+            BigDecimal principal = contract.getBigDecimal("principalAmount");
+            if (principal != null) {
+                total = total.add(principal);
+            }
+        }
+        return total;
+    }
+
+    /**
      * Acquire the processing lock of a contract by incrementing
      * {@code processingLockVersion} with a conditional update. Concurrent
      * transactions processing the same contract are serialized by the row lock

@@ -19,7 +19,9 @@
 package org.apache.ofbiz.finance.test
 
 import java.math.BigDecimal
+import org.apache.ofbiz.base.util.UtilDateTime
 import org.apache.ofbiz.entity.GenericValue
+import org.apache.ofbiz.finance.common.FinanceContractHelper
 import org.apache.ofbiz.service.ServiceUtil
 import org.apache.ofbiz.service.testtools.OFBizTestCase
 
@@ -179,5 +181,32 @@ class LoanBusinessLoanTests extends OFBizTestCase {
         Map rejected = dispatcher.runSync('setLoanUnderwritingStatus', [
                 loanUnderwritingId: secondUwId, statusId: 'LOANUW_APPROVED', userLogin: userLogin])
         assert ServiceUtil.isError(rejected)
+    }
+
+    // STEP L0: exposure is aggregated across contract types through FinanceContract.
+    // An ACTIVE lease contract of the same customer counts; a cancelled one does not.
+    void testCreditExposureAggregatesLeaseContracts() {
+        GenericValue userLogin = admin()
+        String appId = createBusinessApplication(new BigDecimal('0.01'), userLogin)
+        Map before = dispatcher.runSync('financeValidateCreditLimit', [
+                loanApplicationId: appId, principalAmount: new BigDecimal('0.01'), userLogin: userLogin])
+        assert ServiceUtil.isSuccess(before)
+        BigDecimal baseline = before.existingOutstanding
+
+        String leaseContractId = FinanceContractHelper.createContract(delegator, 'LEASE', 'TEST_BUSINESS1',
+                'TEST_BIZPROD1', 'USD', new BigDecimal('30000.00'), UtilDateTime.nowTimestamp(), 'FINCTR_ACTIVE')
+        try {
+            Map withLease = dispatcher.runSync('financeValidateCreditLimit', [
+                    loanApplicationId: appId, principalAmount: new BigDecimal('0.01'), userLogin: userLogin])
+            assert ServiceUtil.isSuccess(withLease)
+            assert withLease.existingOutstanding.subtract(baseline).compareTo(new BigDecimal('30000.00')) == 0
+
+            FinanceContractHelper.updateStatus(delegator, leaseContractId, 'FINCTR_CANCELLED')
+            Map cancelled = dispatcher.runSync('financeValidateCreditLimit', [
+                    loanApplicationId: appId, principalAmount: new BigDecimal('0.01'), userLogin: userLogin])
+            assert cancelled.existingOutstanding.compareTo(baseline) == 0
+        } finally {
+            FinanceContractHelper.updateStatus(delegator, leaseContractId, 'FINCTR_CANCELLED')
+        }
     }
 }
