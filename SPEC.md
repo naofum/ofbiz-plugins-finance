@@ -62,11 +62,17 @@ plugins/finance/
 │   ├── services_step5.xml       # STEP 5: 与信枠 / 保証人 / 限度額検証サービス
 │   ├── services_step6.xml       # STEP 6: 延滞バッチ / 遅延損害金 / 督促サービス（Java）
 │   └── services_step7.xml       # STEP 7: 繰上返済 / 条件変更サービス（Java）
-├── src/main/java/org/apache/ofbiz/finance/accounting/
-│   ├── FinanceAccountingServices.java    # STEP 3 業務ロジック（Java）
-│   ├── FinanceDelinquencyServices.java   # STEP 6 業務ロジック（Java）
-│   ├── FinancePrepaymentServices.java    # STEP 7 業務ロジック（Java）
-│   └── FinanceInterestCalculator.java    # STEP 8 利息計算ヘルパー（日割り基準・通貨別丸め）
+├── src/main/java/org/apache/ofbiz/finance/
+│   ├── common/                           # 共通層（STEP L0 で新設。詳細は SPEC_COMMON.md）
+│   │   ├── FinanceContractHelper.java    # 共通契約台帳・契約ロック・与信合算
+│   │   ├── FinanceContractAdapter(s).java# 契約種別アダプタと登録簿
+│   │   ├── FinanceDelinquencyServices.java # STEP 6 延滞・督促（L0 で共通化）
+│   │   ├── FinanceInterestCalculator.java  # STEP 8〜10 利息計算ヘルパー
+│   │   └── BusinessDayCalculator.java      # STEP 10 営業日調整
+│   └── loan/                             # ローン層
+│       ├── FinanceAccountingServices.java  # STEP 3 業務ロジック（Java）
+│       ├── FinancePrepaymentServices.java  # STEP 7 業務ロジック（Java）
+│       └── LoanContractAdapter.java        # ローン用契約アダプタ（STEP L0）
 ├── src/main/groovy/org/apache/ofbiz/finance/test/
 │   ├── LoanLifecycleTests.groovy        # STEP 3 単体テスト（OFBizTestCase）
 │   ├── LoanCollateralTests.groovy       # STEP 4 単体テスト（OFBizTestCase）
@@ -454,7 +460,7 @@ seed 値：`LOAN`（ルート） / `PERSONAL_UNSECURED` / `SECURED` / `BUSINESS`
 
 ## 14. STEP 3 サービス（`servicedef/services_step3.xml`、Java 実装）
 
-業務ロジックは Java（`src/main/java/org/apache/ofbiz/finance/accounting/FinanceAccountingServices.java`）。精度・テスト容易性・パフォーマンスのため、計算・会計連携は Java に寄せた。
+業務ロジックは Java（`src/main/java/org/apache/ofbiz/finance/loan/FinanceAccountingServices.java`。STEP L0 で `accounting` パッケージから移動）。精度・テスト容易性・パフォーマンスのため、計算・会計連携は Java に寄せた。
 
 | サービス名 | エンジン | 説明 |
 |-----------|---------|------|
@@ -465,7 +471,7 @@ seed 値：`LOAN`（ルート） / `PERSONAL_UNSECURED` / `SECURED` / `BUSINESS`
 
 - 残元本 = 契約元本 − 有効な `PaymentApplication` の入金済み元金。部分入金は利息優先で元金充当額を算定し、Payment取消・消込解除は次回計上へ自動反映する。
 - 同月内で月中計上後に再実行した場合、直前 `thruDate` の翌日から指定日までを増分計上する。請求は期日前の全未消費未収利息を古い期間から振り替え、差額だけを当日利息収益にする。
-- 月次計上は契約・開始日の一意制約、請求は契約・回次の主キーと Invoice 一意制約、入金記録は Payment 一意制約で重複永続化を防止。契約の `processingLockVersion` 条件付き更新で同時計上・請求・入金を直列化する。
+- 月次計上は契約・開始日の一意制約、請求は契約・回次の主キーと Invoice 一意制約、入金記録は Payment 一意制約で重複永続化を防止。契約の `processingLockVersion` 条件付き更新で同時計上・請求・入金を直列化する（STEP L0 以降はロックを共通契約台帳 `FinanceContract.processingLockVersion` に移した。`SPEC_COMMON.md` 2.3）。
 - GL勘定は貸主組織の `GlAccountTypeDefault`、または組織に割り当てられた `ACCOUNTS_RECEIVABLE` / `INTRSTINC_RECEIVABLE` / `INTEREST_INCOME` 勘定から解決する。契約FinAccountの `postToGlAccountId` に元本債権勘定を固定する。
 - 公開操作は `FINANCE_ACCOUNTING_CREATE` / `FINANCE_BILLING_CREATE` / `FINANCE_PAYMENT_CREATE` に分離し、バッチ・請求間の共有処理は非公開内部サービスを使用する。
 - 既存 accounting サービス（`quickCreateAcctgTransAndEntries` / `postAcctgTrans` / `createInvoice` / `createInvoiceItem` / `createPayment` / `createPaymentApplication`）に委譲して GL・債権管理と連携。
@@ -857,6 +863,11 @@ JasperReports 7.x は機能がアーティファクト分割されている点�
 
 - 延滞判定の正本は確定返済表＋`Invoice`（`INVOICE_PAID`/`WRITEOFF` 以外は未消込）＋`PaymentApplication`。
 - 直列化・冪等: `processingLockVersion` + 上記一意制約（STEP 3 踏襲）。
+
+> **STEP L0 で共通層へ移行**：延滞エンジンは `org.apache.ofbiz.finance.common.FinanceDelinquencyServices` に移り、
+> 共通契約台帳 `FinanceContract` を起点に動く（ローン固有の延滞算出は `LoanContractAdapter`）。
+> 延滞関連 4 エンティティに `financeContractId` を追加し、冪等判定もそれで行う。サービスは `loanAgreementId` または
+> `financeContractId` で呼び出せる。契約ロックは `FinanceContract.processingLockVersion`。詳細は `SPEC_COMMON.md` 4 章。
 
 ### 画面・PDF
 
