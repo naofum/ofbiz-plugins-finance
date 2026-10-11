@@ -73,8 +73,32 @@ under the License.
     </grid>
 
     <!-- Agreement header -->
-    <form name="ViewLoanAgreementHeader" type="single" default-entity-name="LoanAgreement">
-        <auto-fields-entity entity-name="LoanAgreement" default-field-type="display"/>
+    <form name="ViewLoanAgreementHeader" type="single" default-entity-name="LoanAgreement"
+            default-map-name="loanAgreement">
+        <field name="loanAgreementId" title="${uiLabelMap.FinanceLoanAgreementId}"><display/></field>
+        <field name="loanApplicationId" title="${uiLabelMap.FinanceLoanApplicationId}">
+            <hyperlink description="${loanApplicationId}" target="EditLoanApplication" also-hidden="false">
+                <parameter param-name="loanApplicationId"/>
+            </hyperlink>
+        </field>
+        <field name="loanQuoteId" title="${uiLabelMap.FinanceLoanQuoteId}">
+            <hyperlink description="${loanQuoteId}" target="ViewLoanQuote" also-hidden="false">
+                <parameter param-name="loanQuoteId"/>
+            </hyperlink>
+        </field>
+        <field name="finAccountId" title="${uiLabelMap.FinanceFinAccountId}"><display/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem"/></field>
+        <field name="borrowerPartyId" title="${uiLabelMap.FinanceApplicantPartyId}"><display/></field>
+        <field name="currencyUomId" title="${uiLabelMap.FinanceCurrencyUomId}"><display/></field>
+        <field name="principalAmount" title="${uiLabelMap.FinanceRequestedPrincipalAmount}">
+            <display type="currency" currency="${loanAgreement.currencyUomId}"/>
+        </field>
+        <field name="annualInterestRate" title="${uiLabelMap.FinanceAnnualInterestRate}">
+            <display description="${loanAgreement.annualInterestRate * 100}%"/>
+        </field>
+        <field name="termMonths" title="${uiLabelMap.FinanceRequestedTermMonths}"><display/></field>
+        <field name="agreementDate" title="${uiLabelMap.FinanceAgreementDate}"><display/></field>
+        <field name="firstPaymentDate" title="${uiLabelMap.FinanceFirstPaymentDate}"><display/></field>
     </form>
 
     <!-- Confirmed repayment schedule (latest revision) for an agreement.

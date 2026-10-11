@@ -142,21 +142,33 @@ under the License.
 
     <!-- Quote header view -->
     <form name="ViewLoanQuoteHeader" type="single" default-entity-name="LoanQuote" default-map-name="loanQuote">
-        <auto-fields-entity entity-name="LoanQuote" default-field-type="display"/>
-        <!-- Override auto-generated field titles with localized labels. -->
         <field name="loanQuoteId" title="${uiLabelMap.FinanceLoanQuoteId}"><display/></field>
-        <field name="loanApplicationId" title="${uiLabelMap.FinanceLoanApplicationId}"><display/></field>
-        <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display/></field>
+        <field name="loanApplicationId" title="${uiLabelMap.FinanceLoanApplicationId}">
+            <hyperlink description="${loanApplicationId}" target="EditLoanApplication" also-hidden="false">
+                <parameter param-name="loanApplicationId"/>
+            </hyperlink>
+        </field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem"/></field>
         <field name="currencyUomId" title="${uiLabelMap.FinanceCurrencyUomId}"><display/></field>
-        <field name="principalAmount" title="${uiLabelMap.FinancePrincipalAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="principalAmount" title="${uiLabelMap.FinancePrincipalAmount}">
+            <display type="currency" currency="${loanQuote.currencyUomId}"/>
+        </field>
         <field name="annualInterestRate" title="${uiLabelMap.FinanceAnnualInterestRate}">
             <display description="${loanQuote.annualInterestRate * 100}%"/>
         </field>
         <field name="termMonths" title="${uiLabelMap.FinanceTermMonths}"><display/></field>
-        <field name="repaymentMethodEnumId" title="${uiLabelMap.FinanceRepaymentMethod}"><display/></field>
-        <field name="monthlyPaymentAmount" title="${uiLabelMap.FinanceMonthlyPaymentAmount}"><display type="currency" currency="${currencyUomId}"/></field>
-        <field name="totalPaymentAmount" title="${uiLabelMap.FinanceTotalPaymentAmount}"><display type="currency" currency="${currencyUomId}"/></field>
-        <field name="totalInterestAmount" title="${uiLabelMap.FinanceTotalInterestAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="repaymentMethodEnumId" title="${uiLabelMap.FinanceRepaymentMethod}">
+            <display-entity entity-name="Enumeration" key-field-name="enumId" description="${description}"/>
+        </field>
+        <field name="monthlyPaymentAmount" title="${uiLabelMap.FinanceMonthlyPaymentAmount}">
+            <display type="currency" currency="${loanQuote.currencyUomId}"/>
+        </field>
+        <field name="totalPaymentAmount" title="${uiLabelMap.FinanceTotalPaymentAmount}">
+            <display type="currency" currency="${loanQuote.currencyUomId}"/>
+        </field>
+        <field name="totalInterestAmount" title="${uiLabelMap.FinanceTotalInterestAmount}">
+            <display type="currency" currency="${loanQuote.currencyUomId}"/>
+        </field>
         <field name="firstPaymentDate" title="${uiLabelMap.FinanceFirstPaymentDate}"><display/></field>
         <field name="createdDate" title="${uiLabelMap.FinanceCreatedDate}"><display/></field>
     </form>
