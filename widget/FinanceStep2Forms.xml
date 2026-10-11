@@ -99,6 +99,8 @@ under the License.
             </entity-condition>
         </actions>
         <field name="installmentNumber" title="${uiLabelMap.FinanceInstallmentNumber}"><display/></field>
+        <field name="interestFromDate" title="${uiLabelMap.FinanceInterestFromDate}"><display type="date"/></field>
+        <field name="interestThruDate" title="${uiLabelMap.FinanceInterestThruDate}"><display type="date"/></field>
         <field name="dueDate" title="${uiLabelMap.FinanceDueDate}"><display type="date"/></field>
         <field name="paymentAmount" title="${uiLabelMap.FinanceMonthlyPayment}"><display/></field>
         <field name="principalAmount" title="${uiLabelMap.FinancePrincipalPortion}"><display/></field>

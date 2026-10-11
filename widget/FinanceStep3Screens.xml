@@ -39,7 +39,10 @@ under the License.
                                 </screenlet>
                             </widgets>
                         </section>
-                        <screenlet title="${uiLabelMap.FinanceLoanAgreement}">
+                        <screenlet title="${uiLabelMap.FinanceFindLoanAgreements}">
+                            <include-form name="FindLoanAgreements" location="component://finance/widget/FinanceStep3Forms.xml"/>
+                        </screenlet>
+                        <screenlet title="${uiLabelMap.FinanceLoanAgreements}">
                             <include-grid name="ListLoanAgreements" location="component://finance/widget/FinanceStep3Forms.xml"/>
                         </screenlet>
                     </decorator-section>
@@ -56,6 +59,12 @@ under the License.
                 <set field="headerItem" value="LoanAgreements"/>
                 <set field="loanAgreementId" from-field="parameters.loanAgreementId"/>
                 <entity-one entity-name="LoanAgreement" value-field="loanAgreement"/>
+                <!-- Resolve latest schedule revision number for the repayment schedule grid -->
+                <entity-condition entity-name="LoanAgreementRepaymentSchedule" list="scheduleRevisions">
+                    <condition-expr field-name="loanAgreementId" from-field="parameters.loanAgreementId"/>
+                    <order-by field-name="-scheduleRevisionNumber"/>
+                </entity-condition>
+                <set field="currentScheduleRevision" from-field="scheduleRevisions[0].scheduleRevisionNumber" default-value="1"/>
             </actions>
             <widgets>
                 <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
@@ -65,6 +74,10 @@ under the License.
                             <widgets>
                                 <screenlet title="${uiLabelMap.FinanceLoanAgreement}">
                                     <include-form name="ViewLoanAgreementHeader" location="component://finance/widget/FinanceStep3Forms.xml"/>
+                                </screenlet>
+
+                                <screenlet title="${uiLabelMap.FinanceRepaymentSchedule}">
+                                    <include-grid name="ListLoanAgreementRepaymentSchedule" location="component://finance/widget/FinanceStep3Forms.xml"/>
                                 </screenlet>
 
                                 <screenlet title="${uiLabelMap.FinanceLinkedCollaterals}">

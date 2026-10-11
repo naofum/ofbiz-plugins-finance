@@ -152,6 +152,14 @@ under the License.
         <value xml:lang="en">Due Date</value>
         <value xml:lang="ja">返済日</value>
     </property>
+    <property key="FinanceInterestFromDate">
+        <value xml:lang="en">Interest From Date</value>
+        <value xml:lang="ja">利息計算開始日</value>
+    </property>
+    <property key="FinanceInterestThruDate">
+        <value xml:lang="en">Interest Thru Date</value>
+        <value xml:lang="ja">利息計算終了日</value>
+    </property>
     <property key="FinancePrincipalPortion">
         <value xml:lang="en">Principal</value>
         <value xml:lang="ja">元本</value>
@@ -179,6 +187,22 @@ under the License.
     <property key="FinanceLoanAgreement">
         <value xml:lang="en">Loan Agreement</value>
         <value xml:lang="ja">契約</value>
+    </property>
+    <property key="FinanceLoanAgreements">
+        <value xml:lang="en">Loan Agreements</value>
+        <value xml:lang="ja">ローン契約一覧</value>
+    </property>
+    <property key="FinanceFindLoanAgreements">
+        <value xml:lang="en">Find Loan Agreements</value>
+        <value xml:lang="ja">契約を検索</value>
+    </property>
+    <property key="FinanceLoanAgreementId">
+        <value xml:lang="en">Agreement ID</value>
+        <value xml:lang="ja">契約ID</value>
+    </property>
+    <property key="FinanceAgreementDate">
+        <value xml:lang="en">Agreement Date</value>
+        <value xml:lang="ja">契約日</value>
     </property>
     <property key="FinanceCreateAgreement">
         <value xml:lang="en">Create Agreement</value>
