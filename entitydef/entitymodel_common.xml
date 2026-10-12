@@ -71,4 +71,23 @@ under the License.
         </index>
     </entity>
 
+    <!-- Product list for the shared product screen (STEP L1): financial product,
+         its type and parent type (LOAN / LEASE root) and the core product name. -->
+    <view-entity entity-name="FinancialProductAndType" package-name="org.apache.ofbiz.finance.common"
+            title="Financial Product with type and product name">
+        <member-entity entity-alias="FP" entity-name="FinancialProduct"/>
+        <member-entity entity-alias="FPT" entity-name="FinancialProductType"/>
+        <member-entity entity-alias="PR" entity-name="Product"/>
+        <alias-all entity-alias="FP"/>
+        <alias entity-alias="FPT" name="parentTypeId"/>
+        <alias entity-alias="FPT" name="typeDescription" field="description"/>
+        <alias entity-alias="PR" name="productName"/>
+        <view-link entity-alias="FP" rel-entity-alias="FPT">
+            <key-map field-name="financialProductTypeId"/>
+        </view-link>
+        <view-link entity-alias="FP" rel-entity-alias="PR">
+            <key-map field-name="productId"/>
+        </view-link>
+    </view-entity>
+
 </entitymodel>

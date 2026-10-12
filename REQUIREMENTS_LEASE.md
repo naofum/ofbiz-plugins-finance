@@ -231,6 +231,14 @@ CJK フォント）で作成する。
 
 リース商品と物件を定義し、リース申込を受け付けられる状態にする。
 
+> **状態：完了**（tests=63 / errors=0 / failures=0）。実装内容は `SPEC_LEASE.md` 2 章・`SPEC_COMMON.md` 5.1 / 5A を参照。
+> 要件からの差分：
+> - ID 列が 20 文字以内のため、商品種別は `LEASE_FIN_TRANSFER` / `LEASE_FIN_NONTRANS` / `LEASE_OPERATING`、区分は `LEASE_CLS_*` とした。
+> - 期間の上下限は既存の `FinancialProduct.minTermMonths` / `maxTermMonths` を使い、`FinancialProductLease` には持たない。
+> - `LEASE_REV_METHOD` は第1法（`LEASE_REV_AT_START`）だけを seed した。第3法は実装時に追加する。オペレーティングリースの条件登録は未対応として拒否する。
+> - ローン用の商品画面は存在しなかったため、ローン・リース共通の商品画面（業務・種別で絞込）を新設した。
+> - 見積取得価額は希望物件明細の合計額（税抜）とした。
+
 ### データモデル
 
 - `FinancialProductType` に LEASE 系種別を追加（seed）。

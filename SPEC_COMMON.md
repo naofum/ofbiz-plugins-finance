@@ -27,6 +27,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | STEP | 内容 | 状態 |
 |------|------|------|
 | L0 | 共通層の切り出し（`FinanceContract`、契約ロック、審査・与信・延滞の共通化、パッケージ整理、顧客照会） | 完了（tests=50 / errors=0 / failures=0） |
+| L1 | 申込種別に依存しない審査作成・承認検証の登録、共通の金融商品画面（リース層側は `SPEC_LEASE.md`） | 完了（tests=63 / errors=0 / failures=0） |
 | L6 | 延滞・督促へのリース用契約アダプタ登録（共通層側の変更） | 未着手 |
 
 L0 のコミット：L0-1 `6d46268`、L0-2 `fe644c8`、L0-3 `ae6fa2e`、L0-4 `2afe7f7`、L0-5 `beea390`、L0-6 `450b654`。
@@ -153,6 +154,30 @@ contract.adapter.LOAN=org.apache.ofbiz.finance.loan.LoanContractAdapter
 - `createLoanUnderwriting` は `LOAN` と `loanApplicationId` を自動設定する。両項目は create/update の入力から除外。
 - 状態規則（`LOANUW_IN_REVIEW` で作成、承認・否決後は変更不可、状態・decision・reviewDate の一貫確定）は従来どおり。
   リース申込の審査は L1 以降で `applicationTypeId=LEASE` として扱う。
+
+### 5.1 申込種別に依存しない審査（STEP L1）
+
+| 項目 | 内容 |
+|------|------|
+| `createFinanceUnderwriting`（`services_common.xml`） | `applicationTypeId` + `applicationId` を必須にした共通の審査作成。実装は `createLoanUnderwriting` と同じ `SaveLoanUnderwriting.groovy`（`LOAN` の場合だけ `loanApplicationId` も設定） |
+| 承認時の検証 | `setLoanUnderwritingStatus` で `LOANUW_APPROVED` にするとき、`LOAN` は従来の担保 LTV・与信枠チェック、それ以外は `finance.properties` の `underwriting.approval.validator.<type>` に登録したサービスを `applicationId` / `principalAmount` で呼ぶ。未登録の種別は承認できない |
+| 登録 | `underwriting.approval.validator.LEASE=financeValidateLeaseUnderwritingApproval`（リース層、`SPEC_LEASE.md` 2.3） |
+
+共通層の Groovy はリース層のサービス名を直接持たず、設定経由で呼ぶ。
+
+---
+
+## 5A. 金融商品画面（STEP L1）
+
+ローン・リース共通の商品画面を追加した（ローン用の商品画面は従来なかった）。
+
+| 項目 | 内容 |
+|------|------|
+| ビュー | `FinancialProductAndType`（`entitymodel_common.xml`）：`FinancialProduct` ＋ 種別の `parentTypeId`（LOAN / LEASE）・説明 ＋ core `Product.productName` |
+| サービス | `createFinanceProduct`：core `Product`（`SERVICE`）がなければ `productName` で作成し、`FinancialProduct` を作成。`productId` 省略時は採番。更新は既存の `updateFinancialProduct` |
+| 画面 | `FindFinancialProduct`（業務・商品種別・ID・名称で検索）、`EditFinancialProduct`（登録・編集）。タブ `FinancialProductTabBar` はリース商品にだけ「リース条件」を表示 |
+
+率の項目は小数（0.15 = 15%）で入力する。
 
 ---
 

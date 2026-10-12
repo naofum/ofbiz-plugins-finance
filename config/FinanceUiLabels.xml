@@ -988,4 +988,306 @@ under the License.
         <value xml:lang="en">Sent Date</value>
         <value xml:lang="ja">送付日</value>
     </property>
+
+    <!-- ============ STEP L1: products, lease terms, lease applications ============ -->
+    <property key="FinanceComments">
+        <value xml:lang="en">Comments</value>
+        <value xml:lang="ja">備考</value>
+    </property>
+    <property key="FinanceCurrencyDefaultsToProduct">
+        <value xml:lang="en">Defaults to the product currency when empty</value>
+        <value xml:lang="ja">未指定の場合は商品の通貨</value>
+    </property>
+    <property key="FinanceDayCountConvention">
+        <value xml:lang="en">Day-count convention</value>
+        <value xml:lang="ja">日割り基準</value>
+    </property>
+    <property key="FinanceDefaultAnnualInterestRateFraction">
+        <value xml:lang="en">Default annual interest rate (0.15 = 15%)</value>
+        <value xml:lang="ja">標準年利（0.15 = 15%）</value>
+    </property>
+    <property key="FinanceDueDateConvention">
+        <value xml:lang="en">Due-date business-day adjustment</value>
+        <value xml:lang="ja">期日の営業日調整</value>
+    </property>
+    <property key="FinanceEditFinancialProduct">
+        <value xml:lang="en">Financial Product</value>
+        <value xml:lang="ja">金融商品</value>
+    </property>
+    <property key="FinanceEditLeaseApplication">
+        <value xml:lang="en">Lease Application</value>
+        <value xml:lang="ja">リース申込</value>
+    </property>
+    <property key="FinanceFinancialProducts">
+        <value xml:lang="en">Products</value>
+        <value xml:lang="ja">商品</value>
+    </property>
+    <property key="FinanceFindFinancialProducts">
+        <value xml:lang="en">Find Products</value>
+        <value xml:lang="ja">商品検索</value>
+    </property>
+    <property key="FinanceFindLeaseApplications">
+        <value xml:lang="en">Find Lease Applications</value>
+        <value xml:lang="ja">リース申込検索</value>
+    </property>
+    <property key="FinanceLateFeeAnnualRate">
+        <value xml:lang="en">Late fee annual rate (0.146 = 14.6%)</value>
+        <value xml:lang="ja">遅延損害金年率（0.146 = 14.6%）</value>
+    </property>
+    <property key="FinanceLeaseAllowedAssetTypes">
+        <value xml:lang="en">Allowed Asset Types</value>
+        <value xml:lang="ja">対象物件種別</value>
+    </property>
+    <property key="FinanceLeaseAllowedAssetTypesNote">
+        <value xml:lang="en">When no asset type is registered, every asset type is allowed.</value>
+        <value xml:lang="ja">物件種別を登録しない場合は、すべての物件種別を対象とします。</value>
+    </property>
+    <property key="FinanceLeaseApplication">
+        <value xml:lang="en">Lease Application</value>
+        <value xml:lang="ja">リース申込</value>
+    </property>
+    <property key="FinanceLeaseApplicationHasUnderwriting">
+        <value xml:lang="en">A lease application with underwriting cannot be deleted; cancel it instead: ${leaseApplicationId}</value>
+        <value xml:lang="ja">審査済みのリース申込は削除できません。取消してください: ${leaseApplicationId}</value>
+    </property>
+    <property key="FinanceLeaseApplicationId">
+        <value xml:lang="en">Lease Application ID</value>
+        <value xml:lang="ja">リース申込番号</value>
+    </property>
+    <property key="FinanceLeaseApplicationImmutable">
+        <value xml:lang="en">Only a received lease application can be changed: ${leaseApplicationId}</value>
+        <value xml:lang="ja">受付中のリース申込のみ変更できます: ${leaseApplicationId}</value>
+    </property>
+    <property key="FinanceLeaseApplicationNotFound">
+        <value xml:lang="en">Lease application not found: ${leaseApplicationId}</value>
+        <value xml:lang="ja">リース申込が見つかりません: ${leaseApplicationId}</value>
+    </property>
+    <property key="FinanceLeaseApplications">
+        <value xml:lang="en">Lease Applications</value>
+        <value xml:lang="ja">リース申込</value>
+    </property>
+    <property key="FinanceLeaseApprovedAcquisitionCost">
+        <value xml:lang="en">Approved acquisition cost</value>
+        <value xml:lang="ja">承認取得価額</value>
+    </property>
+    <property key="FinanceLeaseAssetCostInvalid">
+        <value xml:lang="en">The estimated acquisition cost must be greater than zero.</value>
+        <value xml:lang="ja">見積取得価額は0より大きい金額を入力してください。</value>
+    </property>
+    <property key="FinanceLeaseAssetName">
+        <value xml:lang="en">Asset name</value>
+        <value xml:lang="ja">物件名</value>
+    </property>
+    <property key="FinanceLeaseAssetQuantity">
+        <value xml:lang="en">Quantity</value>
+        <value xml:lang="ja">数量</value>
+    </property>
+    <property key="FinanceLeaseAssetQuantityInvalid">
+        <value xml:lang="en">The quantity must be greater than zero.</value>
+        <value xml:lang="ja">数量は0より大きい値を入力してください。</value>
+    </property>
+    <property key="FinanceLeaseAssetsAndUnderwriting">
+        <value xml:lang="en">Assets / Underwriting</value>
+        <value xml:lang="ja">物件・審査</value>
+    </property>
+    <property key="FinanceLeaseAssetSeqId">
+        <value xml:lang="en">Line</value>
+        <value xml:lang="ja">行</value>
+    </property>
+    <property key="FinanceLeaseAssetsRequired">
+        <value xml:lang="en">A lease application without requested assets cannot be approved: ${leaseApplicationId}</value>
+        <value xml:lang="ja">希望物件のないリース申込は承認できません: ${leaseApplicationId}</value>
+    </property>
+    <property key="FinanceLeaseAssetType">
+        <value xml:lang="en">Asset type</value>
+        <value xml:lang="ja">物件種別</value>
+    </property>
+    <property key="FinanceLeaseAssetTypeNotAllowed">
+        <value xml:lang="en">Asset type ${fixedAssetTypeId} is not allowed for lease product ${productId}</value>
+        <value xml:lang="ja">物件種別 ${fixedAssetTypeId} はリース商品 ${productId} の対象外です</value>
+    </property>
+    <property key="FinanceLeaseCalcInterestRate">
+        <value xml:lang="en">Default calculation interest rate (0.03 = 3%)</value>
+        <value xml:lang="ja">標準計算利子率（0.03 = 3%）</value>
+    </property>
+    <property key="FinanceLeaseCalcRateInvalid">
+        <value xml:lang="en">The calculation interest rate must not be negative.</value>
+        <value xml:lang="ja">計算利子率は0以上を入力してください。</value>
+    </property>
+    <property key="FinanceLeaseClass">
+        <value xml:lang="en">Lease class</value>
+        <value xml:lang="ja">リース区分</value>
+    </property>
+    <property key="FinanceLeaseClassMismatch">
+        <value xml:lang="en">Lease class ${leaseClassEnumId} does not match product type ${financialProductTypeId}</value>
+        <value xml:lang="ja">リース区分 ${leaseClassEnumId} が商品種別 ${financialProductTypeId} と一致しません</value>
+    </property>
+    <property key="FinanceLeaseClassRequired">
+        <value xml:lang="en">Specify the lease class for product type ${financialProductTypeId}</value>
+        <value xml:lang="ja">商品種別 ${financialProductTypeId} にはリース区分の指定が必要です</value>
+    </property>
+    <property key="FinanceLeaseEnumInvalid">
+        <value xml:lang="en">Invalid value for ${field}: ${value}</value>
+        <value xml:lang="ja">${field} の値が不正です: ${value}</value>
+    </property>
+    <property key="FinanceLeaseEstimatedAcquisitionCost">
+        <value xml:lang="en">Estimated acquisition cost (tax excl.)</value>
+        <value xml:lang="ja">見積取得価額（税抜）</value>
+    </property>
+    <property key="FinanceLeaseEstimatedTotalCost">
+        <value xml:lang="en">Estimated total acquisition cost</value>
+        <value xml:lang="ja">見積取得価額合計</value>
+    </property>
+    <property key="FinanceLeaseMonthlyRateFactor">
+        <value xml:lang="en">Default monthly lease rate factor (0.018 = 1.8%)</value>
+        <value xml:lang="ja">標準月額リース料率（0.018 = 1.8%）</value>
+    </property>
+    <property key="FinanceLeaseOperatingNotSupported">
+        <value xml:lang="en">Operating leases are not supported yet.</value>
+        <value xml:lang="ja">オペレーティングリースは未対応です。</value>
+    </property>
+    <property key="FinanceLeasePaymentTiming">
+        <value xml:lang="en">Payment timing</value>
+        <value xml:lang="ja">支払時期</value>
+    </property>
+    <property key="FinanceLeaseProductRequired">
+        <value xml:lang="en">Not a lease product with lease terms: ${productId}</value>
+        <value xml:lang="ja">リース条件が登録されたリース商品ではありません: ${productId}</value>
+    </property>
+    <property key="FinanceLeaseProductTypeRequired">
+        <value xml:lang="en">The product type is not a lease type: ${productId}</value>
+        <value xml:lang="ja">商品種別がリースではありません: ${productId}</value>
+    </property>
+    <property key="FinanceLeaseRateFactorInvalid">
+        <value xml:lang="en">The monthly lease rate factor must be greater than zero.</value>
+        <value xml:lang="ja">月額リース料率は0より大きい値を入力してください。</value>
+    </property>
+    <property key="FinanceLeaseRequestedAssets">
+        <value xml:lang="en">Requested Assets</value>
+        <value xml:lang="ja">希望物件</value>
+    </property>
+    <property key="FinanceLeaseResidualRateInvalid">
+        <value xml:lang="en">The residual value rate must be 0 or more and less than 1.</value>
+        <value xml:lang="ja">残価率は0以上1未満を入力してください。</value>
+    </property>
+    <property key="FinanceLeaseResidualValueRate">
+        <value xml:lang="en">Residual value rate (0.10 = 10%)</value>
+        <value xml:lang="ja">見積残存価額率（0.10 = 10%）</value>
+    </property>
+    <property key="FinanceLeaseRevenueMethod">
+        <value xml:lang="en">Revenue recognition method</value>
+        <value xml:lang="ja">収益計上方式</value>
+    </property>
+    <property key="FinanceLeaseSupplierPartyId">
+        <value xml:lang="en">Supplier</value>
+        <value xml:lang="ja">販売店</value>
+    </property>
+    <property key="FinanceLeaseTaxable">
+        <value xml:lang="en">Consumption tax</value>
+        <value xml:lang="ja">消費税課税</value>
+    </property>
+    <property key="FinanceLeaseTermOutOfRange">
+        <value xml:lang="en">Lease term ${termMonths} months is outside the product range (${min} - ${max})</value>
+        <value xml:lang="ja">リース期間 ${termMonths} か月は商品の範囲（${min}〜${max}）外です</value>
+    </property>
+    <property key="FinanceLeaseTerms">
+        <value xml:lang="en">Lease Terms</value>
+        <value xml:lang="ja">リース条件</value>
+    </property>
+    <property key="FinanceLeaseTermsExist">
+        <value xml:lang="en">Lease terms already exist for product ${productId}</value>
+        <value xml:lang="ja">商品 ${productId} のリース条件は登録済みです</value>
+    </property>
+    <property key="FinanceLesseePartyId">
+        <value xml:lang="en">Lessee</value>
+        <value xml:lang="ja">借手</value>
+    </property>
+    <property key="FinanceMaxPrincipalAmount">
+        <value xml:lang="en">Maximum amount</value>
+        <value xml:lang="ja">上限金額</value>
+    </property>
+    <property key="FinanceMaxTermMonths">
+        <value xml:lang="en">Maximum term (months)</value>
+        <value xml:lang="ja">最長期間（月）</value>
+    </property>
+    <property key="FinanceMinPrincipalAmount">
+        <value xml:lang="en">Minimum amount</value>
+        <value xml:lang="ja">下限金額</value>
+    </property>
+    <property key="FinanceMinTermMonths">
+        <value xml:lang="en">Minimum term (months)</value>
+        <value xml:lang="ja">最短期間（月）</value>
+    </property>
+    <property key="FinanceNewFinancialProduct">
+        <value xml:lang="en">New Product</value>
+        <value xml:lang="ja">商品登録</value>
+    </property>
+    <property key="FinanceNewLeaseApplication">
+        <value xml:lang="en">New Lease Application</value>
+        <value xml:lang="ja">リース申込登録</value>
+    </property>
+    <property key="FinancePeriodEndpoint">
+        <value xml:lang="en">Interest period endpoint</value>
+        <value xml:lang="ja">端算入</value>
+    </property>
+    <property key="FinancePrepaymentFeeAmount">
+        <value xml:lang="en">Prepayment fee (flat)</value>
+        <value xml:lang="ja">繰上返済手数料（定額）</value>
+    </property>
+    <property key="FinancePrepaymentFeeRate">
+        <value xml:lang="en">Prepayment fee rate (0.01 = 1%)</value>
+        <value xml:lang="ja">繰上返済手数料率（0.01 = 1%）</value>
+    </property>
+    <property key="FinanceProductCategory">
+        <value xml:lang="en">Business</value>
+        <value xml:lang="ja">業務</value>
+    </property>
+    <property key="FinanceProductCategoryLease">
+        <value xml:lang="en">Lease</value>
+        <value xml:lang="ja">リース</value>
+    </property>
+    <property key="FinanceProductCategoryLoan">
+        <value xml:lang="en">Loan</value>
+        <value xml:lang="ja">ローン</value>
+    </property>
+    <property key="FinanceProductExists">
+        <value xml:lang="en">Financial product already exists: ${productId}</value>
+        <value xml:lang="ja">金融商品は登録済みです: ${productId}</value>
+    </property>
+    <property key="FinanceProductIdAutoTooltip">
+        <value xml:lang="en">Leave empty to generate an ID</value>
+        <value xml:lang="ja">空欄の場合は自動採番</value>
+    </property>
+    <property key="FinanceProductName">
+        <value xml:lang="en">Product name</value>
+        <value xml:lang="ja">商品名</value>
+    </property>
+    <property key="FinanceProductNameRequired">
+        <value xml:lang="en">Enter the product name for a new product.</value>
+        <value xml:lang="ja">新規商品の商品名を入力してください。</value>
+    </property>
+    <property key="FinanceProductType">
+        <value xml:lang="en">Product type</value>
+        <value xml:lang="ja">商品種別</value>
+    </property>
+    <property key="FinanceRequiresCollateral">
+        <value xml:lang="en">Requires collateral</value>
+        <value xml:lang="ja">担保要否</value>
+    </property>
+    <property key="FinanceReviewDate">
+        <value xml:lang="en">Review date</value>
+        <value xml:lang="ja">審査日</value>
+    </property>
+    <property key="FinanceUnderwritingApplicationRequired">
+        <value xml:lang="en">The application to review is required.</value>
+        <value xml:lang="ja">審査対象の申込を指定してください。</value>
+    </property>
+    <property key="FinanceUnderwritingId">
+        <value xml:lang="en">Underwriting ID</value>
+        <value xml:lang="ja">審査番号</value>
+    </property>
+    <property key="FinanceUnderwritingValidatorMissing">
+        <value xml:lang="en">No approval validator is registered for application type ${applicationTypeId}</value>
+        <value xml:lang="ja">申込種別 ${applicationTypeId} の承認検証が登録されていません</value>
+    </property>
 </resource>

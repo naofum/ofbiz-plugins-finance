@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+
+    Lease layer seed data (STEP L1): lease product types, lease terms
+    enumerations and the lease application status workflow.
+    NOTE: id fields are VARCHAR(20); keep every id <= 20 characters.
+-->
+<entity-engine-xml>
+    <!-- ============ Lease product types ============ -->
+    <FinancialProductType financialProductTypeId="LEASE" hasTable="N" description="Lease (root)"/>
+    <FinancialProductType financialProductTypeId="LEASE_FIN_TRANSFER" parentTypeId="LEASE" hasTable="N" description="Finance lease - ownership transfer"/>
+    <FinancialProductType financialProductTypeId="LEASE_FIN_NONTRANS" parentTypeId="LEASE" hasTable="N" description="Finance lease - no ownership transfer"/>
+    <FinancialProductType financialProductTypeId="LEASE_OPERATING" parentTypeId="LEASE" hasTable="N" description="Operating lease (later step)"/>
+
+    <!-- ============ Lease class (derived from the product type) ============ -->
+    <EnumerationType description="Lease Class" enumTypeId="LEASE_CLASS" hasTable="N"/>
+    <Enumeration description="Finance lease - ownership transfer (所有権移転)" enumCode="FIN_TRANSFER" enumId="LEASE_CLS_FIN_TRANS" sequenceId="01" enumTypeId="LEASE_CLASS"/>
+    <Enumeration description="Finance lease - no ownership transfer (所有権移転外)" enumCode="FIN_NON_TRANSFER" enumId="LEASE_CLS_FIN_NONTR" sequenceId="02" enumTypeId="LEASE_CLASS"/>
+    <Enumeration description="Operating lease (オペレーティング)" enumCode="OPERATING" enumId="LEASE_CLS_OPERATING" sequenceId="03" enumTypeId="LEASE_CLASS"/>
+
+    <!-- ============ Payment timing ============ -->
+    <EnumerationType description="Lease Payment Timing" enumTypeId="LEASE_PAY_TIMING" hasTable="N"/>
+    <Enumeration description="In advance (前払)" enumCode="ADVANCE" enumId="LEASE_PAY_ADVANCE" sequenceId="01" enumTypeId="LEASE_PAY_TIMING"/>
+    <Enumeration description="In arrears (後払)" enumCode="ARREARS" enumId="LEASE_PAY_ARREARS" sequenceId="02" enumTypeId="LEASE_PAY_TIMING"/>
+
+    <!-- ============ Revenue recognition method ============ -->
+    <!-- Only method 1 is implemented. Method 3 (interest only) is added with its strategy. -->
+    <EnumerationType description="Lease Revenue Method" enumTypeId="LEASE_REV_METHOD" hasTable="N"/>
+    <Enumeration description="Sales and cost of sales at lease start (第1法)" enumCode="AT_START" enumId="LEASE_REV_AT_START" sequenceId="01" enumTypeId="LEASE_REV_METHOD"/>
+
+    <!-- ============ Lease application status ============ -->
+    <StatusType description="Lease Application" hasTable="N" statusTypeId="LEASE_APP_STATUS"/>
+    <StatusItem description="Received" sequenceId="01" statusCode="RECEIVED" statusId="LEASEAPP_RECEIVED" statusTypeId="LEASE_APP_STATUS"/>
+    <StatusItem description="Submitted for review" sequenceId="02" statusCode="SUBMITTED" statusId="LEASEAPP_SUBMITTED" statusTypeId="LEASE_APP_STATUS"/>
+    <StatusItem description="Approved" sequenceId="03" statusCode="APPROVED" statusId="LEASEAPP_APPROVED" statusTypeId="LEASE_APP_STATUS"/>
+    <StatusItem description="Rejected" sequenceId="04" statusCode="REJECTED" statusId="LEASEAPP_REJECTED" statusTypeId="LEASE_APP_STATUS"/>
+    <StatusItem description="Contracted" sequenceId="05" statusCode="CONTRACTED" statusId="LEASEAPP_CONTRACTED" statusTypeId="LEASE_APP_STATUS"/>
+    <StatusItem description="Cancelled" sequenceId="06" statusCode="CANCELLED" statusId="LEASEAPP_CANCELLED" statusTypeId="LEASE_APP_STATUS"/>
+    <StatusValidChange statusId="LEASEAPP_RECEIVED" statusIdTo="LEASEAPP_SUBMITTED" transitionName="Submit for review"/>
+    <StatusValidChange statusId="LEASEAPP_RECEIVED" statusIdTo="LEASEAPP_CANCELLED" transitionName="Cancel"/>
+    <StatusValidChange statusId="LEASEAPP_SUBMITTED" statusIdTo="LEASEAPP_APPROVED" transitionName="Approve"/>
+    <StatusValidChange statusId="LEASEAPP_SUBMITTED" statusIdTo="LEASEAPP_REJECTED" transitionName="Reject"/>
+    <StatusValidChange statusId="LEASEAPP_SUBMITTED" statusIdTo="LEASEAPP_CANCELLED" transitionName="Cancel"/>
+    <StatusValidChange statusId="LEASEAPP_APPROVED" statusIdTo="LEASEAPP_CONTRACTED" transitionName="Contract"/>
+    <StatusValidChange statusId="LEASEAPP_APPROVED" statusIdTo="LEASEAPP_REJECTED" transitionName="Reject"/>
+</entity-engine-xml>

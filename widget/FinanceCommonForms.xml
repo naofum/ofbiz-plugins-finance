@@ -85,4 +85,114 @@ under the License.
         <field name="comments" title="${uiLabelMap.CommonComments}"><display/></field>
     </grid>
 
+    <!-- ============================================================= -->
+    <!-- Financial products (shared by loan and lease, STEP L1)        -->
+    <!-- ============================================================= -->
+    <form name="FindFinancialProducts" type="single" target="FindFinancialProduct" default-entity-name="FinancialProductAndType">
+        <field name="noConditionFind"><hidden value="Y"/></field>
+        <field name="productId" title="${uiLabelMap.FinanceProductId}"><text-find/></field>
+        <field name="productName" title="${uiLabelMap.FinanceProductName}"><text-find/></field>
+        <field name="parentTypeId" title="${uiLabelMap.FinanceProductCategory}">
+            <drop-down allow-empty="true">
+                <option key="LOAN" description="${uiLabelMap.FinanceProductCategoryLoan}"/>
+                <option key="LEASE" description="${uiLabelMap.FinanceProductCategoryLease}"/>
+            </drop-down>
+        </field>
+        <field name="financialProductTypeId" title="${uiLabelMap.FinanceProductType}">
+            <drop-down allow-empty="true">
+                <entity-options entity-name="FinancialProductType" key-field-name="financialProductTypeId" description="${description}">
+                    <entity-order-by field-name="financialProductTypeId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="searchButton" title="${uiLabelMap.CommonFind}"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListFinancialProducts" list-name="listIt" paginate-target="FindFinancialProduct"
+            default-entity-name="FinancialProductAndType" separate-columns="true"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <actions>
+            <service service-name="performFind" result-map="result" result-map-list="listIt">
+                <field-map field-name="inputFields" from-field="parameters"/>
+                <field-map field-name="entityName" value="FinancialProductAndType"/>
+                <field-map field-name="orderBy" value="productId"/>
+                <field-map field-name="viewIndex" from-field="viewIndex"/>
+                <field-map field-name="viewSize" from-field="viewSize"/>
+            </service>
+        </actions>
+        <field name="productId" title="${uiLabelMap.FinanceProductId}" widget-style="buttontext">
+            <hyperlink description="${productId}" target="EditFinancialProduct" also-hidden="false">
+                <parameter param-name="productId"/>
+            </hyperlink>
+        </field>
+        <field name="productName" title="${uiLabelMap.FinanceProductName}"><display/></field>
+        <field name="parentTypeId" title="${uiLabelMap.FinanceProductCategory}"><display/></field>
+        <field name="typeDescription" title="${uiLabelMap.FinanceProductType}"><display/></field>
+        <field name="currencyUomId" title="${uiLabelMap.FinanceCurrencyUomId}"><display/></field>
+        <field name="minTermMonths" title="${uiLabelMap.FinanceMinTermMonths}"><display/></field>
+        <field name="maxTermMonths" title="${uiLabelMap.FinanceMaxTermMonths}"><display/></field>
+        <field name="minPrincipalAmount" title="${uiLabelMap.FinanceMinPrincipalAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="maxPrincipalAmount" title="${uiLabelMap.FinanceMaxPrincipalAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+    </grid>
+
+    <form name="EditFinancialProduct" type="single" target="updateFinancialProduct" default-map-name="financialProduct">
+        <alt-target use-when="financialProduct==null" target="createFinanceProduct"/>
+        <field use-when="financialProduct!=null" name="productId" title="${uiLabelMap.FinanceProductId}"><display/></field>
+        <field use-when="financialProduct==null" name="productId" title="${uiLabelMap.FinanceProductId}" tooltip="${uiLabelMap.FinanceProductIdAutoTooltip}"><text size="20" maxlength="20"/></field>
+        <field use-when="financialProduct!=null" name="productName" title="${uiLabelMap.FinanceProductName}" entry-name="product.productName"><display/></field>
+        <field use-when="financialProduct==null" name="productName" title="${uiLabelMap.FinanceProductName}"><text size="60"/></field>
+        <field name="financialProductTypeId" title="${uiLabelMap.FinanceProductType}">
+            <drop-down allow-empty="false">
+                <entity-options entity-name="FinancialProductType" key-field-name="financialProductTypeId" description="${description} [${financialProductTypeId}]">
+                    <entity-order-by field-name="financialProductTypeId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="currencyUomId" title="${uiLabelMap.FinanceCurrencyUomId}">
+            <drop-down allow-empty="true">
+                <entity-options key-field-name="uomId" description="${abbreviation} - ${description}" entity-name="Uom">
+                    <entity-constraint name="uomTypeId" value="CURRENCY_MEASURE"/>
+                    <entity-order-by field-name="abbreviation"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="minPrincipalAmount" title="${uiLabelMap.FinanceMinPrincipalAmount}"><text size="20"/></field>
+        <field name="maxPrincipalAmount" title="${uiLabelMap.FinanceMaxPrincipalAmount}"><text size="20"/></field>
+        <field name="minTermMonths" title="${uiLabelMap.FinanceMinTermMonths}"><text size="10"/></field>
+        <field name="maxTermMonths" title="${uiLabelMap.FinanceMaxTermMonths}"><text size="10"/></field>
+        <field name="defaultAnnualInterestRate" title="${uiLabelMap.FinanceDefaultAnnualInterestRateFraction}"><text size="12"/></field>
+        <field name="requiresCollateral" title="${uiLabelMap.FinanceRequiresCollateral}">
+            <drop-down allow-empty="true"><option key="Y" description="${uiLabelMap.CommonY}"/><option key="N" description="${uiLabelMap.CommonN}"/></drop-down>
+        </field>
+        <field name="maxLoanToValueRatio" title="${uiLabelMap.FinanceMaxLoanToValueRatio}"><text size="12"/></field>
+        <field name="lateFeeAnnualRate" title="${uiLabelMap.FinanceLateFeeAnnualRate}"><text size="12"/></field>
+        <field name="prepaymentFeeRate" title="${uiLabelMap.FinancePrepaymentFeeRate}"><text size="12"/></field>
+        <field name="prepaymentFeeAmount" title="${uiLabelMap.FinancePrepaymentFeeAmount}"><text size="20"/></field>
+        <field name="dayCountConventionEnumId" title="${uiLabelMap.FinanceDayCountConvention}">
+            <drop-down allow-empty="true">
+                <entity-options entity-name="Enumeration" key-field-name="enumId" description="${description}">
+                    <entity-constraint name="enumTypeId" value="LOAN_DAY_COUNT_CONV"/>
+                    <entity-order-by field-name="sequenceId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="periodEndpointEnumId" title="${uiLabelMap.FinancePeriodEndpoint}">
+            <drop-down allow-empty="true">
+                <entity-options entity-name="Enumeration" key-field-name="enumId" description="${description}">
+                    <entity-constraint name="enumTypeId" value="LOAN_PERIOD_ENDPT"/>
+                    <entity-order-by field-name="sequenceId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="dueDateConventionEnumId" title="${uiLabelMap.FinanceDueDateConvention}">
+            <drop-down allow-empty="true">
+                <entity-options entity-name="Enumeration" key-field-name="enumId" description="${description}">
+                    <entity-constraint name="enumTypeId" value="LOAN_DUEDATE_CONV"/>
+                    <entity-order-by field-name="sequenceId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="submitButton" title="${uiLabelMap.CommonSave}"><submit button-type="button"/></field>
+    </form>
+
 </forms>

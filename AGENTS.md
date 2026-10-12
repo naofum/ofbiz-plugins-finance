@@ -30,8 +30,11 @@
 - 請求はInvoiceをREADY化し、元本債権・未収利息・利息収益・売掛金のGL整合を保つ。入金・消込のcore GL仕訳も転記する。
 - 残元本は、有効なPaymentApplicationと `PMNT_RECEIVED` / `PMNT_CONFIRMED` のPaymentを正本として利息優先で算定する。請求しただけでは元本を減額しない。
 
-## Lease Layer Rules（リース層、STEP L1〜で追加予定）
+## Lease Layer Rules（リース層）
 - 詳細は `REQUIREMENTS_LEASE.md` を正とする。リース申込は `LeaseApplication`（作成時 `LEASEAPP_RECEIVED`）、見積は生成後不変、請求は契約確定リース料表のみを参照する。
+- リース商品は `LEASE` 配下の `FinancialProductType` と `FinancialProductLease`（1:1）で定義する。リース区分は商品種別から導出し、不一致を許さない。
+- リース申込の内容・希望物件（`LeaseApplicationAsset`）の変更は `LEASEAPP_RECEIVED` 中だけ。希望物件のない申込は、申込・審査とも承認できない。
+- リースの審査は共通審査（`createLeaseUnderwriting` → `createFinanceUnderwriting`、`applicationTypeId=LEASE`）を使い、承認時の検証は `finance.properties` の `underwriting.approval.validator.LEASE` に登録する。
 - 収益計上はファイナンスリース第1法（リース取引開始日に売上高・売上原価を計上し、利息相当額を繰延リース利益として利息法で戻し入れる）を主とする。
 
 ## Data Rules

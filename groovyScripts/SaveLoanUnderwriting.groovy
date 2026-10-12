@@ -23,13 +23,22 @@ import org.apache.ofbiz.entity.GenericValue
 String loanUnderwritingId = context.loanUnderwritingId
 GenericValue underwriting
 if (loanUnderwritingId == null) {
+    // createLoanUnderwriting passes loanApplicationId; the common
+    // createFinanceUnderwriting passes applicationTypeId + applicationId
+    // (STEP L1: lease applications use applicationTypeId=LEASE).
+    String applicationTypeId = context.applicationTypeId ?: 'LOAN'
+    String applicationId = context.applicationId ?: context.loanApplicationId
+    String loanApplicationId = 'LOAN'.equals(applicationTypeId) ? applicationId : null
+    if (!applicationId) {
+        return error(UtilProperties.getMessage('FinanceUiLabels', 'FinanceUnderwritingApplicationRequired', context.locale))
+    }
     loanUnderwritingId = delegator.getNextSeqId('LoanUnderwriting')
     underwriting = makeValue('LoanUnderwriting', [
             loanUnderwritingId       : loanUnderwritingId,
-            loanApplicationId        : context.loanApplicationId,
+            loanApplicationId        : loanApplicationId,
             // STEP L0: generic application reference used by the common review rules.
-            applicationTypeId        : 'LOAN',
-            applicationId            : context.loanApplicationId,
+            applicationTypeId        : applicationTypeId,
+            applicationId            : applicationId,
             statusId                 : 'LOANUW_IN_REVIEW',
             decision                 : 'PENDING',
             creditScore              : context.creditScore,

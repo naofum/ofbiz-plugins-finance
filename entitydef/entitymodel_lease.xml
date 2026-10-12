@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<entitymodel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://ofbiz.apache.org/dtds/entitymodel.xsd">
+    <title>Finance Component Entity Model - Lease layer STEP L1 (lease products, assets, applications)</title>
+    <description>
+        Lease products extend FinancialProduct 1:1 with lease-specific terms
+        (FinancialProductLease). Leased assets reuse the core FixedAsset /
+        FixedAssetType. A LeaseApplication is the lease-only application; the
+        requested assets are LeaseApplicationAsset rows. Underwriting is the
+        common review (LoanUnderwriting with applicationTypeId=LEASE).
+    </description>
+    <version>1.0</version>
+
+    <!-- ========================================================= -->
+    <!-- Lease product terms (1:1 with FinancialProduct)           -->
+    <!-- ========================================================= -->
+    <entity entity-name="FinancialProductLease" package-name="org.apache.ofbiz.finance.lease"
+            title="Financial Product - lease terms">
+        <field name="productId" type="id"><description>FK to FinancialProduct (1:1); the product type must be under LEASE</description></field>
+        <field name="leaseClassEnumId" type="id"><description>LEASE_CLASS: finance transfer / finance non-transfer / operating; derived from the product type</description></field>
+        <field name="defaultMonthlyRateFactor" type="fixed-point"><description>default monthly lease rate factor (monthly lease amount / acquisition cost, e.g. 0.018000)</description></field>
+        <field name="defaultCalcInterestRate" type="fixed-point"><description>default annual calculation interest rate of the lessor (e.g. 0.030000)</description></field>
+        <field name="paymentTimingEnumId" type="id"><description>LEASE_PAY_TIMING: ADVANCE (first payment at start) / ARREARS</description></field>
+        <field name="residualValueRate" type="fixed-point"><description>estimated residual value / acquisition cost (0 to 1); non-transfer default 0</description></field>
+        <field name="revenueMethodEnumId" type="id"><description>LEASE_REV_METHOD: revenue recognition method; initially LEASE_REV_AT_START</description></field>
+        <field name="taxable" type="indicator"><description>Y when lease payments are subject to consumption tax (default Y)</description></field>
+        <prim-key field="productId"/>
+        <relation type="one" fk-name="FINPRODLS_PROD" rel-entity-name="FinancialProduct">
+            <key-map field-name="productId"/>
+        </relation>
+        <relation type="one" fk-name="FINPRODLS_CLASS" title="LeaseClass" rel-entity-name="Enumeration">
+            <key-map field-name="leaseClassEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="FINPRODLS_TIMING" title="PaymentTiming" rel-entity-name="Enumeration">
+            <key-map field-name="paymentTimingEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="FINPRODLS_REVMTH" title="RevenueMethod" rel-entity-name="Enumeration">
+            <key-map field-name="revenueMethodEnumId" rel-field-name="enumId"/>
+        </relation>
+    </entity>
+
+    <!-- Asset types a lease product may finance (no rows = any type) -->
+    <entity entity-name="FinancialProductLeaseAssetType" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease product - allowed asset type">
+        <field name="productId" type="id"></field>
+        <field name="fixedAssetTypeId" type="id"></field>
+        <prim-key field="productId"/>
+        <prim-key field="fixedAssetTypeId"/>
+        <relation type="one" fk-name="FINPRODLSAT_PROD" rel-entity-name="FinancialProductLease">
+            <key-map field-name="productId"/>
+        </relation>
+        <relation type="one" fk-name="FINPRODLSAT_TYPE" rel-entity-name="FixedAssetType">
+            <key-map field-name="fixedAssetTypeId"/>
+        </relation>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- LeaseApplication: a lease application from a lessee       -->
+    <!-- ========================================================= -->
+    <entity entity-name="LeaseApplication" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease Application">
+        <field name="leaseApplicationId" type="id"><description>primary sequenced ID</description></field>
+        <field name="productId" type="id"><description>applied-for lease product (FinancialProductLease)</description></field>
+        <field name="applicantPartyId" type="id"><description>prospective lessee (person or organization)</description></field>
+        <field name="statusId" type="id"><description>LEASE_APP_STATUS; changed only by setLeaseApplicationStatus</description></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="requestedTermMonths" type="numeric"></field>
+        <field name="applicationDate" type="date-time"></field>
+        <field name="purpose" type="description"></field>
+        <field name="comments" type="comment"></field>
+        <prim-key field="leaseApplicationId"/>
+        <relation type="one" fk-name="LEASEAPP_PROD" rel-entity-name="FinancialProductLease">
+            <key-map field-name="productId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAPP_PARTY" rel-entity-name="Party">
+            <key-map field-name="applicantPartyId" rel-field-name="partyId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAPP_STTS" rel-entity-name="StatusItem">
+            <key-map field-name="statusId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAPP_UOM" rel-entity-name="Uom">
+            <key-map field-name="currencyUomId" rel-field-name="uomId"/>
+        </relation>
+        <relation type="many" rel-entity-name="LeaseApplicationAsset">
+            <key-map field-name="leaseApplicationId"/>
+        </relation>
+    </entity>
+
+    <!-- Status history of a lease application -->
+    <entity entity-name="LeaseApplicationStatus" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease Application Status History">
+        <field name="leaseApplicationId" type="id"></field>
+        <field name="statusId" type="id"></field>
+        <field name="statusDate" type="date-time"></field>
+        <field name="changeByUserLoginId" type="id-vlong"></field>
+        <prim-key field="leaseApplicationId"/>
+        <prim-key field="statusId"/>
+        <prim-key field="statusDate"/>
+        <relation type="one" fk-name="LEASEAPPST_APP" rel-entity-name="LeaseApplication">
+            <key-map field-name="leaseApplicationId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAPPST_ST" rel-entity-name="StatusItem">
+            <key-map field-name="statusId"/>
+        </relation>
+    </entity>
+
+    <!-- Requested asset of a lease application (application 1:N) -->
+    <entity entity-name="LeaseApplicationAsset" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease Application - requested asset">
+        <field name="leaseApplicationId" type="id"></field>
+        <field name="assetSeqId" type="id"><description>line number within the application (00001, 00002, ...)</description></field>
+        <field name="fixedAssetTypeId" type="id"></field>
+        <field name="assetName" type="name"></field>
+        <field name="quantity" type="fixed-point"></field>
+        <field name="estimatedAcquisitionCost" type="currency-amount"><description>estimated acquisition cost of the line (all units, tax excluded), in the application currency</description></field>
+        <field name="supplierPartyId" type="id"><description>dealer / supplier the lessor buys the asset from</description></field>
+        <field name="comments" type="comment"></field>
+        <prim-key field="leaseApplicationId"/>
+        <prim-key field="assetSeqId"/>
+        <relation type="one" fk-name="LEASEAPPAS_APP" rel-entity-name="LeaseApplication">
+            <key-map field-name="leaseApplicationId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAPPAS_TYPE" rel-entity-name="FixedAssetType">
+            <key-map field-name="fixedAssetTypeId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAPPAS_SUPP" title="Supplier" rel-entity-name="Party">
+            <key-map field-name="supplierPartyId" rel-field-name="partyId"/>
+        </relation>
+    </entity>
+
+</entitymodel>

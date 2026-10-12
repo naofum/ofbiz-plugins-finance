@@ -35,4 +35,33 @@ under the License.
         <attribute name="latestDelinquencies" type="List" mode="OUT" optional="true"/>
         <attribute name="dunningNotices" type="List" mode="OUT" optional="true"/>
     </service>
+
+    <!-- Common underwriting for any application type (STEP L1). The loan layer keeps
+         createLoanUnderwriting; the lease layer calls this with applicationTypeId=LEASE. -->
+    <service name="createFinanceUnderwriting" default-entity-name="LoanUnderwriting" engine="groovy"
+            location="component://finance/groovyScripts/SaveLoanUnderwriting.groovy" invoke="" auth="true">
+        <description>Create an underwriting in LOANUW_IN_REVIEW / PENDING for an application of the given type</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <auto-attributes include="pk" mode="OUT" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true">
+            <exclude field-name="statusId"/>
+            <exclude field-name="decision"/>
+            <exclude field-name="reviewDate"/>
+            <exclude field-name="loanApplicationId"/>
+        </auto-attributes>
+        <override name="applicationTypeId" optional="false"/>
+        <override name="applicationId" optional="false"/>
+    </service>
+
+    <!-- Shared product screen (STEP L1): create the core Product (if missing)
+         and its FinancialProduct in one step. -->
+    <service name="createFinanceProduct" default-entity-name="FinancialProduct" engine="groovy"
+            location="component://finance/groovyScripts/CreateFinanceProduct.groovy" invoke="" auth="true">
+        <description>Create a financial product (loan or lease type); creates the core Product when it does not exist</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <auto-attributes include="pk" mode="INOUT" optional="true"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true"/>
+        <attribute name="productName" type="String" mode="IN" optional="true"><description>required when the core Product does not exist</description></attribute>
+        <override name="financialProductTypeId" optional="false"/>
+    </service>
 </services>

@@ -20,6 +20,7 @@
 import org.apache.ofbiz.base.util.UtilDateTime
 import org.apache.ofbiz.base.util.UtilProperties
 import org.apache.ofbiz.entity.GenericValue
+import org.apache.ofbiz.entity.util.EntityUtilProperties
 import org.apache.ofbiz.finance.common.FinanceContractHelper
 
 // Generic status transition for STEP 2 finance entities.
@@ -75,7 +76,30 @@ if (oldStatusId != null) {
 // Approving a secured loan requires its collateral and loan-to-value ratio to
 // be satisfied before the underwriting becomes immutable. Reuse the shared
 // internal LTV validator so contract creation enforces the same rule.
-if ('LoanUnderwriting'.equals(entityName) && 'LOANUW_APPROVED'.equals(newStatusId)) {
+String applicationTypeId = entityValue.getModelEntity().isField('applicationTypeId') ?
+        (entityValue.applicationTypeId ?: 'LOAN') : null
+if ('LoanUnderwriting'.equals(entityName) && 'LOANUW_APPROVED'.equals(newStatusId)
+        && !'LOAN'.equals(applicationTypeId)) {
+    // STEP L1: underwritings of other application types (LEASE) are validated by
+    // the service registered as underwriting.approval.validator.<type> in
+    // finance.properties, so the common review does not depend on the layer.
+    String validator = EntityUtilProperties.getPropertyValue('finance',
+            'underwriting.approval.validator.' + applicationTypeId, delegator)
+    if (!validator) {
+        return error(UtilProperties.getMessage('FinanceUiLabels', 'FinanceUnderwritingValidatorMissing',
+                [applicationTypeId: applicationTypeId], context.locale))
+    }
+    try {
+        runService(validator, [
+                applicationId  : entityValue.applicationId,
+                principalAmount: entityValue.getBigDecimal('approvedPrincipalAmount'),
+                userLogin      : userLogin])
+    } catch (org.apache.ofbiz.service.ExecutionServiceException e) {
+        return error(e.getMessage())
+    }
+}
+if ('LoanUnderwriting'.equals(entityName) && 'LOANUW_APPROVED'.equals(newStatusId)
+        && 'LOAN'.equals(applicationTypeId)) {
     BigDecimal principal = entityValue.getBigDecimal('approvedPrincipalAmount')
     if (principal != null) {
         try {

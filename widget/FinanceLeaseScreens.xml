@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<screens xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://ofbiz.apache.org/Widget-Screen" xsi:schemaLocation="http://ofbiz.apache.org/Widget-Screen http://ofbiz.apache.org/dtds/widget-screen.xsd">
+
+    <!-- Lease terms of a lease product (STEP L1) -->
+    <screen name="EditFinancialProductLease">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceLeaseTerms"/>
+                <set field="headerItem" value="Products"/>
+                <set field="productId" from-field="parameters.productId"/>
+                <entity-one entity-name="FinancialProduct" value-field="financialProduct"/>
+                <entity-one entity-name="FinancialProductLease" value-field="financialProductLease"/>
+                <entity-one entity-name="FinancialProductType" value-field="financialProductType" auto-field-map="false">
+                    <field-map field-name="financialProductTypeId" from-field="financialProduct.financialProductTypeId"/>
+                </entity-one>
+                <entity-condition entity-name="FinancialProductLeaseAssetType" list="allowedAssetTypes">
+                    <condition-expr field-name="productId" from-field="productId"/>
+                    <order-by field-name="fixedAssetTypeId"/>
+                </entity-condition>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <section>
+                            <condition><not><if-empty field="financialProduct"/></not></condition>
+                            <widgets>
+                                <include-menu name="FinancialProductTabBar" location="component://finance/widget/FinanceMenus.xml"/>
+                                <screenlet title="${uiLabelMap.FinanceLeaseTerms} - ${productId}">
+                                    <include-form name="EditFinancialProductLease" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                </screenlet>
+                                <section>
+                                    <condition><not><if-empty field="financialProductLease"/></not></condition>
+                                    <widgets>
+                                        <screenlet title="${uiLabelMap.FinanceLeaseAllowedAssetTypes}">
+                                            <label style="h3" text="${uiLabelMap.FinanceLeaseAllowedAssetTypesNote}"/>
+                                            <include-form name="AddFinancialProductLeaseAssetType" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                            <include-grid name="ListFinancialProductLeaseAssetTypes" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                    </widgets>
+                                </section>
+                            </widgets>
+                            <fail-widgets>
+                                <label text="${uiLabelMap.FinanceRecordNotFound}"/>
+                            </fail-widgets>
+                        </section>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+
+    <!-- Lease application search -->
+    <screen name="FindLeaseApplication">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceFindLeaseApplications"/>
+                <set field="headerItem" value="LeaseApplications"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <screenlet title="${uiLabelMap.FinanceFindLeaseApplications}">
+                            <include-form name="FindLeaseApplications" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        </screenlet>
+                        <screenlet title="${uiLabelMap.FinanceLeaseApplications}">
+                            <container style="button-bar">
+                                <link target="EditLeaseApplication" text="${uiLabelMap.FinanceNewLeaseApplication}" style="buttontext create"/>
+                            </container>
+                            <include-grid name="ListLeaseApplications" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        </screenlet>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+
+    <!-- Lease application create / edit / status -->
+    <screen name="EditLeaseApplication">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceEditLeaseApplication"/>
+                <set field="headerItem" value="LeaseApplications"/>
+                <set field="leaseApplicationId" from-field="parameters.leaseApplicationId"/>
+                <entity-one entity-name="LeaseApplication" value-field="leaseApplication"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <section>
+                            <condition><not><if-empty field="leaseApplication"/></not></condition>
+                            <widgets>
+                                <include-menu name="LeaseApplicationTabBar" location="component://finance/widget/FinanceMenus.xml"/>
+                            </widgets>
+                        </section>
+                        <screenlet title="${uiLabelMap.FinanceEditLeaseApplication}">
+                            <include-form name="EditLeaseApplication" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        </screenlet>
+                        <section>
+                            <condition><not><if-empty field="leaseApplication"/></not></condition>
+                            <widgets>
+                                <screenlet title="${uiLabelMap.FinanceChangeStatus}">
+                                    <include-form name="ChangeLeaseApplicationStatus" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                </screenlet>
+                            </widgets>
+                        </section>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+
+    <!-- Lease application: requested assets and underwriting -->
+    <screen name="ManageLeaseApplication">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceLeaseApplication"/>
+                <set field="headerItem" value="LeaseApplications"/>
+                <script location="component://finance/groovyScripts/lease/PrepareLeaseApplication.groovy"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <section>
+                            <condition><not><if-empty field="leaseApplication"/></not></condition>
+                            <widgets>
+                                <include-menu name="LeaseApplicationTabBar" location="component://finance/widget/FinanceMenus.xml"/>
+                                <screenlet title="${uiLabelMap.FinanceLeaseApplication}">
+                                    <include-form name="ViewLeaseApplicationHeader" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                </screenlet>
+                                <screenlet title="${uiLabelMap.FinanceLeaseRequestedAssets}">
+                                    <section>
+                                        <condition><if-compare field="leaseApplication.statusId" operator="equals" value="LEASEAPP_RECEIVED"/></condition>
+                                        <widgets>
+                                            <include-form name="AddLeaseApplicationAsset" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </widgets>
+                                    </section>
+                                    <include-grid name="ListLeaseApplicationAssets" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                </screenlet>
+                                <screenlet title="${uiLabelMap.FinanceLoanUnderwriting}">
+                                    <include-form name="EditLeaseUnderwriting" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                </screenlet>
+                            </widgets>
+                            <fail-widgets>
+                                <label text="${uiLabelMap.FinanceLeaseApplicationNotFound}"/>
+                            </fail-widgets>
+                        </section>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+
+</screens>

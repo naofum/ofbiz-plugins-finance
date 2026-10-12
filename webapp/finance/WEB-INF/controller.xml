@@ -414,6 +414,174 @@ under the License.
         </response>
     </request-map>
 
+    <!-- STEP L1: financial products (shared) -->
+    <request-map uri="FindFinancialProduct">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="FindFinancialProduct"/>
+    </request-map>
+    <request-map uri="EditFinancialProduct">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="EditFinancialProduct"/>
+    </request-map>
+    <request-map uri="createFinanceProduct">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createFinanceProduct"/>
+        <response name="success" type="request-redirect" value="EditFinancialProduct">
+            <redirect-parameter name="productId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditFinancialProduct">
+            <redirect-parameter name="productId"/>
+        </response>
+    </request-map>
+    <request-map uri="updateFinancialProduct">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="updateFinancialProduct"/>
+        <response name="success" type="request-redirect" value="EditFinancialProduct">
+            <redirect-parameter name="productId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditFinancialProduct">
+            <redirect-parameter name="productId"/>
+        </response>
+    </request-map>
+
+    <!-- STEP L1: lease products, applications, requested assets, underwriting -->
+    <request-map uri="EditFinancialProductLease">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="EditFinancialProductLease"/>
+    </request-map>
+    <request-map uri="createFinancialProductLease">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createFinancialProductLease"/>
+        <response name="success" type="request-redirect" value="EditFinancialProductLease">
+            <redirect-parameter name="productId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditFinancialProductLease">
+            <redirect-parameter name="productId"/>
+        </response>
+    </request-map>
+    <request-map uri="updateFinancialProductLease">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="updateFinancialProductLease"/>
+        <response name="success" type="request-redirect" value="EditFinancialProductLease">
+            <redirect-parameter name="productId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditFinancialProductLease">
+            <redirect-parameter name="productId"/>
+        </response>
+    </request-map>
+    <request-map uri="addFinancialProductLeaseAssetType">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="addFinancialProductLeaseAssetType"/>
+        <response name="success" type="request-redirect" value="EditFinancialProductLease">
+            <redirect-parameter name="productId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditFinancialProductLease">
+            <redirect-parameter name="productId"/>
+        </response>
+    </request-map>
+    <request-map uri="removeFinancialProductLeaseAssetType">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="removeFinancialProductLeaseAssetType"/>
+        <response name="success" type="request-redirect" value="EditFinancialProductLease">
+            <redirect-parameter name="productId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditFinancialProductLease">
+            <redirect-parameter name="productId"/>
+        </response>
+    </request-map>
+    <request-map uri="FindLeaseApplication">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="FindLeaseApplication"/>
+    </request-map>
+    <request-map uri="EditLeaseApplication">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="EditLeaseApplication"/>
+    </request-map>
+    <request-map uri="ManageLeaseApplication">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="ManageLeaseApplication"/>
+    </request-map>
+    <request-map uri="createLeaseApplication">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createLeaseApplication"/>
+        <response name="success" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+    </request-map>
+    <request-map uri="updateLeaseApplication">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="updateLeaseApplication"/>
+        <response name="success" type="request-redirect" value="EditLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+    </request-map>
+    <request-map uri="setLeaseApplicationStatus">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="setLeaseApplicationStatus"/>
+        <response name="success" type="request-redirect" value="EditLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+    </request-map>
+    <request-map uri="createLeaseApplicationAsset">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createLeaseApplicationAsset"/>
+        <response name="success" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+    </request-map>
+    <request-map uri="removeLeaseApplicationAsset">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="removeLeaseApplicationAsset"/>
+        <response name="success" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+    </request-map>
+    <request-map uri="createLeaseUnderwriting">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createLeaseUnderwriting"/>
+        <response name="success" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+    </request-map>
+    <request-map uri="updateLeaseUnderwriting">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="updateLoanUnderwriting"/>
+        <response name="success" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+    </request-map>
+    <request-map uri="setLeaseUnderwritingStatus">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="setLoanUnderwritingStatus"/>
+        <response name="success" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+    </request-map>
+
     <!-- View Mappings -->
     <view-map name="main" type="screen" page="component://finance/widget/FinanceScreens.xml#FindLoanApplication"/>
     <view-map name="LookupPartyName" type="screen" page="component://party/widget/partymgr/LookupScreens.xml#LookupPartyName"/>
@@ -440,4 +608,10 @@ under the License.
     <view-map name="DunningNoticePdf" type="jasperreports"
             page="component://finance/webapp/finance/reports/DunningNotice.jrxml"
             content-type="application/pdf"/>
+    <view-map name="FindFinancialProduct" type="screen" page="component://finance/widget/FinanceCommonScreens.xml#FindFinancialProduct"/>
+    <view-map name="EditFinancialProduct" type="screen" page="component://finance/widget/FinanceCommonScreens.xml#EditFinancialProduct"/>
+    <view-map name="EditFinancialProductLease" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#EditFinancialProductLease"/>
+    <view-map name="FindLeaseApplication" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#FindLeaseApplication"/>
+    <view-map name="EditLeaseApplication" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#EditLeaseApplication"/>
+    <view-map name="ManageLeaseApplication" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#ManageLeaseApplication"/>
 </site-conf>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+
+    Lease demo data (STEP L1): an office-equipment finance lease product
+    (no ownership transfer), a lessee, a supplier and a received lease
+    application with two requested assets.
+    Depends on finance seed (FinanceLeaseTypeData.xml) and accounting seed
+    (FixedAssetType EQUIPMENT / COMPUTER_HARDWARE).
+-->
+<entity-engine-xml>
+    <!-- Lessee (organization) and supplier (dealer) -->
+    <Party partyId="DEMO_LESSEE1" partyTypeId="PARTY_GROUP"/>
+    <PartyGroup partyId="DEMO_LESSEE1" groupName="デモ商事株式会社"/>
+    <Party partyId="DEMO_LS_SUPPLIER1" partyTypeId="PARTY_GROUP"/>
+    <PartyGroup partyId="DEMO_LS_SUPPLIER1" groupName="デモ事務機販売株式会社"/>
+    <PartyRole partyId="DEMO_LS_SUPPLIER1" roleTypeId="SUPPLIER"/>
+
+    <!-- Lease product: core Product + FinancialProduct + FinancialProductLease -->
+    <Product productId="DEMO_LEASEPROD1" productTypeId="SERVICE"
+            internalName="Demo Office Equipment Lease" productName="事務機器ファイナンスリース（所有権移転外・デモ）"/>
+    <FinancialProduct productId="DEMO_LEASEPROD1" financialProductTypeId="LEASE_FIN_NONTRANS"
+            currencyUomId="JPY" minPrincipalAmount="100000" maxPrincipalAmount="50000000"
+            minTermMonths="12" maxTermMonths="84" lateFeeAnnualRate="0.146000"/>
+    <FinancialProductLease productId="DEMO_LEASEPROD1" leaseClassEnumId="LEASE_CLS_FIN_NONTR"
+            defaultMonthlyRateFactor="0.018000" paymentTimingEnumId="LEASE_PAY_ADVANCE"
+            residualValueRate="0" revenueMethodEnumId="LEASE_REV_AT_START" taxable="Y"/>
+    <FinancialProductLeaseAssetType productId="DEMO_LEASEPROD1" fixedAssetTypeId="EQUIPMENT"/>
+    <FinancialProductLeaseAssetType productId="DEMO_LEASEPROD1" fixedAssetTypeId="COMPUTER_HARDWARE"/>
+
+    <!-- A received lease application with two requested assets -->
+    <LeaseApplication leaseApplicationId="DEMO_LEASEAPP1" productId="DEMO_LEASEPROD1"
+            applicantPartyId="DEMO_LESSEE1" statusId="LEASEAPP_RECEIVED" currencyUomId="JPY"
+            requestedTermMonths="60" applicationDate="2026-10-01 10:00:00.0"
+            purpose="本社事務所の複合機・PC入替（デモ）"/>
+    <LeaseApplicationStatus leaseApplicationId="DEMO_LEASEAPP1" statusId="LEASEAPP_RECEIVED"
+            statusDate="2026-10-01 10:00:00.0" changeByUserLoginId="admin"/>
+    <LeaseApplicationAsset leaseApplicationId="DEMO_LEASEAPP1" assetSeqId="00001" fixedAssetTypeId="EQUIPMENT"
+            assetName="カラー複合機" quantity="1" estimatedAcquisitionCost="1200000" supplierPartyId="DEMO_LS_SUPPLIER1"/>
+    <LeaseApplicationAsset leaseApplicationId="DEMO_LEASEAPP1" assetSeqId="00002" fixedAssetTypeId="COMPUTER_HARDWARE"
+            assetName="ノートPC" quantity="10" estimatedAcquisitionCost="1500000" supplierPartyId="DEMO_LS_SUPPLIER1"/>
+</entity-engine-xml>

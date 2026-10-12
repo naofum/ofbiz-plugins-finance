@@ -83,4 +83,20 @@ under the License.
 
     <CreditLine creditLineId="TEST_CREDLINE1" creditLineTypeId="REVOLVING" partyId="TEST_BUSINESS1"
             currencyUomId="USD" fromDate="2026-01-01 00:00:00.0" creditLimitAmount="100000" description="Test credit line"/>
+
+    <!-- ============ Lease (STEP L1) ============ -->
+    <Party partyId="TEST_LESSEE1" partyTypeId="PARTY_GROUP"/>
+    <PartyGroup partyId="TEST_LESSEE1" groupName="Test Lessee Co."/>
+    <Party partyId="TEST_LS_SUPPLIER1" partyTypeId="PARTY_GROUP"/>
+    <PartyGroup partyId="TEST_LS_SUPPLIER1" groupName="Test Equipment Dealer"/>
+    <PartyRole partyId="TEST_LS_SUPPLIER1" roleTypeId="SUPPLIER"/>
+
+    <!-- Finance lease (no ownership transfer), equipment only, 12-60 months -->
+    <Product productId="TEST_LEASEPROD1" productTypeId="SERVICE" internalName="Test Equipment Lease" productName="Test Equipment Lease"/>
+    <FinancialProduct productId="TEST_LEASEPROD1" financialProductTypeId="LEASE_FIN_NONTRANS"
+            currencyUomId="JPY" minTermMonths="12" maxTermMonths="60"/>
+    <FinancialProductLease productId="TEST_LEASEPROD1" leaseClassEnumId="LEASE_CLS_FIN_NONTR"
+            defaultMonthlyRateFactor="0.018000" paymentTimingEnumId="LEASE_PAY_ADVANCE"
+            residualValueRate="0" revenueMethodEnumId="LEASE_REV_AT_START" taxable="Y"/>
+    <FinancialProductLeaseAssetType productId="TEST_LEASEPROD1" fixedAssetTypeId="EQUIPMENT"/>
 </entity-engine-xml>

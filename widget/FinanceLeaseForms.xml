@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<forms xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns="http://ofbiz.apache.org/Widget-Form" xsi:schemaLocation="http://ofbiz.apache.org/Widget-Form http://ofbiz.apache.org/dtds/widget-form.xsd">
+
+    <!-- ============================================================= -->
+    <!-- Lease product terms (STEP L1)                                 -->
+    <!-- ============================================================= -->
+    <form name="EditFinancialProductLease" type="single" target="updateFinancialProductLease" default-map-name="financialProductLease">
+        <alt-target use-when="financialProductLease==null" target="createFinancialProductLease"/>
+        <field name="productId"><hidden value="${productId}"/></field>
+        <field use-when="financialProductLease!=null" name="leaseClassEnumId" title="${uiLabelMap.FinanceLeaseClass}">
+            <display-entity entity-name="Enumeration" key-field-name="enumId" description="${description}"/>
+        </field>
+        <field use-when="financialProductLease==null" name="leaseClassEnumId"><ignored/></field>
+        <field name="defaultMonthlyRateFactor" title="${uiLabelMap.FinanceLeaseMonthlyRateFactor}"><text size="12"/></field>
+        <field name="defaultCalcInterestRate" title="${uiLabelMap.FinanceLeaseCalcInterestRate}"><text size="12"/></field>
+        <field name="paymentTimingEnumId" title="${uiLabelMap.FinanceLeasePaymentTiming}">
+            <drop-down allow-empty="false">
+                <entity-options entity-name="Enumeration" key-field-name="enumId" description="${description}">
+                    <entity-constraint name="enumTypeId" value="LEASE_PAY_TIMING"/>
+                    <entity-order-by field-name="sequenceId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="residualValueRate" title="${uiLabelMap.FinanceLeaseResidualValueRate}"><text size="12"/></field>
+        <field name="revenueMethodEnumId" title="${uiLabelMap.FinanceLeaseRevenueMethod}">
+            <drop-down allow-empty="false">
+                <entity-options entity-name="Enumeration" key-field-name="enumId" description="${description}">
+                    <entity-constraint name="enumTypeId" value="LEASE_REV_METHOD"/>
+                    <entity-order-by field-name="sequenceId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="taxable" title="${uiLabelMap.FinanceLeaseTaxable}">
+            <drop-down allow-empty="false" no-current-selected-key="Y">
+                <option key="Y" description="${uiLabelMap.CommonY}"/>
+                <option key="N" description="${uiLabelMap.CommonN}"/>
+            </drop-down>
+        </field>
+        <field name="submitButton" title="${uiLabelMap.CommonSave}"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListFinancialProductLeaseAssetTypes" list-name="allowedAssetTypes" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="fixedAssetTypeId" title="${uiLabelMap.FinanceLeaseAssetType}">
+            <display-entity entity-name="FixedAssetType" description="${description} [${fixedAssetTypeId}]"/>
+        </field>
+        <field name="removeLink" title=" " widget-style="buttontext">
+            <hyperlink description="${uiLabelMap.CommonRemove}" target="removeFinancialProductLeaseAssetType" link-type="hidden-form" also-hidden="false">
+                <parameter param-name="productId"/>
+                <parameter param-name="fixedAssetTypeId"/>
+            </hyperlink>
+        </field>
+    </grid>
+
+    <form name="AddFinancialProductLeaseAssetType" type="single" target="addFinancialProductLeaseAssetType">
+        <field name="productId"><hidden value="${productId}"/></field>
+        <field name="fixedAssetTypeId" title="${uiLabelMap.FinanceLeaseAssetType}">
+            <drop-down allow-empty="false">
+                <entity-options entity-name="FixedAssetType" key-field-name="fixedAssetTypeId" description="${description} [${fixedAssetTypeId}]">
+                    <entity-order-by field-name="description"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="addButton" title="${uiLabelMap.CommonAdd}"><submit button-type="button"/></field>
+    </form>
+
+    <!-- ============================================================= -->
+    <!-- Lease application                                             -->
+    <!-- ============================================================= -->
+    <form name="FindLeaseApplications" type="single" target="FindLeaseApplication" default-entity-name="LeaseApplication">
+        <field name="noConditionFind"><hidden value="Y"/></field>
+        <field name="leaseApplicationId" title="${uiLabelMap.FinanceLeaseApplicationId}"><text-find/></field>
+        <field name="applicantPartyId" title="${uiLabelMap.FinanceLesseePartyId}"><lookup target-form-name="LookupPartyName"/></field>
+        <field name="productId" title="${uiLabelMap.FinanceProductId}">
+            <drop-down allow-empty="true">
+                <entity-options entity-name="FinancialProductAndType" key-field-name="productId" description="${productName} [${productId}]">
+                    <entity-constraint name="parentTypeId" value="LEASE"/>
+                    <entity-order-by field-name="productId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}">
+            <drop-down allow-empty="true">
+                <entity-options key-field-name="statusId" description="${description}" entity-name="StatusItem">
+                    <entity-constraint name="statusTypeId" value="LEASE_APP_STATUS"/>
+                    <entity-order-by field-name="sequenceId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="searchButton" title="${uiLabelMap.CommonFind}"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListLeaseApplications" list-name="listIt" paginate-target="FindLeaseApplication"
+            default-entity-name="LeaseApplication" separate-columns="true"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <actions>
+            <service service-name="performFind" result-map="result" result-map-list="listIt">
+                <field-map field-name="inputFields" from-field="parameters"/>
+                <field-map field-name="entityName" value="LeaseApplication"/>
+                <field-map field-name="orderBy" from-field="parameters.sortField"/>
+                <field-map field-name="viewIndex" from-field="viewIndex"/>
+                <field-map field-name="viewSize" from-field="viewSize"/>
+            </service>
+        </actions>
+        <field name="leaseApplicationId" title="${uiLabelMap.FinanceLeaseApplicationId}" widget-style="buttontext" sort-field="true">
+            <hyperlink description="${leaseApplicationId}" target="ManageLeaseApplication" also-hidden="false">
+                <parameter param-name="leaseApplicationId"/>
+            </hyperlink>
+        </field>
+        <field name="applicantPartyId" title="${uiLabelMap.FinanceLesseePartyId}" sort-field="true">
+            <display-entity entity-name="PartyNameView" key-field-name="partyId"
+                    description="${firstName} ${middleName} ${lastName} ${groupName} [${partyId}]"/>
+        </field>
+        <field name="productId" title="${uiLabelMap.FinanceProductId}" sort-field="true">
+            <display-entity entity-name="Product" description="${productName} [${productId}]"/>
+        </field>
+        <field name="requestedTermMonths" title="${uiLabelMap.FinanceRequestedTermMonths}"><display/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}" sort-field="true"><display-entity entity-name="StatusItem"/></field>
+        <field name="applicationDate" title="${uiLabelMap.FinanceApplicationDate}" sort-field="true"><display/></field>
+    </grid>
+
+    <form name="EditLeaseApplication" type="single" target="updateLeaseApplication" default-map-name="leaseApplication">
+        <alt-target use-when="leaseApplication==null" target="createLeaseApplication"/>
+        <field use-when="leaseApplication!=null" name="leaseApplicationId" title="${uiLabelMap.FinanceLeaseApplicationId}"><display/></field>
+        <field use-when="leaseApplication!=null" name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem"/></field>
+        <field name="productId" title="${uiLabelMap.FinanceProductId}">
+            <drop-down allow-empty="false">
+                <entity-options entity-name="FinancialProductAndType" key-field-name="productId" description="${productName} [${productId}]">
+                    <entity-constraint name="parentTypeId" value="LEASE"/>
+                    <entity-order-by field-name="productId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="applicantPartyId" title="${uiLabelMap.FinanceLesseePartyId}" required-field="true"><lookup target-form-name="LookupPartyName"/></field>
+        <field name="applicantPartyId_display" entry-name="applicantPartyId" title=" ">
+            <display-entity entity-name="PartyNameView" key-field-name="partyId"
+                    description="${firstName} ${middleName} ${lastName} ${groupName}"/>
+        </field>
+        <field name="currencyUomId" title="${uiLabelMap.FinanceCurrencyUomId}" tooltip="${uiLabelMap.FinanceCurrencyDefaultsToProduct}">
+            <drop-down allow-empty="true">
+                <entity-options key-field-name="uomId" description="${abbreviation} - ${description}" entity-name="Uom">
+                    <entity-constraint name="uomTypeId" value="CURRENCY_MEASURE"/>
+                    <entity-order-by field-name="abbreviation"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="requestedTermMonths" title="${uiLabelMap.FinanceRequestedTermMonths}" required-field="true"><text size="10"/></field>
+        <field name="purpose" title="${uiLabelMap.FinancePurpose}"><textarea cols="60" rows="3"/></field>
+        <field name="comments" title="${uiLabelMap.FinanceComments}"><textarea cols="60" rows="2"/></field>
+        <field name="submitButton" title="${uiLabelMap.CommonSave}"
+                use-when="${leaseApplication == null || leaseApplication.statusId == 'LEASEAPP_RECEIVED'}"><submit button-type="button"/></field>
+    </form>
+
+    <form name="ChangeLeaseApplicationStatus" type="single" target="setLeaseApplicationStatus" default-map-name="leaseApplication">
+        <field name="leaseApplicationId"><hidden/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}">
+            <drop-down allow-empty="false" current-description="">
+                <entity-options key-field-name="statusIdTo" description="${transitionName}" entity-name="StatusValidChange">
+                    <entity-constraint name="statusId" env-name="leaseApplication.statusId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="changeStatusButton" title="${uiLabelMap.FinanceChangeStatus}"><submit button-type="button"/></field>
+    </form>
+
+    <!-- Header of the manage screen -->
+    <form name="ViewLeaseApplicationHeader" type="single" default-map-name="leaseApplication">
+        <field name="leaseApplicationId" title="${uiLabelMap.FinanceLeaseApplicationId}"><display/></field>
+        <field name="applicantPartyId" title="${uiLabelMap.FinanceLesseePartyId}">
+            <display-entity entity-name="PartyNameView" key-field-name="partyId"
+                    description="${firstName} ${middleName} ${lastName} ${groupName} [${partyId}]"/>
+        </field>
+        <field name="productId" title="${uiLabelMap.FinanceProductId}">
+            <display-entity entity-name="Product" description="${productName} [${productId}]"/>
+        </field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem"/></field>
+        <field name="requestedTermMonths" title="${uiLabelMap.FinanceRequestedTermMonths}"><display/></field>
+        <field name="estimatedTotalCost" entry-name="estimatedTotalCost" title="${uiLabelMap.FinanceLeaseEstimatedTotalCost}">
+            <display type="currency" currency="${leaseApplication.currencyUomId}"/>
+        </field>
+    </form>
+
+    <!-- Requested assets -->
+    <grid name="ListLeaseApplicationAssets" list-name="assets" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="assetSeqId" title="${uiLabelMap.FinanceLeaseAssetSeqId}"><display/></field>
+        <field name="fixedAssetTypeId" title="${uiLabelMap.FinanceLeaseAssetType}"><display-entity entity-name="FixedAssetType"/></field>
+        <field name="assetName" title="${uiLabelMap.FinanceLeaseAssetName}"><display/></field>
+        <field name="quantity" title="${uiLabelMap.FinanceLeaseAssetQuantity}"><display/></field>
+        <field name="estimatedAcquisitionCost" title="${uiLabelMap.FinanceLeaseEstimatedAcquisitionCost}">
+            <display type="currency" currency="${leaseApplication.currencyUomId}"/>
+        </field>
+        <field name="supplierPartyId" title="${uiLabelMap.FinanceLeaseSupplierPartyId}">
+            <display-entity entity-name="PartyNameView" key-field-name="partyId"
+                    description="${firstName} ${middleName} ${lastName} ${groupName} [${partyId}]"/>
+        </field>
+        <field name="removeLink" title=" " widget-style="buttontext" use-when="${leaseApplication.statusId == 'LEASEAPP_RECEIVED'}">
+            <hyperlink description="${uiLabelMap.CommonRemove}" target="removeLeaseApplicationAsset" link-type="hidden-form" also-hidden="false">
+                <parameter param-name="leaseApplicationId"/>
+                <parameter param-name="assetSeqId"/>
+            </hyperlink>
+        </field>
+    </grid>
+
+    <form name="AddLeaseApplicationAsset" type="single" target="createLeaseApplicationAsset">
+        <field name="leaseApplicationId"><hidden value="${leaseApplicationId}"/></field>
+        <field name="fixedAssetTypeId" title="${uiLabelMap.FinanceLeaseAssetType}">
+            <drop-down allow-empty="false">
+                <list-options list-name="assetTypeOptions" key-name="fixedAssetTypeId" description="${description} [${fixedAssetTypeId}]"/>
+            </drop-down>
+        </field>
+        <field name="assetName" title="${uiLabelMap.FinanceLeaseAssetName}" required-field="true"><text size="40"/></field>
+        <field name="quantity" title="${uiLabelMap.FinanceLeaseAssetQuantity}"><text size="8" default-value="1"/></field>
+        <field name="estimatedAcquisitionCost" title="${uiLabelMap.FinanceLeaseEstimatedAcquisitionCost}" required-field="true"><text size="20"/></field>
+        <field name="supplierPartyId" title="${uiLabelMap.FinanceLeaseSupplierPartyId}"><lookup target-form-name="LookupPartyName"/></field>
+        <field name="addButton" title="${uiLabelMap.CommonAdd}"><submit button-type="button"/></field>
+    </form>
+
+    <!-- Underwriting of the lease application (common review) -->
+    <form name="EditLeaseUnderwriting" type="single" target="updateLeaseUnderwriting" default-map-name="leaseUnderwriting">
+        <alt-target use-when="leaseUnderwriting==null" target="createLeaseUnderwriting"/>
+        <field name="leaseApplicationId"><hidden value="${leaseApplicationId}"/></field>
+        <field use-when="leaseUnderwriting!=null" name="loanUnderwritingId" title="${uiLabelMap.FinanceUnderwritingId}"><display/></field>
+        <field use-when="leaseUnderwriting!=null" name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem"/></field>
+        <field use-when="leaseUnderwriting!=null" name="decision" title="${uiLabelMap.FinanceDecision}"><display/></field>
+        <field use-when="leaseUnderwriting!=null" name="reviewDate" title="${uiLabelMap.FinanceReviewDate}"><display/></field>
+        <field name="creditScore" title="${uiLabelMap.FinanceCreditScore}"><text size="10"/></field>
+        <field name="approvedPrincipalAmount" title="${uiLabelMap.FinanceLeaseApprovedAcquisitionCost}"><text size="20" default-value="${estimatedTotalCost}"/></field>
+        <field name="comments" title="${uiLabelMap.FinanceComments}"><textarea cols="60" rows="3"/></field>
+        <field name="submitButton" title="${uiLabelMap.CommonSave}"
+                use-when="${leaseUnderwriting == null || leaseUnderwriting.statusId == 'LOANUW_IN_REVIEW'}"><submit button-type="button"/></field>
+        <field name="approveUnderwritingLink" title=" " widget-style="buttontext"
+                use-when="${leaseUnderwriting != null &amp;&amp; leaseUnderwriting.statusId == 'LOANUW_IN_REVIEW'}">
+            <hyperlink description="${uiLabelMap.FinanceApproveUnderwriting}" target="setLeaseUnderwritingStatus" link-type="hidden-form" also-hidden="false">
+                <parameter param-name="loanUnderwritingId" from-field="leaseUnderwriting.loanUnderwritingId"/>
+                <parameter param-name="leaseApplicationId"/>
+                <parameter param-name="statusId" value="LOANUW_APPROVED"/>
+            </hyperlink>
+        </field>
+        <field name="rejectUnderwritingLink" title=" " widget-style="buttontext"
+                use-when="${leaseUnderwriting != null &amp;&amp; leaseUnderwriting.statusId == 'LOANUW_IN_REVIEW'}">
+            <hyperlink description="${uiLabelMap.FinanceRejectUnderwriting}" target="setLeaseUnderwritingStatus" link-type="hidden-form" also-hidden="false">
+                <parameter param-name="loanUnderwritingId" from-field="leaseUnderwriting.loanUnderwritingId"/>
+                <parameter param-name="leaseApplicationId"/>
+                <parameter param-name="statusId" value="LOANUW_REJECTED"/>
+            </hyperlink>
+        </field>
+    </form>
+
+</forms>

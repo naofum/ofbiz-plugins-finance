@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<services xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://ofbiz.apache.org/dtds/services.xsd">
+    <description>Finance - Lease layer STEP L1 services (lease products, applications, requested assets)</description>
+    <vendor>OFBiz Finance</vendor>
+    <version>1.0</version>
+
+    <!-- ============================================================= -->
+    <!-- Lease product terms                                           -->
+    <!-- ============================================================= -->
+    <service name="createFinancialProductLease" default-entity-name="FinancialProductLease" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseProductServices.groovy" invoke="createFinancialProductLease" auth="true">
+        <description>Add lease terms to a FinancialProduct whose type is under LEASE. The lease class is derived from the product type.</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true"/>
+    </service>
+    <service name="updateFinancialProductLease" default-entity-name="FinancialProductLease" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseProductServices.groovy" invoke="updateFinancialProductLease" auth="true">
+        <description>Update the lease terms of a lease product (the lease class must stay consistent with the product type)</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true"/>
+    </service>
+    <service name="deleteFinancialProductLease" default-entity-name="FinancialProductLease" engine="entity-auto" invoke="delete" auth="true">
+        <description>Delete lease terms (fails while applications or asset type rows reference them)</description>
+        <permission-service service-name="financeGenericPermission" main-action="DELETE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+    </service>
+    <service name="addFinancialProductLeaseAssetType" default-entity-name="FinancialProductLeaseAssetType" engine="entity-auto" invoke="create" auth="true">
+        <description>Allow an asset type for a lease product</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+    </service>
+    <service name="removeFinancialProductLeaseAssetType" default-entity-name="FinancialProductLeaseAssetType" engine="entity-auto" invoke="delete" auth="true">
+        <description>Remove an allowed asset type from a lease product</description>
+        <permission-service service-name="financeGenericPermission" main-action="DELETE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- Lease application                                             -->
+    <!-- ============================================================= -->
+    <service name="createLeaseApplication" default-entity-name="LeaseApplication" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseApplicationServices.groovy" invoke="createLeaseApplication" auth="true">
+        <description>Create a lease application in LEASEAPP_RECEIVED status for a lease product</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <auto-attributes include="pk" mode="OUT" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true">
+            <exclude field-name="statusId"/>
+        </auto-attributes>
+        <override name="productId" optional="false"/>
+        <override name="applicantPartyId" optional="false"/>
+        <override name="requestedTermMonths" optional="false"/>
+    </service>
+    <service name="updateLeaseApplication" default-entity-name="LeaseApplication" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseApplicationServices.groovy" invoke="updateLeaseApplication" auth="true">
+        <description>Update a lease application only while it is LEASEAPP_RECEIVED</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true">
+            <exclude field-name="statusId"/>
+        </auto-attributes>
+    </service>
+    <service name="deleteLeaseApplication" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseApplicationServices.groovy" invoke="deleteLeaseApplication" auth="true">
+        <description>Delete a LEASEAPP_RECEIVED application without underwriting, with its requested assets and status history</description>
+        <permission-service service-name="financeGenericPermission" main-action="DELETE"/>
+        <attribute name="leaseApplicationId" type="String" mode="IN" optional="false"/>
+    </service>
+    <service name="setLeaseApplicationStatus" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseApplicationServices.groovy" invoke="setLeaseApplicationStatus" auth="true">
+        <description>Change the status of a lease application (StatusValidChange), record history; approval requires requested assets</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="leaseApplicationId" type="String" mode="IN" optional="false"/>
+        <attribute name="statusId" type="String" mode="IN" optional="false"/>
+        <attribute name="oldStatusId" type="String" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- Requested assets (only while LEASEAPP_RECEIVED)               -->
+    <!-- ============================================================= -->
+    <service name="createLeaseApplicationAsset" default-entity-name="LeaseApplicationAsset" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseApplicationServices.groovy" invoke="createLeaseApplicationAsset" auth="true">
+        <description>Add a requested asset to a received lease application</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <auto-attributes include="pk" mode="INOUT" optional="true"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true"/>
+        <override name="leaseApplicationId" optional="false"/>
+        <override name="fixedAssetTypeId" optional="false"/>
+        <override name="assetName" optional="false"/>
+        <override name="estimatedAcquisitionCost" optional="false"/>
+    </service>
+    <service name="updateLeaseApplicationAsset" default-entity-name="LeaseApplicationAsset" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseApplicationServices.groovy" invoke="updateLeaseApplicationAsset" auth="true">
+        <description>Update a requested asset of a received lease application</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+        <auto-attributes include="nonpk" mode="IN" optional="true"/>
+    </service>
+    <service name="removeLeaseApplicationAsset" default-entity-name="LeaseApplicationAsset" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseApplicationServices.groovy" invoke="removeLeaseApplicationAsset" auth="true">
+        <description>Remove a requested asset from a received lease application</description>
+        <permission-service service-name="financeGenericPermission" main-action="DELETE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- Underwriting (common review, applicationTypeId=LEASE)         -->
+    <!-- ============================================================= -->
+    <service name="createLeaseUnderwriting" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseApplicationServices.groovy" invoke="createLeaseUnderwriting" auth="true">
+        <description>Create a common underwriting (LOANUW_IN_REVIEW) for a lease application.
+            Approval / rejection uses the common setLoanUnderwritingStatus service.</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <attribute name="leaseApplicationId" type="String" mode="IN" optional="false"/>
+        <attribute name="creditScore" type="Long" mode="IN" optional="true"/>
+        <attribute name="approvedPrincipalAmount" type="BigDecimal" mode="IN" optional="true"><description>approved acquisition cost</description></attribute>
+        <attribute name="reviewerPartyId" type="String" mode="IN" optional="true"/>
+        <attribute name="comments" type="String" mode="IN" optional="true"/>
+        <attribute name="loanUnderwritingId" type="String" mode="OUT" optional="false"/>
+    </service>
+    <service name="financeValidateLeaseUnderwritingApproval" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseApplicationServices.groovy" invoke="validateLeaseUnderwritingApproval" auth="true">
+        <description>Approval validator for LEASE underwritings (registered as underwriting.approval.validator.LEASE):
+            the lease application must exist and have at least one requested asset</description>
+        <attribute name="applicationId" type="String" mode="IN" optional="false"/>
+        <attribute name="principalAmount" type="BigDecimal" mode="IN" optional="true"/>
+    </service>
+</services>
