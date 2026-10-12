@@ -1290,4 +1290,342 @@ under the License.
         <value xml:lang="en">No approval validator is registered for application type ${applicationTypeId}</value>
         <value xml:lang="ja">申込種別 ${applicationTypeId} の承認検証が登録されていません</value>
     </property>
+
+    <!-- ============ STEP L2: lease quotes and agreements ============ -->
+    <property key="FinanceFindLeaseAgreements">
+        <value xml:lang="en">Find Lease Agreements</value>
+        <value xml:lang="ja">リース契約検索</value>
+    </property>
+    <property key="FinanceLeaseAcquisitionCost">
+        <value xml:lang="en">Acquisition cost (tax excl.)</value>
+        <value xml:lang="ja">取得価額（税抜）</value>
+    </property>
+    <property key="FinanceLeaseAgreement">
+        <value xml:lang="en">Lease Agreement</value>
+        <value xml:lang="ja">リース契約</value>
+    </property>
+    <property key="FinanceLeaseAgreementDate">
+        <value xml:lang="en">Agreement date</value>
+        <value xml:lang="ja">契約日</value>
+    </property>
+    <property key="FinanceLeaseAgreementExceedsApproval">
+        <value xml:lang="en">Acquisition cost ${acquisitionCost} exceeds the approved amount ${approvedAmount}</value>
+        <value xml:lang="ja">取得価額 ${acquisitionCost} が審査承認額 ${approvedAmount} を超えています</value>
+    </property>
+    <property key="FinanceLeaseAgreementExists">
+        <value xml:lang="en">A lease agreement already exists for quote ${leaseQuoteId}</value>
+        <value xml:lang="ja">見積 ${leaseQuoteId} のリース契約は作成済みです</value>
+    </property>
+    <property key="FinanceLeaseAgreementId">
+        <value xml:lang="en">Lease Agreement ID</value>
+        <value xml:lang="ja">リース契約番号</value>
+    </property>
+    <property key="FinanceLeaseAgreementRequiresAcceptedQuote">
+        <value xml:lang="en">The lease quote must be accepted: ${leaseQuoteId}</value>
+        <value xml:lang="ja">受理済みのリース見積が必要です: ${leaseQuoteId}</value>
+    </property>
+    <property key="FinanceLeaseAgreementRequiresApprovedApplication">
+        <value xml:lang="en">The lease application must be approved: ${leaseApplicationId}</value>
+        <value xml:lang="ja">承認済みのリース申込が必要です: ${leaseApplicationId}</value>
+    </property>
+    <property key="FinanceLeaseAgreementRequiresApprovedUnderwriting">
+        <value xml:lang="en">An approved underwriting is required: ${leaseApplicationId}</value>
+        <value xml:lang="ja">承認済みの審査が必要です: ${leaseApplicationId}</value>
+    </property>
+    <property key="FinanceLeaseAgreements">
+        <value xml:lang="en">Lease Agreements</value>
+        <value xml:lang="ja">リース契約</value>
+    </property>
+    <property key="FinanceLeaseAgreementScheduleIncomplete">
+        <value xml:lang="en">The payment schedule of quote ${leaseQuoteId} is incomplete</value>
+        <value xml:lang="ja">見積 ${leaseQuoteId} のリース料表が不完全です</value>
+    </property>
+    <property key="FinanceLeaseAmount">
+        <value xml:lang="en">Lease payment</value>
+        <value xml:lang="ja">リース料</value>
+    </property>
+    <property key="FinanceLeaseApprovedAmountRequired">
+        <value xml:lang="en">Enter the approved acquisition cost before approving a lease underwriting.</value>
+        <value xml:lang="ja">リースの審査を承認する前に承認取得価額を入力してください。</value>
+    </property>
+    <property key="FinanceLeaseAssets">
+        <value xml:lang="en">Assets</value>
+        <value xml:lang="ja">物件</value>
+    </property>
+    <property key="FinanceLeaseCalcInvalid">
+        <value xml:lang="en">The lease payment cannot be calculated: ${reason}</value>
+        <value xml:lang="ja">リース料を計算できません: ${reason}</value>
+    </property>
+    <property key="FinanceLeaseCalcMethod">
+        <value xml:lang="en">Calculation method</value>
+        <value xml:lang="ja">計算方式</value>
+    </property>
+    <property key="FinanceLeaseCancelAgreement">
+        <value xml:lang="en">Cancel agreement</value>
+        <value xml:lang="ja">契約取消</value>
+    </property>
+    <property key="FinanceLeaseCancelAgreementConfirm">
+        <value xml:lang="en">Cancel this lease agreement?</value>
+        <value xml:lang="ja">このリース契約を取り消しますか？</value>
+    </property>
+    <property key="FinanceLeaseConfirmedSchedule">
+        <value xml:lang="en">Confirmed Lease Payment Schedule</value>
+        <value xml:lang="ja">契約確定リース料表</value>
+    </property>
+    <property key="FinanceLeaseCreateAgreement">
+        <value xml:lang="en">Create agreement</value>
+        <value xml:lang="ja">契約作成</value>
+    </property>
+    <property key="FinanceLeaseEndDate">
+        <value xml:lang="en">Lease end date</value>
+        <value xml:lang="ja">リース終了日</value>
+    </property>
+    <property key="FinanceLeaseExpectedStartDate">
+        <value xml:lang="en">Expected start date</value>
+        <value xml:lang="ja">開始予定日</value>
+    </property>
+    <property key="FinanceLeaseFixedAssetId">
+        <value xml:lang="en">Fixed asset</value>
+        <value xml:lang="ja">固定資産</value>
+    </property>
+    <property key="FinanceLeaseInterestPortion">
+        <value xml:lang="en">Interest</value>
+        <value xml:lang="ja">利息相当額</value>
+    </property>
+    <property key="FinanceLeaseLessor">
+        <value xml:lang="en">Lessor</value>
+        <value xml:lang="ja">貸手</value>
+    </property>
+    <property key="FinanceLeaseMonthlyAmount">
+        <value xml:lang="en">Monthly lease payment</value>
+        <value xml:lang="ja">月額リース料</value>
+    </property>
+    <property key="FinanceLeasePaymentSchedule">
+        <value xml:lang="en">Lease Payment Schedule</value>
+        <value xml:lang="ja">リース料表</value>
+    </property>
+    <property key="FinanceLeasePdfAcquisitionCost">
+        <value xml:lang="en">Acquisition cost</value>
+        <value xml:lang="ja">取得価額</value>
+    </property>
+    <property key="FinanceLeasePdfAgreementNo">
+        <value xml:lang="en">Agreement No.</value>
+        <value xml:lang="ja">契約番号</value>
+    </property>
+    <property key="FinanceLeasePdfAgreementTitle">
+        <value xml:lang="en">Lease Agreement</value>
+        <value xml:lang="ja">リース契約書</value>
+    </property>
+    <property key="FinanceLeasePdfAssets">
+        <value xml:lang="en">Assets</value>
+        <value xml:lang="ja">物件</value>
+    </property>
+    <property key="FinanceLeasePdfCalcMethod">
+        <value xml:lang="en">Calculation method</value>
+        <value xml:lang="ja">計算方式</value>
+    </property>
+    <property key="FinanceLeasePdfCalcRate">
+        <value xml:lang="en">Calculation interest rate</value>
+        <value xml:lang="ja">計算利子率</value>
+    </property>
+    <property key="FinanceLeasePdfColDueDate">
+        <value xml:lang="en">Due date</value>
+        <value xml:lang="ja">支払期日</value>
+    </property>
+    <property key="FinanceLeasePdfColInterest">
+        <value xml:lang="en">Interest</value>
+        <value xml:lang="ja">利息相当額</value>
+    </property>
+    <property key="FinanceLeasePdfColLease">
+        <value xml:lang="en">Lease</value>
+        <value xml:lang="ja">リース料</value>
+    </property>
+    <property key="FinanceLeasePdfColNo">
+        <value xml:lang="en">No.</value>
+        <value xml:lang="ja">回</value>
+    </property>
+    <property key="FinanceLeasePdfColPrincipal">
+        <value xml:lang="en">Principal</value>
+        <value xml:lang="ja">元本回収額</value>
+    </property>
+    <property key="FinanceLeasePdfColRemaining">
+        <value xml:lang="en">Remaining</value>
+        <value xml:lang="ja">元本残高</value>
+    </property>
+    <property key="FinanceLeasePdfColTax">
+        <value xml:lang="en">Tax</value>
+        <value xml:lang="ja">消費税</value>
+    </property>
+    <property key="FinanceLeasePdfColTotal">
+        <value xml:lang="en">Total</value>
+        <value xml:lang="ja">税込合計</value>
+    </property>
+    <property key="FinanceLeasePdfCurrency">
+        <value xml:lang="en">Currency</value>
+        <value xml:lang="ja">通貨</value>
+    </property>
+    <property key="FinanceLeasePdfIssueDate">
+        <value xml:lang="en">Date</value>
+        <value xml:lang="ja">日付</value>
+    </property>
+    <property key="FinanceLeasePdfLeaseClass">
+        <value xml:lang="en">Lease class</value>
+        <value xml:lang="ja">リース区分</value>
+    </property>
+    <property key="FinanceLeasePdfLessee">
+        <value xml:lang="en">Lessee</value>
+        <value xml:lang="ja">借手</value>
+    </property>
+    <property key="FinanceLeasePdfLessor">
+        <value xml:lang="en">Lessor</value>
+        <value xml:lang="ja">貸手</value>
+    </property>
+    <property key="FinanceLeasePdfMonthly">
+        <value xml:lang="en">Monthly lease payment</value>
+        <value xml:lang="ja">月額リース料</value>
+    </property>
+    <property key="FinanceLeasePdfMonthlyTax">
+        <value xml:lang="en">Monthly tax</value>
+        <value xml:lang="ja">月額消費税</value>
+    </property>
+    <property key="FinanceLeasePdfProvisionalNote">
+        <value xml:lang="en">Due dates are provisional and are fixed from the lease start date (acceptance date). Consumption tax is shown for reference.</value>
+        <value xml:lang="ja">支払期日は予定であり、リース開始日（検収日）にもとづき確定します。消費税額は参考表示です。</value>
+    </property>
+    <property key="FinanceLeasePdfQuoteNo">
+        <value xml:lang="en">Quote No.</value>
+        <value xml:lang="ja">見積番号</value>
+    </property>
+    <property key="FinanceLeasePdfQuoteTitle">
+        <value xml:lang="en">Lease Quotation</value>
+        <value xml:lang="ja">リース見積書</value>
+    </property>
+    <property key="FinanceLeasePdfRateFactor">
+        <value xml:lang="en">Monthly rate factor</value>
+        <value xml:lang="ja">月額リース料率</value>
+    </property>
+    <property key="FinanceLeasePdfResidual">
+        <value xml:lang="en">Residual value</value>
+        <value xml:lang="ja">見積残存価額</value>
+    </property>
+    <property key="FinanceLeasePdfTerm">
+        <value xml:lang="en">Term (months)</value>
+        <value xml:lang="ja">リース期間（月）</value>
+    </property>
+    <property key="FinanceLeasePdfTiming">
+        <value xml:lang="en">Payment timing</value>
+        <value xml:lang="ja">支払時期</value>
+    </property>
+    <property key="FinanceLeasePdfTotal">
+        <value xml:lang="en">Total lease payments</value>
+        <value xml:lang="ja">リース料総額</value>
+    </property>
+    <property key="FinanceLeasePdfTotalTax">
+        <value xml:lang="en">Total tax</value>
+        <value xml:lang="ja">消費税総額</value>
+    </property>
+    <property key="FinanceLeasePeriodFrom">
+        <value xml:lang="en">Period from</value>
+        <value xml:lang="ja">期間開始</value>
+    </property>
+    <property key="FinanceLeasePeriodThru">
+        <value xml:lang="en">Period thru</value>
+        <value xml:lang="ja">期間終了</value>
+    </property>
+    <property key="FinanceLeasePrincipalPortion">
+        <value xml:lang="en">Principal recovery</value>
+        <value xml:lang="ja">元本回収額</value>
+    </property>
+    <property key="FinanceLeasePrintAgreementPdf">
+        <value xml:lang="en">Agreement PDF</value>
+        <value xml:lang="ja">契約書PDF</value>
+    </property>
+    <property key="FinanceLeasePrintQuotePdf">
+        <value xml:lang="en">Quote PDF</value>
+        <value xml:lang="ja">見積書PDF</value>
+    </property>
+    <property key="FinanceLeaseQuote">
+        <value xml:lang="en">Lease Quote</value>
+        <value xml:lang="ja">リース見積</value>
+    </property>
+    <property key="FinanceLeaseQuoteAccept">
+        <value xml:lang="en">Accept</value>
+        <value xml:lang="ja">受理</value>
+    </property>
+    <property key="FinanceLeaseQuoteAlreadyAccepted">
+        <value xml:lang="en">Another quote of application ${leaseApplicationId} is already accepted</value>
+        <value xml:lang="ja">申込 ${leaseApplicationId} には受理済みの見積が既にあります</value>
+    </property>
+    <property key="FinanceLeaseQuoteApplicationClosed">
+        <value xml:lang="en">A quote cannot be created for application ${leaseApplicationId} in status ${statusId}</value>
+        <value xml:lang="ja">状態 ${statusId} の申込 ${leaseApplicationId} には見積を作成できません</value>
+    </property>
+    <property key="FinanceLeaseQuoteId">
+        <value xml:lang="en">Lease Quote ID</value>
+        <value xml:lang="ja">リース見積番号</value>
+    </property>
+    <property key="FinanceLeaseQuoteMethodAmbiguous">
+        <value xml:lang="en">Enter either the monthly rate factor or the calculation interest rate, not both.</value>
+        <value xml:lang="ja">月額リース料率と計算利子率はどちらか一方を入力してください。</value>
+    </property>
+    <property key="FinanceLeaseQuotePresent">
+        <value xml:lang="en">Present</value>
+        <value xml:lang="ja">提示</value>
+    </property>
+    <property key="FinanceLeaseQuoteRateMissing">
+        <value xml:lang="en">No rate factor or calculation interest rate is given or set on product ${productId}</value>
+        <value xml:lang="ja">料率・計算利子率が入力されておらず、商品 ${productId} にも既定値がありません</value>
+    </property>
+    <property key="FinanceLeaseQuoteRateTooltip">
+        <value xml:lang="en">Leave both rates empty to use the product default</value>
+        <value xml:lang="ja">料率・利子率とも空欄の場合は商品の既定値</value>
+    </property>
+    <property key="FinanceLeaseQuoteReject">
+        <value xml:lang="en">Reject</value>
+        <value xml:lang="ja">否決</value>
+    </property>
+    <property key="FinanceLeaseQuotes">
+        <value xml:lang="en">Lease Quotes</value>
+        <value xml:lang="ja">リース見積</value>
+    </property>
+    <property key="FinanceLeaseRemainingPrincipal">
+        <value xml:lang="en">Remaining principal</value>
+        <value xml:lang="ja">元本残高</value>
+    </property>
+    <property key="FinanceLeaseResidualDefaultTooltip">
+        <value xml:lang="en">Empty = acquisition cost x product residual value rate</value>
+        <value xml:lang="ja">空欄の場合は取得価額 × 商品の残価率</value>
+    </property>
+    <property key="FinanceLeaseResidualValue">
+        <value xml:lang="en">Residual value</value>
+        <value xml:lang="ja">見積残存価額</value>
+    </property>
+    <property key="FinanceLeaseStartDate">
+        <value xml:lang="en">Lease start date</value>
+        <value xml:lang="ja">リース開始日</value>
+    </property>
+    <property key="FinanceLeaseTaxAmount">
+        <value xml:lang="en">Tax</value>
+        <value xml:lang="ja">消費税</value>
+    </property>
+    <property key="FinanceLeaseTaxRate">
+        <value xml:lang="en">Tax rate</value>
+        <value xml:lang="ja">消費税率</value>
+    </property>
+    <property key="FinanceLeaseTotalAmount">
+        <value xml:lang="en">Total lease payments</value>
+        <value xml:lang="ja">リース料総額</value>
+    </property>
+    <property key="FinanceLeaseTotalInterest">
+        <value xml:lang="en">Total interest equivalent</value>
+        <value xml:lang="ja">利息相当額合計</value>
+    </property>
+    <property key="FinanceLeaseTotalTax">
+        <value xml:lang="en">Total tax</value>
+        <value xml:lang="ja">消費税総額</value>
+    </property>
+    <property key="FinanceScheduleRevision">
+        <value xml:lang="en">Revision</value>
+        <value xml:lang="ja">改定</value>
+    </property>
 </resource>

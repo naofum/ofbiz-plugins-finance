@@ -96,17 +96,22 @@ public final class FinanceContractHelper {
 
     /**
      * Credit exposure of a customer across all contract types (loan + lease):
-     * the sum of {@code principalAmount} of the customer's ACTIVE contracts.
-     * Repayments are not netted, matching the STEP 5 credit-limit rule.
+     * the sum of {@code principalAmount} of the customer's contracts that are
+     * CONTRACTED (signed, not yet started, e.g. a lease awaiting acceptance) or
+     * ACTIVE. Repayments are not netted, matching the STEP 5 credit-limit rule.
      */
-    public static BigDecimal sumActivePrincipal(Delegator delegator, String customerPartyId)
+    public static BigDecimal sumExposurePrincipal(Delegator delegator, String customerPartyId)
             throws GenericEntityException {
         BigDecimal total = BigDecimal.ZERO;
         if (UtilValidate.isEmpty(customerPartyId)) {
             return total;
         }
+        EntityCondition condition = EntityCondition.makeCondition(UtilMisc.toList(
+                EntityCondition.makeCondition("customerPartyId", EntityOperator.EQUALS, customerPartyId),
+                EntityCondition.makeCondition("statusId", EntityOperator.IN,
+                        UtilMisc.toList(STATUS_CONTRACTED, STATUS_ACTIVE))), EntityOperator.AND);
         for (GenericValue contract : EntityQuery.use(delegator).from("FinanceContract")
-                .where("customerPartyId", customerPartyId, "statusId", STATUS_ACTIVE).queryList()) {
+                .where(condition).queryList()) {
             BigDecimal principal = contract.getBigDecimal("principalAmount");
             if (principal != null) {
                 total = total.add(principal);
@@ -115,6 +120,15 @@ public final class FinanceContractHelper {
         return total;
     }
 
+    /**
+     * @deprecated since STEP L2 the exposure also counts CONTRACTED contracts;
+     *             use {@link #sumExposurePrincipal}.
+     */
+    @Deprecated
+    public static BigDecimal sumActivePrincipal(Delegator delegator, String customerPartyId)
+            throws GenericEntityException {
+        return sumExposurePrincipal(delegator, customerPartyId);
+    }
     /**
      * Acquire the processing lock of a contract by incrementing
      * {@code processingLockVersion} with a conditional update. Concurrent

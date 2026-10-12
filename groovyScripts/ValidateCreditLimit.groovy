@@ -17,70 +17,29 @@
  * under the License.
  */
 
-import java.math.BigDecimal
-import org.apache.ofbiz.base.util.UtilDateTime
 import org.apache.ofbiz.base.util.UtilProperties
 import org.apache.ofbiz.entity.GenericValue
-import org.apache.ofbiz.finance.common.FinanceContractHelper
+import org.apache.ofbiz.service.ServiceUtil
 
-// Internal shared validation used by underwriting approval and agreement
-// creation. When the applicant has an active credit line (limit-only check),
-// the sum of the existing ACTIVE agreement principal and the new principal
-// must not exceed the credit limit. Repayments are not netted (simple check).
-String loanApplicationId = context.loanApplicationId
-BigDecimal principalAmount = context.principalAmount
-
+// Loan layer entry of the credit limit check used by underwriting approval and
+// agreement creation. Resolves the applicant and currency of the loan
+// application and delegates to the common financeValidateCustomerCreditLimit
+// (exposure aggregated across loan and lease, STEP L0 / L2).
 GenericValue application = from('LoanApplication')
-        .where('loanApplicationId', loanApplicationId).queryOne()
+        .where('loanApplicationId', context.loanApplicationId).queryOne()
 if (application == null) {
     return error(UtilProperties.getMessage('FinanceUiLabels', 'FinanceLoanApplicationNotFound',
-            [loanApplicationId: loanApplicationId], context.locale))
+            [loanApplicationId: context.loanApplicationId], context.locale))
 }
-
-String applicantPartyId = application.applicantPartyId
-String currencyUomId = application.currencyUomId
-java.sql.Timestamp now = UtilDateTime.nowTimestamp()
-
-GenericValue activeLine = null
-List<GenericValue> creditLines = from('CreditLine').where('partyId', applicantPartyId).queryList()
-for (GenericValue line : creditLines) {
-    if (currencyUomId != null && !currencyUomId.equals(line.currencyUomId)) {
-        continue
-    }
-    if (line.fromDate != null && line.getTimestamp('fromDate').after(now)) {
-        continue
-    }
-    if (line.thruDate != null && line.getTimestamp('thruDate').before(now)) {
-        continue
-    }
-    activeLine = line
-    break
+Map checked = dispatcher.runSync('financeValidateCustomerCreditLimit', [
+        customerPartyId: application.applicantPartyId,
+        currencyUomId  : application.currencyUomId,
+        principalAmount: context.principalAmount,
+        userLogin      : context.userLogin,
+        locale         : context.locale])
+if (ServiceUtil.isError(checked)) {
+    return error(ServiceUtil.getErrorMessage(checked))
 }
-
 Map result = success()
-result.hasCreditLine = activeLine != null
-result.creditLimitAmount = null
-result.existingOutstanding = BigDecimal.ZERO
-result.totalExposure = principalAmount
-
-if (activeLine == null) {
-    return result
-}
-
-// Exposure is aggregated across loan and lease contracts through the common
-// contract ledger (STEP L0): the principal of the customer's ACTIVE FinanceContracts.
-BigDecimal outstanding = FinanceContractHelper.sumActivePrincipal(delegator, applicantPartyId)
-
-BigDecimal limit = activeLine.getBigDecimal('creditLimitAmount')
-BigDecimal total = outstanding.add(principalAmount)
-
-result.creditLimitAmount = limit
-result.existingOutstanding = outstanding
-result.totalExposure = total
-
-if (limit != null && total.compareTo(limit) > 0) {
-    return error(UtilProperties.getMessage('FinanceUiLabels', 'FinanceCreditLimitExceeded',
-            [partyId: applicantPartyId, totalExposure: total, creditLimitAmount: limit], context.locale))
-}
-
+['hasCreditLine', 'creditLimitAmount', 'existingOutstanding', 'totalExposure'].each { result[it] = checked[it] }
 return result

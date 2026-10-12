@@ -159,9 +159,151 @@ under the License.
                                 <screenlet title="${uiLabelMap.FinanceLoanUnderwriting}">
                                     <include-form name="EditLeaseUnderwriting" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                 </screenlet>
+                                <section>
+                                    <condition>
+                                        <or>
+                                            <if-compare field="leaseApplication.statusId" operator="equals" value="LEASEAPP_RECEIVED"/>
+                                            <if-compare field="leaseApplication.statusId" operator="equals" value="LEASEAPP_SUBMITTED"/>
+                                            <if-compare field="leaseApplication.statusId" operator="equals" value="LEASEAPP_APPROVED"/>
+                                        </or>
+                                    </condition>
+                                    <widgets>
+                                        <screenlet title="${uiLabelMap.FinanceGenerateQuote}">
+                                            <include-form name="GenerateLeaseQuote" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                    </widgets>
+                                </section>
+                                <screenlet title="${uiLabelMap.FinanceLeaseQuotes}">
+                                    <section>
+                                        <condition><not><if-empty field="leaseAgreement"/></not></condition>
+                                        <widgets>
+                                            <container style="button-bar">
+                                                <link target="ManageLeaseAgreement" text="${uiLabelMap.FinanceLeaseAgreement} ${leaseAgreement.leaseAgreementId}" style="buttontext">
+                                                    <parameter param-name="leaseAgreementId" from-field="leaseAgreement.leaseAgreementId"/>
+                                                </link>
+                                            </container>
+                                        </widgets>
+                                    </section>
+                                    <include-grid name="ListLeaseQuotes" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                </screenlet>
                             </widgets>
                             <fail-widgets>
                                 <label text="${uiLabelMap.FinanceLeaseApplicationNotFound}"/>
+                            </fail-widgets>
+                        </section>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+
+    <!-- Lease quote: header, assets, quote payment schedule (STEP L2) -->
+    <screen name="ViewLeaseQuote">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceLeaseQuote"/>
+                <set field="headerItem" value="LeaseApplications"/>
+                <script location="component://finance/groovyScripts/lease/PrepareLeaseQuote.groovy"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <section>
+                            <condition><not><if-empty field="leaseQuote"/></not></condition>
+                            <widgets>
+                                <container style="button-bar">
+                                    <link target="PrintLeaseQuote.pdf" text="${uiLabelMap.FinanceLeasePrintQuotePdf}" style="buttontext" target-window="_blank">
+                                        <parameter param-name="leaseQuoteId" from-field="leaseQuote.leaseQuoteId"/>
+                                    </link>
+                                </container>
+                                <screenlet title="${uiLabelMap.FinanceLeaseQuote}">
+                                    <include-form name="ViewLeaseQuoteHeader" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                </screenlet>
+                                <screenlet title="${uiLabelMap.FinanceLeaseAssets}">
+                                    <include-grid name="ListLeaseAssetLines" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                </screenlet>
+                                <screenlet title="${uiLabelMap.FinanceLeasePaymentSchedule}">
+                                    <include-grid name="ListLeasePaymentSchedule" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                </screenlet>
+                            </widgets>
+                            <fail-widgets>
+                                <label text="${uiLabelMap.FinanceRecordNotFound}"/>
+                            </fail-widgets>
+                        </section>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+
+    <!-- Lease agreement search (STEP L2) -->
+    <screen name="FindLeaseAgreement">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceFindLeaseAgreements"/>
+                <set field="headerItem" value="LeaseAgreements"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <screenlet title="${uiLabelMap.FinanceFindLeaseAgreements}">
+                            <include-form name="FindLeaseAgreements" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        </screenlet>
+                        <screenlet title="${uiLabelMap.FinanceLeaseAgreements}">
+                            <include-grid name="ListLeaseAgreements" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        </screenlet>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+
+    <!-- Lease agreement: header, assets, confirmed payment schedule (STEP L2) -->
+    <screen name="ManageLeaseAgreement">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceLeaseAgreement"/>
+                <set field="headerItem" value="LeaseAgreements"/>
+                <script location="component://finance/groovyScripts/lease/PrepareLeaseAgreement.groovy"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <section>
+                            <condition><not><if-empty field="leaseAgreement"/></not></condition>
+                            <widgets>
+                                <container style="button-bar">
+                                    <link target="PrintLeaseAgreement.pdf" text="${uiLabelMap.FinanceLeasePrintAgreementPdf}" style="buttontext" target-window="_blank">
+                                        <parameter param-name="leaseAgreementId" from-field="leaseAgreement.leaseAgreementId"/>
+                                    </link>
+                                    <link target="FinanceCustomerSummary" text="${uiLabelMap.FinanceCustomerSummary}" style="buttontext">
+                                        <parameter param-name="customerPartyId" from-field="leaseAgreement.lesseePartyId"/>
+                                    </link>
+                                </container>
+                                <screenlet title="${uiLabelMap.FinanceLeaseAgreement}">
+                                    <include-form name="ViewLeaseAgreementHeader" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                    <section>
+                                        <condition><if-compare field="canCancel" operator="equals" value="true" type="Boolean"/></condition>
+                                        <widgets>
+                                            <container style="button-bar">
+                                                <link target="setLeaseAgreementStatus" text="${uiLabelMap.FinanceLeaseCancelAgreement}" style="buttontext"
+                                                        link-type="hidden-form" request-confirmation="true" confirmation-message="${uiLabelMap.FinanceLeaseCancelAgreementConfirm}">
+                                                    <parameter param-name="leaseAgreementId" from-field="leaseAgreement.leaseAgreementId"/>
+                                                    <parameter param-name="statusId" value="LEASEAGR_CANCELLED"/>
+                                                </link>
+                                            </container>
+                                        </widgets>
+                                    </section>
+                                </screenlet>
+                                <screenlet title="${uiLabelMap.FinanceLeaseAssets}">
+                                    <include-grid name="ListLeaseAssetLines" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                </screenlet>
+                                <screenlet title="${uiLabelMap.FinanceLeaseConfirmedSchedule} (${uiLabelMap.FinanceScheduleRevision} ${scheduleRevisionNumber})">
+                                    <include-grid name="ListLeasePaymentSchedule" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                </screenlet>
+                            </widgets>
+                            <fail-widgets>
+                                <label text="${uiLabelMap.FinanceRecordNotFound}"/>
                             </fail-widgets>
                         </section>
                     </decorator-section>

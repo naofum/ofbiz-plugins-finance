@@ -266,7 +266,11 @@ class LeaseApplicationTests extends OFBizTestCase {
         setStatus(appId, 'LEASEAPP_APPROVED', userLogin)
 
         // Lease underwritings are not visible as loan underwritings.
-        assert from('LoanUnderwriting').where('loanApplicationId', appId).queryCount() == 0
+        // (Lease and loan application ids come from different sequences and may coincide,
+        // so the loan-side check must use the application type.)
+        assert from('LoanUnderwriting').where('applicationTypeId', 'LOAN', 'applicationId', appId)
+                .queryList().every { it.loanUnderwritingId != uw2.loanUnderwritingId }
+        assert approvedUw.loanApplicationId == null
         Map unknownApp = dispatcher.runSync('createLeaseUnderwriting', [
                 leaseApplicationId: 'NO_SUCH_LEASEAPP', userLogin: userLogin])
         assert ServiceUtil.isError(unknownApp)

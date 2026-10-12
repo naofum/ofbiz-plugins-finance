@@ -18,7 +18,8 @@
  */
 
 // Screen data for ManageLeaseApplication (STEP L1): requested assets, their
-// estimated total, asset types allowed by the product and the latest underwriting.
+// estimated total, asset types allowed by the product, the latest underwriting,
+// quotes and the agreement (STEP L2).
 
 import org.apache.ofbiz.entity.GenericValue
 
@@ -47,3 +48,9 @@ context.assetTypeOptions = allowed ?
 context.leaseUnderwriting = from('LoanUnderwriting')
         .where('applicationTypeId', 'LEASE', 'applicationId', leaseApplicationId)
         .orderBy('-createdStamp').queryFirst()
+
+// STEP L2: quotes and the agreement of the application.
+context.quotes = from('LeaseQuote').where('leaseApplicationId', leaseApplicationId).orderBy('-createdDate').queryList()
+context.currencyUomId = leaseApplication.currencyUomId
+context.applicationApproved = leaseApplication.statusId == 'LEASEAPP_APPROVED'
+context.leaseAgreement = from('LeaseAgreement').where('leaseApplicationId', leaseApplicationId).queryFirst()

@@ -63,7 +63,7 @@ List<GenericValue> dunningNotices = contractIds.isEmpty() ? [] : from('LoanDunni
 
 Map result = success()
 result.contracts = contracts
-result.activeExposure = FinanceContractHelper.sumActivePrincipal(delegator, customerPartyId)
+result.activeExposure = FinanceContractHelper.sumExposurePrincipal(delegator, customerPartyId)
 result.latestDelinquencies = latestDelinquencies
 result.dunningNotices = dunningNotices
 return result

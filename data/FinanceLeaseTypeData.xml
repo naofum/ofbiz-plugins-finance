@@ -59,4 +59,28 @@ under the License.
     <StatusValidChange statusId="LEASEAPP_SUBMITTED" statusIdTo="LEASEAPP_CANCELLED" transitionName="Cancel"/>
     <StatusValidChange statusId="LEASEAPP_APPROVED" statusIdTo="LEASEAPP_CONTRACTED" transitionName="Contract"/>
     <StatusValidChange statusId="LEASEAPP_APPROVED" statusIdTo="LEASEAPP_REJECTED" transitionName="Reject"/>
+
+    <!-- ============ STEP L2: calculation method ============ -->
+    <EnumerationType description="Lease Calculation Method" enumTypeId="LEASE_CALC_METHOD" hasTable="N"/>
+    <Enumeration description="Monthly rate factor (月額リース料率)" enumCode="RATE_FACTOR" enumId="LEASE_CALC_RATE_FCTR" sequenceId="01" enumTypeId="LEASE_CALC_METHOD"/>
+    <Enumeration description="Calculation interest rate (計算利子率)" enumCode="INTEREST_RATE" enumId="LEASE_CALC_INT_RATE" sequenceId="02" enumTypeId="LEASE_CALC_METHOD"/>
+
+    <!-- ============ STEP L2: lease quote status ============ -->
+    <StatusType description="Lease Quote" hasTable="N" statusTypeId="LEASE_QUOTE_STATUS"/>
+    <StatusItem description="Created" sequenceId="01" statusCode="CREATED" statusId="LEASEQT_CREATED" statusTypeId="LEASE_QUOTE_STATUS"/>
+    <StatusItem description="Presented" sequenceId="02" statusCode="PRESENTED" statusId="LEASEQT_PRESENTED" statusTypeId="LEASE_QUOTE_STATUS"/>
+    <StatusItem description="Accepted" sequenceId="03" statusCode="ACCEPTED" statusId="LEASEQT_ACCEPTED" statusTypeId="LEASE_QUOTE_STATUS"/>
+    <StatusItem description="Rejected" sequenceId="04" statusCode="REJECTED" statusId="LEASEQT_REJECTED" statusTypeId="LEASE_QUOTE_STATUS"/>
+    <StatusValidChange statusId="LEASEQT_CREATED" statusIdTo="LEASEQT_PRESENTED" transitionName="Present"/>
+    <StatusValidChange statusId="LEASEQT_PRESENTED" statusIdTo="LEASEQT_ACCEPTED" transitionName="Accept"/>
+    <StatusValidChange statusId="LEASEQT_PRESENTED" statusIdTo="LEASEQT_REJECTED" transitionName="Reject"/>
+
+    <!-- ============ STEP L2: lease agreement status ============ -->
+    <!-- CONTRACTED -> ACTIVE is added with the lease start (STEP L3), ACTIVE -> COMPLETED in STEP L7. -->
+    <StatusType description="Lease Agreement" hasTable="N" statusTypeId="LEASE_AGR_STATUS"/>
+    <StatusItem description="Contracted (awaiting acceptance)" sequenceId="01" statusCode="CONTRACTED" statusId="LEASEAGR_CONTRACTED" statusTypeId="LEASE_AGR_STATUS"/>
+    <StatusItem description="Active" sequenceId="02" statusCode="ACTIVE" statusId="LEASEAGR_ACTIVE" statusTypeId="LEASE_AGR_STATUS"/>
+    <StatusItem description="Completed" sequenceId="03" statusCode="COMPLETED" statusId="LEASEAGR_COMPLETED" statusTypeId="LEASE_AGR_STATUS"/>
+    <StatusItem description="Cancelled" sequenceId="04" statusCode="CANCELLED" statusId="LEASEAGR_CANCELLED" statusTypeId="LEASE_AGR_STATUS"/>
+    <StatusValidChange statusId="LEASEAGR_CONTRACTED" statusIdTo="LEASEAGR_CANCELLED" transitionName="Cancel"/>
 </entity-engine-xml>

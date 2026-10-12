@@ -351,6 +351,9 @@ under the License.
         <response name="LOAN" type="request-redirect" value="ManageLoanAgreement">
             <redirect-parameter name="loanAgreementId"/>
         </response>
+        <response name="LEASE" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
         <response name="error" type="view" value="FinanceCustomerSummary"/>
     </request-map>
 
@@ -582,6 +585,72 @@ under the License.
         </response>
     </request-map>
 
+    <!-- STEP L2: lease quotes and agreements -->
+    <request-map uri="ViewLeaseQuote">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="ViewLeaseQuote"/>
+    </request-map>
+    <request-map uri="FindLeaseAgreement">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="FindLeaseAgreement"/>
+    </request-map>
+    <request-map uri="ManageLeaseAgreement">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="ManageLeaseAgreement"/>
+    </request-map>
+    <request-map uri="createLeaseQuote">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createLeaseQuote"/>
+        <response name="success" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+    </request-map>
+    <request-map uri="setLeaseQuoteStatus">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="setLeaseQuoteStatus"/>
+        <response name="success" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+    </request-map>
+    <request-map uri="createLeaseAgreement">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createLeaseAgreement"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseApplication">
+            <redirect-parameter name="leaseApplicationId"/>
+        </response>
+    </request-map>
+    <request-map uri="setLeaseAgreementStatus">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="setLeaseAgreementStatus"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="PrintLeaseQuote.pdf">
+        <security https="true" auth="true"/>
+        <event type="groovy" path="component://finance/groovyScripts/lease/PrepareLeaseReport.groovy"/>
+        <response name="success" type="view" value="LeaseReportPdf"/>
+        <response name="error" type="view" value="ViewLeaseQuote"/>
+    </request-map>
+    <request-map uri="PrintLeaseAgreement.pdf">
+        <security https="true" auth="true"/>
+        <event type="groovy" path="component://finance/groovyScripts/lease/PrepareLeaseReport.groovy"/>
+        <response name="success" type="view" value="LeaseReportPdf"/>
+        <response name="error" type="view" value="ManageLeaseAgreement"/>
+    </request-map>
+
     <!-- View Mappings -->
     <view-map name="main" type="screen" page="component://finance/widget/FinanceScreens.xml#FindLoanApplication"/>
     <view-map name="LookupPartyName" type="screen" page="component://party/widget/partymgr/LookupScreens.xml#LookupPartyName"/>
@@ -614,4 +683,11 @@ under the License.
     <view-map name="FindLeaseApplication" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#FindLeaseApplication"/>
     <view-map name="EditLeaseApplication" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#EditLeaseApplication"/>
     <view-map name="ManageLeaseApplication" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#ManageLeaseApplication"/>
+    <view-map name="ViewLeaseQuote" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#ViewLeaseQuote"/>
+    <view-map name="FindLeaseAgreement" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#FindLeaseAgreement"/>
+    <view-map name="ManageLeaseAgreement" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#ManageLeaseAgreement"/>
+    <!-- Lease quote / agreement PDF (one report, title switched by the event) -->
+    <view-map name="LeaseReportPdf" type="jasperreports"
+            page="component://finance/webapp/finance/reports/LeaseReport.jrxml"
+            content-type="application/pdf"/>
 </site-conf>

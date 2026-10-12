@@ -28,6 +28,9 @@ under the License.
         <menu-item name="LeaseApplications" title="${uiLabelMap.FinanceLeaseApplications}">
             <link target="FindLeaseApplication"/>
         </menu-item>
+        <menu-item name="LeaseAgreements" title="${uiLabelMap.FinanceLeaseAgreements}">
+            <link target="FindLeaseAgreement"/>
+        </menu-item>
         <menu-item name="LoanAgreements" title="${uiLabelMap.FinanceLoanAgreement}">
             <link target="FindLoanAgreement"/>
         </menu-item>

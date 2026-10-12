@@ -13,7 +13,7 @@
 - ローン契約・リース契約は、作成時に必ず共通契約台帳 `FinanceContract` を1件作成し、各層の契約から `financeContractId` で1:1に参照する（`FinanceContractHelper.createContract`）。
 - `FinanceContract.statusId`（`FINCTR_*`）は各層の契約状態の写しである。各層の状態遷移サービスの中でだけ `FinanceContractHelper.updateStatus` により更新し、CRUDで直接変更しない。
 - 同一契約の計上・請求・入金・延滞処理は、`FinanceContract.processingLockVersion` の条件付き更新（`FinanceContractHelper.lock`）で直列化する。`LoanAgreement.processingLockVersion` は廃止済みで使用しない。
-- 与信判定は、同一顧客の有効な `FinanceContract`（ローン・リース合算）の元本で行う（`FinanceContractHelper.sumActivePrincipal`）。
+- 与信判定は、同一顧客の `FINCTR_CONTRACTED` / `FINCTR_ACTIVE` の `FinanceContract`（ローン・リース合算）の元本で行う（`FinanceContractHelper.sumExposurePrincipal`、与信枠チェックは共通の `financeValidateCustomerCreditLimit`）。
 - 延滞判定・遅延損害金・督促・償却は共通層の `FinanceDelinquencyServices` が `FinanceContract` を起点に処理する。延滞関連レコードには `financeContractId` を必ず設定する（`loanAgreementId` は互換用）。
 - 審査は `LOANUW_IN_REVIEW` で作成し、承認・否決後は変更不可。承認・否決は状態、decision、reviewDateを一貫して確定する。審査には `applicationTypeId`（LOAN/LEASE）と `applicationId` を設定する。
 - entity-auto等の通常CRUDで業務STATUSを変更してはならない。対応する状態遷移サービスを使用する（全層共通）。
@@ -35,6 +35,7 @@
 - リース商品は `LEASE` 配下の `FinancialProductType` と `FinancialProductLease`（1:1）で定義する。リース区分は商品種別から導出し、不一致を許さない。
 - リース申込の内容・希望物件（`LeaseApplicationAsset`）の変更は `LEASEAPP_RECEIVED` 中だけ。希望物件のない申込は、申込・審査とも承認できない。
 - リースの審査は共通審査（`createLeaseUnderwriting` → `createFinanceUnderwriting`、`applicationTypeId=LEASE`）を使い、承認時の検証は `finance.properties` の `underwriting.approval.validator.LEASE` に登録する。
+- リース見積は生成後不変（取得価額＝希望物件の見積額合計）。リース契約は `LEASEAGR_CONTRACTED` で作成し、`ACTIVE` への遷移は検収（L3）でのみ行う。
 - 収益計上はファイナンスリース第1法（リース取引開始日に売上高・売上原価を計上し、利息相当額を繰延リース利益として利息法で戻し入れる）を主とする。
 
 ## Data Rules

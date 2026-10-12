@@ -26,7 +26,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | STEP | 内容 | 状態 |
 |------|------|------|
 | L1 | リース商品・物件・申込の基盤 | 完了（tests=63 / errors=0 / failures=0） |
-| L2 | リース見積・審査・契約 | 未着手 |
+| L2 | リース見積・審査・契約 | 完了（tests=70 / errors=0 / failures=0） |
 | L3 | 物件の購入・検収・リース開始（第1法の開始仕訳） | 未着手 |
 | L4 | 月次会計・リース料請求・入金消込（繰延リース利益戻入） | 未着手 |
 | L5 | 消費税 | 未着手 |
@@ -132,7 +132,99 @@ ID 列は VARCHAR(20) のため、要件書の `LEASE_FINANCE_NON_TRANSFER` 等�
 
 ---
 
+## 3. STEP L2 — リース料計算・見積・審査・契約
+
+### 3.1 リース料計算（`LeaseCalculator`、Java・エンティティ非依存）
+
+| 方式 | `calcMethodEnumId` | 月額リース料 | 計算利子率 |
+|------|--------------------|--------------|------------|
+| 料率方式 | `LEASE_CALC_RATE_FCTR` | 取得価額 × 月額リース料率（通貨別丸め。JPY は切り捨て） | リース料と残価の現在価値＝取得価額となる月利を二分法で解き、×12 で年率化 |
+| 利子率方式 | `LEASE_CALC_INT_RATE` | （取得価額 − 残価の現在価値）÷ 年金現価係数。**通貨の桁で切り上げ**（回収不足を防ぐ） | 入力値（月利＝年率 ÷ 12） |
+
+- 前払（`LEASE_PAY_ADVANCE`）は支払時点 0〜n−1、後払は 1〜n で現在価値を計算する。
+- 各回を利息法で配分する：利息相当額＝前回後の元本残高 × 月利（通貨別丸め）、元本回収額＝リース料 − 利息相当額。前払の第1回は利息 0。
+- **最終回で端数を調整**し、元本回収額の合計＝取得価額 − 残価、最終の元本残高＝残価とする（前払・残価ありの 1 か月分の利息差もここで吸収）。
+- 利息相当額合計＝リース料総額 −（取得価額 − 残価）。
+- 消費税額＝各回リース料 × 税率（通貨別丸め、表示用）。税率は商品が課税（`taxable=Y`）のとき `finance.properties` の `lease.tax.rate`（既定 0.10）、非課税は 0。計上は L5。
+- 拒否する入力：取得価額 ≤ 0、期間 ≤ 0、残価が負または取得価額以上、料率 ≤ 0、利子率 < 0、**料率が低く「リース料総額＋残価 < 取得価額」となる場合**。
+
+### 3.2 データモデル（`entitymodel_lease.xml` に追加）
+
+| エンティティ | 主キー | 内容 |
+|--------------|--------|------|
+| `LeaseQuote` | leaseQuoteId | 申込、状態（`LEASE_QUOTE_STATUS`）、計算方式、取得価額、残価、期間、支払時期、月額リース料、料率、計算利子率、リース料総額、利息相当額合計、税率、消費税総額、開始予定日、初回支払日 |
+| `LeaseQuoteAsset` | leaseQuoteId + assetSeqId | 見積時点の物件明細（申込の希望物件を複写） |
+| `LeasePaymentSchedule` | leaseQuoteId + installmentNumber | 見積リース料表：支払期日、対象期間（periodFrom/Thru）、リース料、元本回収額、利息相当額、消費税、元本残高 |
+| `LeaseAgreement` | leaseAgreementId | `financeContractId`（一意）、申込、見積（一意）、状態（`LEASE_AGR_STATUS`）、貸手組織、借手、販売店（全明細が同一の場合）、商品、リース区分・収益計上方式（商品から）、見積条件のスナップショット、契約日、初回支払日（暫定）、リース開始日・終了日（L3） |
+| `LeaseAgreementPaymentSchedule` | leaseAgreementId + scheduleRevisionNumber + installmentNumber | 契約確定リース料表（契約時 revision 1）。請求はこれだけを参照する |
+| `LeaseAgreementAsset` | leaseAgreementId + assetSeqId | 契約物件。`fixedAssetId` は L3（購入・検収）で設定 |
+
+- 取得価額は**見積時点の希望物件の見積取得価額合計**とし、入力で上書きしない。残価は未指定なら取得価額 × 商品の残価率。
+- 日付：開始予定日（未指定は当日）、前払は初回支払日＝開始日、後払は開始日＋1 か月。第 k 回の期日は初回支払日＋(k−1) か月を商品の期日調整規則（`dueDateConventionEnumId`、STEP 10）で営業日調整。対象期間は開始日＋(k−1) か月〜開始日＋k か月の前日。リース開始日（検収日）が確定した時点で L3 が日付を確定する（見積・契約の期日は暫定）。
+
+### 3.3 seed（`FinanceLeaseTypeData.xml` に追加）
+
+| 種類 | 値 |
+|------|----|
+| `LEASE_CALC_METHOD` | `LEASE_CALC_RATE_FCTR` / `LEASE_CALC_INT_RATE` |
+| `LEASE_QUOTE_STATUS` | `LEASEQT_CREATED` → `PRESENTED` → `ACCEPTED` / `REJECTED` |
+| `LEASE_AGR_STATUS` | `LEASEAGR_CONTRACTED`（検収待ち）/ `ACTIVE` / `COMPLETED` / `CANCELLED`。遷移は L2 では `CONTRACTED → CANCELLED` のみ（`→ ACTIVE` は L3 の検収、`→ COMPLETED` は L7 で追加） |
+
+### 3.4 サービス（`services_lease.xml`、`groovyScripts/lease/LeaseQuoteServices.groovy`）
+
+| サービス | 内容 |
+|----------|------|
+| `createLeaseQuote` | 申込が RECEIVED / SUBMITTED / APPROVED、希望物件 1 件以上、期間が商品の範囲内。料率と利子率の同時指定は拒否。両方未指定なら商品の既定料率、なければ既定利子率。見積・物件明細・リース料表を作成（以後変更不可。更新サービスは持たない） |
+| `setLeaseQuoteStatus` | `StatusValidChange` で検証。**同一申込で受理済み見積は 1 件だけ** |
+| `createLeaseAgreement` | 承認済み申込・受理済み見積・承認済み LEASE 審査（承認額 ≥ 取得価額）・完全なリース料表（行数＝期間、元本回収合計＝取得価額−残価、最終残高＝残価）・物件明細を検証し、与信を確認。`FinanceContract`（LEASE、`FINCTR_CONTRACTED`、元本＝取得価額）、`LeaseAgreement`（`LEASEAGR_CONTRACTED`）、確定リース料表 revision 1、契約物件を作成し、申込を `LEASEAPP_CONTRACTED` にする。**同一見積からの契約は拒否**（一意索引でも防止） |
+| `setLeaseAgreementStatus` | `StatusValidChange` で検証し、`FinanceContract` の状態へ反映（CONTRACTED/ACTIVE/COMPLETED/CANCELLED → `FINCTR_*`） |
+
+審査承認時の検証（`financeValidateLeaseUnderwritingApproval`）に、**承認額（取得価額）の入力必須**と**与信チェック**を追加した。
+与信は共通層の `financeValidateCustomerCreditLimit`（`SPEC_COMMON.md` 3 章）で、審査承認時と契約作成時に行う。
+
+### 3.5 契約種別アダプタ
+
+`LeaseContractAdapter` を L2 で `contract.adapter.LEASE` に登録した（要件では L6）。顧客照会の契約番号表示と
+`ViewFinanceContract` からリース契約画面への遷移に必要なため。延滞算出（`computeDelinquency`）と未入金請求書の取得は
+L6 で実装し、それまでは「延滞なし」「請求書なし」を返す（延滞バッチは ACTIVE の契約だけを処理し、L2 ではリース契約は ACTIVE にならない）。
+
+### 3.6 画面・帳票
+
+| 画面 | 内容 |
+|------|------|
+| `ManageLeaseApplication`（追加） | 見積作成フォーム（期間・料率・利子率・残価・支払時期・開始予定日）、見積一覧（提示・受理・否決・契約作成）、契約へのリンク |
+| `ViewLeaseQuote` | 見積条件、物件明細、リース料表（9 列）、見積書 PDF |
+| `FindLeaseAgreement`（メニュー「リース契約」） | 契約番号・借手・商品・状態で検索 |
+| `ManageLeaseAgreement` | 契約条件、物件（固定資産欄つき）、契約確定リース料表（最新 revision）、契約取消（CONTRACTED 中、確認あり）、契約書 PDF、顧客照会へのリンク |
+| PDF | `LeaseReport.jrxml` 1 本を見積書・契約書で共用（`PrepareLeaseReport.groovy` がタイトル・番号を切替）。リース料・消費税・税込合計・元本回収額・利息相当額・元本残高の 8 列。期日が暫定である旨を注記 |
+
+### 3.7 テスト（`LeaseQuoteAgreementTests`）
+
+| テスト | 内容 |
+|--------|------|
+| `testRateFactorCalculation` | 料率方式・前払・残価なし：月額 18,000、元本回収合計＝取得価額、第1回利息 0、利息の逓減、計算利子率の逆算（約 3.2%）、消費税 |
+| `testInterestRateCalculationWithResidual` | 利子率方式・後払・残価あり：第1回利息、元本回収合計＝取得価額−残価、最終残高＝残価、料率で再計算した利率の一致 |
+| `testCalculationEdgeCases` | 料率不足・残価≧取得価額の拒否、利率 0 の切り上げと端数調整 |
+| `testLeaseQuoteCreationAndStatus` | 見積の内容・期日・対象期間・物件明細、利子率方式（後払・残価）、同時指定・回収不足・期間外の拒否、申込物件変更後も見積不変、状態遷移、受理済み 1 件制約、取消申込への見積拒否 |
+| `testCreateLeaseAgreement` | 契約・`FinanceContract`・確定リース料表・物件・申込状態、二重契約拒否、顧客照会でのリース契約表示と与信額、ACTIVE への直接遷移拒否、取消の共通状態反映 |
+| `testLeaseAgreementPreconditions` | 見積未受理・申込未承認・審査なし・承認額不足の拒否、承認額なしの審査承認拒否 |
+| `testLeaseCreditLimit` | 与信枠（毎回新しい借手を作成）：審査承認時の超過拒否、他契約による超過での契約拒否、CONTRACTED 契約の与信額算入、取消後の与信額 0 |
+
+### 3.8 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 新規 6 テーブル作成、BUILD SUCCESSFUL |
+| `gradlew "ofbiz --test component=finance"` | tests=70 / errors=0 / failures=0（リース見積・契約 7 件を含む。連続 2 回実行で同結果） |
+| 画面（OFBiz 起動・admin で HTTP 確認） | 申込→物件→提出→審査承認→申込承認→見積→提示→受理→契約作成を画面のリクエストで実行し、`ManageLeaseApplication` / `ViewLeaseQuote` / `ManageLeaseAgreement` / `FindLeaseAgreement` / 商品画面 / 顧客照会（リース契約表示、`ViewFinanceContract` → `ManageLeaseAgreement` 遷移）を確認 |
+| PDF | 見積書・契約書とも生成（PDF 1.5、2 ページ）。日本語はローンの帳票と同じ CJK フォント設定（`HeiseiKakuGo-W5`、非埋め込みの Adobe CID フォント）のため、Asian Font Pack のない表示環境では日本語が表示されない（ローン帳票も同じ。既存の制約） |
+
+---
+
 ## 運用メモ
 
 - **seed の投入**：L1 で `FinanceLeaseTypeData.xml` を追加した。既存環境では `gradlew "ofbiz --load-data readers=seed --load-data component=finance"` を実行してからテスト・画面操作を行う（未投入だとリース商品種別・申込状態がなく失敗する）。
 - **demo**：`FinanceLeaseDemoData.xml`（事務機器ファイナンスリース・所有権移転外 `DEMO_LEASEPROD1`、借手 `DEMO_LESSEE1`、販売店 `DEMO_LS_SUPPLIER1`、受付中の申込 `DEMO_LEASEAPP1` と希望物件 2 件）。
+- **L2 の画面確認で作成したデータ**：開発 DB に借手 DEMO_LESSEE1 のリース申込 10030、見積 10010、契約 10010（FinanceContract 10230、CONTRACTED）が残っている。demo の再投入では消えない。不要なら画面から契約を取り消す。
+- **見積・契約の日付**：L2 の期日は開始予定日からの暫定値。リース開始日（検収日）で確定するのは L3。

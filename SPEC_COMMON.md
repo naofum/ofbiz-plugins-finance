@@ -28,6 +28,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 |------|------|------|
 | L0 | 共通層の切り出し（`FinanceContract`、契約ロック、審査・与信・延滞の共通化、パッケージ整理、顧客照会） | 完了（tests=50 / errors=0 / failures=0） |
 | L1 | 申込種別に依存しない審査作成・承認検証の登録、共通の金融商品画面（リース層側は `SPEC_LEASE.md`） | 完了（tests=63 / errors=0 / failures=0） |
+| L2 | 与信額に CONTRACTED を算入、共通の与信枠チェック `financeValidateCustomerCreditLimit`、LEASE アダプタの登録 | 完了（tests=70 / errors=0 / failures=0） |
 | L6 | 延滞・督促へのリース用契約アダプタ登録（共通層側の変更） | 未着手 |
 
 L0 のコミット：L0-1 `6d46268`、L0-2 `fe644c8`、L0-3 `ae6fa2e`、L0-4 `2afe7f7`、L0-5 `beea390`、L0-6 `450b654`。
@@ -102,10 +103,17 @@ L0 のコミット：L0-1 `6d46268`、L0-2 `fe644c8`、L0-3 `ae6fa2e`、L0-4 `2a
 
 ## 3. 与信（合算）
 
-- `FinanceContractHelper.sumActivePrincipal(customerPartyId)`：顧客の `FINCTR_ACTIVE` の `FinanceContract` の
-  `principalAmount` 合計。契約種別を問わない（ローン＋リース）。返済による減額はしない（STEP 5 の方式を踏襲）。
-- `financeValidateCreditLimit`（`ValidateCreditLimit.groovy`）はこの合算値を既存与信額として使う。
-  ローンのみの場合の結果は L0 以前と同じ。
+- `FinanceContractHelper.sumExposurePrincipal(customerPartyId)`：顧客の `FINCTR_CONTRACTED` と `FINCTR_ACTIVE` の
+  `FinanceContract` の `principalAmount` 合計。契約種別を問わない（ローン＋リース）。返済による減額はしない（STEP 5 の方式を踏襲）。
+  - **STEP L2 で CONTRACTED を算入**した。リース契約は契約後、検収（L3）まで CONTRACTED のままなので、未開始の契約も与信を使うものとして扱う。
+    ローン契約は作成時に即 ACTIVE になるため、ローンの結果は変わらない（DRAFT のまま残ったローン契約がある場合だけ増える）。
+  - 旧名 `sumActivePrincipal` は `@Deprecated` の別名として残した。
+- 与信枠チェックの本体は共通層の `financeValidateCustomerCreditLimit`（`services_common.xml`、`ValidateCustomerCreditLimit.groovy`、STEP L2）：
+  顧客・通貨・新規元本を受け取り、有効な `CreditLine`（顧客単位のマスタとして扱う。エンティティは STEP 5 で定義）があれば
+  「既存与信額＋新規元本 ≦ 与信枠」を検証する。
+  - ローン：`financeValidateCreditLimit`（`ValidateCreditLimit.groovy`）がローン申込から借手・通貨を引いてこれを呼ぶ（入出力は従来どおり）。
+  - リース：審査承認時（`financeValidateLeaseUnderwritingApproval`）と契約作成時（`createLeaseAgreement`）に取得価額で呼ぶ。
+- 顧客照会の「与信額」も同じ合計を表示する。
 
 ---
 
@@ -128,10 +136,11 @@ L0 のコミット：L0-1 `6d46268`、L0-2 `fe644c8`、L0-3 `ae6fa2e`、L0-4 `2a
 
 ```properties
 contract.adapter.LOAN=org.apache.ofbiz.finance.loan.LoanContractAdapter
-#contract.adapter.LEASE=  (STEP L6 で登録)
+contract.adapter.LEASE=org.apache.ofbiz.finance.lease.LeaseContractAdapter
 ```
 
 アダプタ未登録の契約種別は、延滞バッチで処理対象外となる（顧客照会には表示される）。
+LEASE は顧客照会・契約画面への遷移のため STEP L2 で登録した。延滞算出は L6 で実装し、それまでは「延滞なし」を返す（`SPEC_LEASE.md` 3.5）。
 
 ### 4.2 処理
 
@@ -230,3 +239,8 @@ L0 で追加したテスト：`FinanceContract` の作成と状態反映、与�
   次回の `testCreateAgreementWithConfirmedSchedule` が「審査未承認でも契約できてしまう」として失敗することがある
   （`TEST_LOANAPP_AGR` に承認済みの `LoanUnderwriting` が残るため）。最後まで実行されたテストではこの行は残らない。
   発生時は該当の `LoanUnderwriting` を削除して再実行する。
+- **テストデータの残存と分離**（STEP L2）：テストは既定 DB を共有し、テストで作った申込・契約・与信枠などは残ることがある。
+  残ると他のテストの前提を変えるデータ（顧客単位の `CreditLine`、与信額に効く有効契約）は、テストごとに新しい顧客を作って分離するか、
+  終了時に取消して与信額に残さない（`LeaseQuoteAgreementTests` の与信テストは毎回新しい借手を作成）。
+  L2 の開発中に、旧版のテストが残した `TEST_LESSEE1` の `CreditLine`（説明 `Lease credit test`）2 件を削除した。
+  また、ローン申込とリース申込の ID は別の採番なので同じ値になり得る。審査を申込で引くときは `applicationTypeId` も条件にする。

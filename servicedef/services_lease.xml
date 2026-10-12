@@ -146,4 +146,55 @@ under the License.
         <attribute name="applicationId" type="String" mode="IN" optional="false"/>
         <attribute name="principalAmount" type="BigDecimal" mode="IN" optional="true"/>
     </service>
+
+    <!-- ============================================================= -->
+    <!-- STEP L2: lease quote                                          -->
+    <!-- ============================================================= -->
+    <service name="createLeaseQuote" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseQuoteServices.groovy" invoke="createLeaseQuote" auth="true">
+        <description>Calculate the lease payment and create an immutable lease quote with its asset lines
+            and quote payment schedule. Acquisition cost = sum of the requested assets.</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <attribute name="leaseApplicationId" type="String" mode="IN" optional="false"/>
+        <attribute name="termMonths" type="Long" mode="IN" optional="true"><description>defaults to the requested term</description></attribute>
+        <attribute name="monthlyRateFactor" type="BigDecimal" mode="IN" optional="true"><description>rate factor method; exclusive with calcInterestRate</description></attribute>
+        <attribute name="calcInterestRate" type="BigDecimal" mode="IN" optional="true"><description>interest rate method (annual); exclusive with monthlyRateFactor</description></attribute>
+        <attribute name="residualValue" type="BigDecimal" mode="IN" optional="true"><description>defaults to acquisition cost x product residual value rate</description></attribute>
+        <attribute name="paymentTimingEnumId" type="String" mode="IN" optional="true"><description>defaults to the product payment timing</description></attribute>
+        <attribute name="leaseStartDate" type="Timestamp" mode="IN" optional="true"><description>expected lease start; defaults to today</description></attribute>
+        <attribute name="leaseQuoteId" type="String" mode="OUT" optional="false"/>
+    </service>
+    <service name="setLeaseQuoteStatus" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseQuoteServices.groovy" invoke="setLeaseQuoteStatus" auth="true">
+        <description>Change the status of a lease quote (StatusValidChange); only one accepted quote per application</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="leaseQuoteId" type="String" mode="IN" optional="false"/>
+        <attribute name="statusId" type="String" mode="IN" optional="false"/>
+        <attribute name="oldStatusId" type="String" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- STEP L2: lease agreement                                      -->
+    <!-- ============================================================= -->
+    <service name="createLeaseAgreement" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseQuoteServices.groovy" invoke="createLeaseAgreement" auth="true">
+        <description>Create a lease agreement (LEASEAGR_CONTRACTED) from an approved application, accepted quote and
+            approved LEASE underwriting; register the FinanceContract (LEASE) and snapshot the payment schedule and assets</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <attribute name="leaseQuoteId" type="String" mode="IN" optional="false"/>
+        <attribute name="organizationPartyId" type="String" mode="IN" optional="true"><description>lessor organization; defaults to Company</description></attribute>
+        <attribute name="agreementDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="leaseApplicationId" type="String" mode="IN" optional="true"><description>passed through for the UI redirect</description></attribute>
+        <attribute name="leaseAgreementId" type="String" mode="OUT" optional="false"/>
+        <attribute name="financeContractId" type="String" mode="OUT" optional="false"/>
+    </service>
+    <service name="setLeaseAgreementStatus" engine="groovy"
+            location="component://finance/groovyScripts/lease/LeaseQuoteServices.groovy" invoke="setLeaseAgreementStatus" auth="true">
+        <description>Change the status of a lease agreement (StatusValidChange) and project it onto FinanceContract.
+            In STEP L2 only CONTRACTED -> CANCELLED is allowed; the start is done by the acceptance service (STEP L3).</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="statusId" type="String" mode="IN" optional="false"/>
+        <attribute name="oldStatusId" type="String" mode="OUT" optional="true"/>
+    </service>
 </services>

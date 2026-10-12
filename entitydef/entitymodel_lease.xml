@@ -20,7 +20,7 @@ under the License.
 
 <entitymodel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="https://ofbiz.apache.org/dtds/entitymodel.xsd">
-    <title>Finance Component Entity Model - Lease layer STEP L1 (lease products, assets, applications)</title>
+    <title>Finance Component Entity Model - Lease layer STEP L1-L2 (products, applications, quotes, agreements)</title>
     <description>
         Lease products extend FinancialProduct 1:1 with lease-specific terms
         (FinancialProductLease). Leased assets reuse the core FixedAsset /
@@ -144,6 +144,213 @@ under the License.
         </relation>
         <relation type="one" fk-name="LEASEAPPAS_SUPP" title="Supplier" rel-entity-name="Party">
             <key-map field-name="supplierPartyId" rel-field-name="partyId"/>
+        </relation>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- STEP L2: lease quote (immutable after creation)           -->
+    <!-- ========================================================= -->
+    <entity entity-name="LeaseQuote" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease Quote">
+        <field name="leaseQuoteId" type="id"><description>primary sequenced ID</description></field>
+        <field name="leaseApplicationId" type="id"></field>
+        <field name="statusId" type="id"><description>LEASE_QUOTE_STATUS; changed only by setLeaseQuoteStatus</description></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="calcMethodEnumId" type="id"><description>LEASE_CALC_METHOD: rate factor or calculation interest rate</description></field>
+        <field name="acquisitionCost" type="currency-amount"><description>sum of the quoted asset acquisition costs (tax excluded)</description></field>
+        <field name="residualValue" type="currency-amount"><description>estimated residual value at the end of the term</description></field>
+        <field name="termMonths" type="numeric"></field>
+        <field name="paymentTimingEnumId" type="id"><description>LEASE_PAY_TIMING</description></field>
+        <field name="monthlyLeaseAmount" type="currency-amount"><description>monthly lease payment (tax excluded)</description></field>
+        <field name="monthlyRateFactor" type="fixed-point"><description>monthly lease amount / acquisition cost</description></field>
+        <field name="calcInterestRate" type="fixed-point"><description>annual nominal calculation interest rate of the lessor (given or solved)</description></field>
+        <field name="totalLeaseAmount" type="currency-amount"><description>sum of the lease payments (tax excluded)</description></field>
+        <field name="totalInterestAmount" type="currency-amount"><description>total interest equivalent = total lease amount - (acquisition cost - residual value)</description></field>
+        <field name="taxRate" type="fixed-point"><description>consumption tax rate used for display (0 when not taxable)</description></field>
+        <field name="totalTaxAmount" type="currency-amount"></field>
+        <field name="leaseStartDate" type="date-time"><description>expected lease start date (fixed at acceptance in STEP L3)</description></field>
+        <field name="firstPaymentDate" type="date-time"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseQuoteId"/>
+        <relation type="one" fk-name="LEASEQT_APP" rel-entity-name="LeaseApplication">
+            <key-map field-name="leaseApplicationId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEQT_STTS" rel-entity-name="StatusItem">
+            <key-map field-name="statusId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEQT_UOM" rel-entity-name="Uom">
+            <key-map field-name="currencyUomId" rel-field-name="uomId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEQT_METHOD" title="CalcMethod" rel-entity-name="Enumeration">
+            <key-map field-name="calcMethodEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEQT_TIMING" title="PaymentTiming" rel-entity-name="Enumeration">
+            <key-map field-name="paymentTimingEnumId" rel-field-name="enumId"/>
+        </relation>
+    </entity>
+
+    <!-- Asset lines fixed by the quote (copied from the requested assets) -->
+    <entity entity-name="LeaseQuoteAsset" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease Quote - asset">
+        <field name="leaseQuoteId" type="id"></field>
+        <field name="assetSeqId" type="id"></field>
+        <field name="fixedAssetTypeId" type="id"></field>
+        <field name="assetName" type="name"></field>
+        <field name="quantity" type="fixed-point"></field>
+        <field name="acquisitionCost" type="currency-amount"><description>acquisition cost of the line (all units, tax excluded)</description></field>
+        <field name="supplierPartyId" type="id"></field>
+        <prim-key field="leaseQuoteId"/>
+        <prim-key field="assetSeqId"/>
+        <relation type="one" fk-name="LEASEQTAS_QT" rel-entity-name="LeaseQuote">
+            <key-map field-name="leaseQuoteId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEQTAS_TYPE" rel-entity-name="FixedAssetType">
+            <key-map field-name="fixedAssetTypeId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEQTAS_SUPP" title="Supplier" rel-entity-name="Party">
+            <key-map field-name="supplierPartyId" rel-field-name="partyId"/>
+        </relation>
+    </entity>
+
+    <!-- Quote lease payment schedule -->
+    <entity entity-name="LeasePaymentSchedule" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease Quote - payment schedule">
+        <field name="leaseQuoteId" type="id"></field>
+        <field name="installmentNumber" type="numeric"></field>
+        <field name="dueDate" type="date-time"><description>payment due date (business-day adjusted)</description></field>
+        <field name="periodFromDate" type="date-time"><description>first day of the lease period covered by the payment</description></field>
+        <field name="periodThruDate" type="date-time"><description>last day of the lease period covered by the payment</description></field>
+        <field name="leaseAmount" type="currency-amount"><description>lease payment (tax excluded)</description></field>
+        <field name="principalPortion" type="currency-amount"><description>principal recovery (interest method)</description></field>
+        <field name="interestPortion" type="currency-amount"><description>interest equivalent (interest method)</description></field>
+        <field name="taxAmount" type="currency-amount"></field>
+        <field name="remainingPrincipal" type="currency-amount"><description>principal outstanding after the payment (ends at the residual value)</description></field>
+        <prim-key field="leaseQuoteId"/>
+        <prim-key field="installmentNumber"/>
+        <relation type="one" fk-name="LEASEPS_QT" rel-entity-name="LeaseQuote">
+            <key-map field-name="leaseQuoteId"/>
+        </relation>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- STEP L2: lease agreement (1:1 FinanceContract)            -->
+    <!-- ========================================================= -->
+    <entity entity-name="LeaseAgreement" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease Agreement">
+        <field name="leaseAgreementId" type="id"><description>primary sequenced ID</description></field>
+        <field name="financeContractId" type="id"><description>common contract ledger row (contractTypeId=LEASE, 1:1)</description></field>
+        <field name="leaseApplicationId" type="id"></field>
+        <field name="leaseQuoteId" type="id"><description>accepted quote; one agreement per quote</description></field>
+        <field name="statusId" type="id"><description>LEASE_AGR_STATUS; changed only by the lease status services</description></field>
+        <field name="organizationPartyId" type="id"><description>lessor organization</description></field>
+        <field name="lesseePartyId" type="id"></field>
+        <field name="supplierPartyId" type="id"><description>supplier when all assets come from one supplier</description></field>
+        <field name="productId" type="id"></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="leaseClassEnumId" type="id"></field>
+        <field name="revenueMethodEnumId" type="id"></field>
+        <field name="paymentTimingEnumId" type="id"></field>
+        <field name="calcMethodEnumId" type="id"></field>
+        <field name="acquisitionCost" type="currency-amount"></field>
+        <field name="residualValue" type="currency-amount"></field>
+        <field name="termMonths" type="numeric"></field>
+        <field name="monthlyLeaseAmount" type="currency-amount"></field>
+        <field name="monthlyRateFactor" type="fixed-point"></field>
+        <field name="calcInterestRate" type="fixed-point"></field>
+        <field name="totalLeaseAmount" type="currency-amount"></field>
+        <field name="totalInterestAmount" type="currency-amount"></field>
+        <field name="taxRate" type="fixed-point"></field>
+        <field name="totalTaxAmount" type="currency-amount"></field>
+        <field name="agreementDate" type="date-time"></field>
+        <field name="firstPaymentDate" type="date-time"><description>provisional until the lease start (STEP L3)</description></field>
+        <field name="leaseStartDate" type="date-time"><description>acceptance date = lease start (set in STEP L3)</description></field>
+        <field name="leaseEndDate" type="date-time"><description>set in STEP L3</description></field>
+        <prim-key field="leaseAgreementId"/>
+        <relation type="one" fk-name="LEASEAGR_FINCTR" rel-entity-name="FinanceContract">
+            <key-map field-name="financeContractId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAGR_APP" rel-entity-name="LeaseApplication">
+            <key-map field-name="leaseApplicationId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAGR_QT" rel-entity-name="LeaseQuote">
+            <key-map field-name="leaseQuoteId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAGR_STTS" rel-entity-name="StatusItem">
+            <key-map field-name="statusId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAGR_ORG" title="Organization" rel-entity-name="Party">
+            <key-map field-name="organizationPartyId" rel-field-name="partyId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAGR_LESSEE" title="Lessee" rel-entity-name="Party">
+            <key-map field-name="lesseePartyId" rel-field-name="partyId"/>
+        </relation>
+        <relation type="one-nofk" title="Supplier" rel-entity-name="Party">
+            <key-map field-name="supplierPartyId" rel-field-name="partyId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAGR_PROD" rel-entity-name="FinancialProductLease">
+            <key-map field-name="productId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAGR_UOM" rel-entity-name="Uom">
+            <key-map field-name="currencyUomId" rel-field-name="uomId"/>
+        </relation>
+        <index name="LEASEAGR_QT_UQ" unique="true">
+            <index-field name="leaseQuoteId"/>
+        </index>
+        <index name="LEASEAGR_FINCTR_UQ" unique="true">
+            <index-field name="financeContractId"/>
+        </index>
+    </entity>
+
+    <!-- Confirmed lease payment schedule (billing reads only this) -->
+    <entity entity-name="LeaseAgreementPaymentSchedule" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease Agreement - confirmed payment schedule">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="scheduleRevisionNumber" type="numeric"></field>
+        <field name="installmentNumber" type="numeric"></field>
+        <field name="leaseQuoteId" type="id"><description>source quote of the revision</description></field>
+        <field name="dueDate" type="date-time"></field>
+        <field name="periodFromDate" type="date-time"></field>
+        <field name="periodThruDate" type="date-time"></field>
+        <field name="leaseAmount" type="currency-amount"></field>
+        <field name="principalPortion" type="currency-amount"></field>
+        <field name="interestPortion" type="currency-amount"></field>
+        <field name="taxAmount" type="currency-amount"></field>
+        <field name="remainingPrincipal" type="currency-amount"></field>
+        <prim-key field="leaseAgreementId"/>
+        <prim-key field="scheduleRevisionNumber"/>
+        <prim-key field="installmentNumber"/>
+        <relation type="one" fk-name="LEASEAPS_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAPS_QT" rel-entity-name="LeaseQuote">
+            <key-map field-name="leaseQuoteId"/>
+        </relation>
+    </entity>
+
+    <!-- Assets of the agreement (FixedAsset linked at purchase / acceptance, STEP L3) -->
+    <entity entity-name="LeaseAgreementAsset" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease Agreement - asset">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="assetSeqId" type="id"></field>
+        <field name="fixedAssetTypeId" type="id"></field>
+        <field name="assetName" type="name"></field>
+        <field name="quantity" type="fixed-point"></field>
+        <field name="acquisitionCost" type="currency-amount"></field>
+        <field name="supplierPartyId" type="id"></field>
+        <field name="fixedAssetId" type="id"><description>core FixedAsset owned by the lessor (STEP L3)</description></field>
+        <prim-key field="leaseAgreementId"/>
+        <prim-key field="assetSeqId"/>
+        <relation type="one" fk-name="LEASEAGRAS_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAGRAS_TYPE" rel-entity-name="FixedAssetType">
+            <key-map field-name="fixedAssetTypeId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAGRAS_SUPP" title="Supplier" rel-entity-name="Party">
+            <key-map field-name="supplierPartyId" rel-field-name="partyId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAGRAS_FA" rel-entity-name="FixedAsset">
+            <key-map field-name="fixedAssetId"/>
         </relation>
     </entity>
 

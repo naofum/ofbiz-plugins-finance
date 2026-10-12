@@ -276,5 +276,20 @@ Map validateLeaseUnderwritingApproval() {
     if (from('LeaseApplicationAsset').where('leaseApplicationId', parameters.applicationId).queryCount() == 0) {
         return error(label('FinanceLeaseAssetsRequired', [leaseApplicationId: parameters.applicationId]))
     }
+    // STEP L2: the approved amount (= acquisition cost) is required and must fit
+    // the lessee's credit line together with the existing loan + lease exposure.
+    BigDecimal approved = parameters.principalAmount
+    if (approved == null || approved.signum() <= 0) {
+        return error(label('FinanceLeaseApprovedAmountRequired'))
+    }
+    Map credit = dispatcher.runSync('financeValidateCustomerCreditLimit', [
+            customerPartyId: application.applicantPartyId,
+            currencyUomId  : application.currencyUomId,
+            principalAmount: approved,
+            userLogin      : parameters.userLogin,
+            locale         : parameters.locale])
+    if (ServiceUtil.isError(credit)) {
+        return error(ServiceUtil.getErrorMessage(credit))
+    }
     return success()
 }

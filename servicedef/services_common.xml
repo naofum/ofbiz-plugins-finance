@@ -64,4 +64,18 @@ under the License.
         <attribute name="productName" type="String" mode="IN" optional="true"><description>required when the core Product does not exist</description></attribute>
         <override name="financialProductTypeId" optional="false"/>
     </service>
+
+    <!-- Customer-level credit limit check (STEP L2), shared by loan and lease -->
+    <service name="financeValidateCustomerCreditLimit" engine="groovy" export="false"
+            location="component://finance/groovyScripts/ValidateCustomerCreditLimit.groovy" invoke="" auth="true">
+        <description>Validate that the customer's active credit line is not exceeded by the existing exposure
+            (CONTRACTED + ACTIVE FinanceContracts of all types) plus the new principal</description>
+        <attribute name="customerPartyId" type="String" mode="IN" optional="false"/>
+        <attribute name="currencyUomId" type="String" mode="IN" optional="true"/>
+        <attribute name="principalAmount" type="BigDecimal" mode="IN" optional="false"/>
+        <attribute name="hasCreditLine" type="Boolean" mode="OUT" optional="true"/>
+        <attribute name="creditLimitAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="existingOutstanding" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="totalExposure" type="BigDecimal" mode="OUT" optional="true"/>
+    </service>
 </services>

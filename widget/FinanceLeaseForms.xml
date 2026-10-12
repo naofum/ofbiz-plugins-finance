@@ -267,4 +267,219 @@ under the License.
         </field>
     </form>
 
+    <!-- ============================================================= -->
+    <!-- STEP L2: lease quotes                                         -->
+    <!-- ============================================================= -->
+    <form name="GenerateLeaseQuote" type="single" target="createLeaseQuote">
+        <field name="leaseApplicationId"><hidden value="${leaseApplicationId}"/></field>
+        <field name="termMonths" title="${uiLabelMap.FinanceTermMonths}"><text size="10" default-value="${leaseApplication.requestedTermMonths}"/></field>
+        <field name="monthlyRateFactor" title="${uiLabelMap.FinanceLeaseMonthlyRateFactor}" tooltip="${uiLabelMap.FinanceLeaseQuoteRateTooltip}"><text size="12"/></field>
+        <field name="calcInterestRate" title="${uiLabelMap.FinanceLeaseCalcInterestRate}"><text size="12"/></field>
+        <field name="residualValue" title="${uiLabelMap.FinanceLeaseResidualValue}" tooltip="${uiLabelMap.FinanceLeaseResidualDefaultTooltip}"><text size="20"/></field>
+        <field name="paymentTimingEnumId" title="${uiLabelMap.FinanceLeasePaymentTiming}">
+            <drop-down allow-empty="true">
+                <entity-options entity-name="Enumeration" key-field-name="enumId" description="${description}">
+                    <entity-constraint name="enumTypeId" value="LEASE_PAY_TIMING"/>
+                    <entity-order-by field-name="sequenceId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="leaseStartDate" title="${uiLabelMap.FinanceLeaseExpectedStartDate}"><date-time type="date"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceGenerateQuote}"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListLeaseQuotes" list-name="quotes" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="leaseQuoteId" title="${uiLabelMap.FinanceLeaseQuoteId}" widget-style="buttontext">
+            <hyperlink description="${leaseQuoteId}" target="ViewLeaseQuote" also-hidden="false">
+                <parameter param-name="leaseQuoteId"/>
+            </hyperlink>
+        </field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem"/></field>
+        <field name="calcMethodEnumId" title="${uiLabelMap.FinanceLeaseCalcMethod}"><display-entity entity-name="Enumeration" key-field-name="enumId"/></field>
+        <field name="acquisitionCost" title="${uiLabelMap.FinanceLeaseAcquisitionCost}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="termMonths" title="${uiLabelMap.FinanceTermMonths}"><display/></field>
+        <field name="monthlyLeaseAmount" title="${uiLabelMap.FinanceLeaseMonthlyAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="calcInterestRate" title="${uiLabelMap.FinanceLeasePdfCalcRate}"><display/></field>
+        <field name="createdDate" title="${uiLabelMap.FinanceCreatedDate}"><display/></field>
+        <field name="presentLink" title=" " widget-style="buttontext" use-when="${statusId == 'LEASEQT_CREATED'}">
+            <hyperlink description="${uiLabelMap.FinanceLeaseQuotePresent}" target="setLeaseQuoteStatus" link-type="hidden-form" also-hidden="false">
+                <parameter param-name="leaseQuoteId"/>
+                <parameter param-name="leaseApplicationId"/>
+                <parameter param-name="statusId" value="LEASEQT_PRESENTED"/>
+            </hyperlink>
+        </field>
+        <field name="acceptLink" title=" " widget-style="buttontext" use-when="${statusId == 'LEASEQT_PRESENTED'}">
+            <hyperlink description="${uiLabelMap.FinanceLeaseQuoteAccept}" target="setLeaseQuoteStatus" link-type="hidden-form" also-hidden="false">
+                <parameter param-name="leaseQuoteId"/>
+                <parameter param-name="leaseApplicationId"/>
+                <parameter param-name="statusId" value="LEASEQT_ACCEPTED"/>
+            </hyperlink>
+        </field>
+        <field name="rejectLink" title=" " widget-style="buttontext" use-when="${statusId == 'LEASEQT_PRESENTED'}">
+            <hyperlink description="${uiLabelMap.FinanceLeaseQuoteReject}" target="setLeaseQuoteStatus" link-type="hidden-form" also-hidden="false">
+                <parameter param-name="leaseQuoteId"/>
+                <parameter param-name="leaseApplicationId"/>
+                <parameter param-name="statusId" value="LEASEQT_REJECTED"/>
+            </hyperlink>
+        </field>
+        <field name="contractLink" title=" " widget-style="buttontext" use-when="${statusId == 'LEASEQT_ACCEPTED' &amp;&amp; applicationApproved}">
+            <hyperlink description="${uiLabelMap.FinanceLeaseCreateAgreement}" target="createLeaseAgreement" link-type="hidden-form" also-hidden="false">
+                <parameter param-name="leaseQuoteId"/>
+                <parameter param-name="leaseApplicationId"/>
+            </hyperlink>
+        </field>
+    </grid>
+
+    <!-- Shared header for quote and agreement terms -->
+    <form name="ViewLeaseQuoteHeader" type="single" default-map-name="leaseQuote">
+        <field name="leaseQuoteId" title="${uiLabelMap.FinanceLeaseQuoteId}"><display/></field>
+        <field name="leaseApplicationId" title="${uiLabelMap.FinanceLeaseApplicationId}">
+            <hyperlink description="${leaseQuote.leaseApplicationId}" target="ManageLeaseApplication" also-hidden="false">
+                <parameter param-name="leaseApplicationId" from-field="leaseQuote.leaseApplicationId"/>
+            </hyperlink>
+        </field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem"/></field>
+        <field name="calcMethodEnumId" title="${uiLabelMap.FinanceLeaseCalcMethod}"><display-entity entity-name="Enumeration" key-field-name="enumId"/></field>
+        <field name="acquisitionCost" title="${uiLabelMap.FinanceLeaseAcquisitionCost}"><display type="currency" currency="${leaseQuote.currencyUomId}"/></field>
+        <field name="residualValue" title="${uiLabelMap.FinanceLeaseResidualValue}"><display type="currency" currency="${leaseQuote.currencyUomId}"/></field>
+        <field name="termMonths" title="${uiLabelMap.FinanceTermMonths}"><display/></field>
+        <field name="paymentTimingEnumId" title="${uiLabelMap.FinanceLeasePaymentTiming}"><display-entity entity-name="Enumeration" key-field-name="enumId"/></field>
+        <field name="monthlyLeaseAmount" title="${uiLabelMap.FinanceLeaseMonthlyAmount}"><display type="currency" currency="${leaseQuote.currencyUomId}"/></field>
+        <field name="monthlyRateFactor" title="${uiLabelMap.FinanceLeasePdfRateFactor}"><display/></field>
+        <field name="calcInterestRate" title="${uiLabelMap.FinanceLeasePdfCalcRate}"><display/></field>
+        <field name="totalLeaseAmount" title="${uiLabelMap.FinanceLeaseTotalAmount}"><display type="currency" currency="${leaseQuote.currencyUomId}"/></field>
+        <field name="totalInterestAmount" title="${uiLabelMap.FinanceLeaseTotalInterest}"><display type="currency" currency="${leaseQuote.currencyUomId}"/></field>
+        <field name="taxRate" title="${uiLabelMap.FinanceLeaseTaxRate}"><display/></field>
+        <field name="totalTaxAmount" title="${uiLabelMap.FinanceLeaseTotalTax}"><display type="currency" currency="${leaseQuote.currencyUomId}"/></field>
+        <field name="leaseStartDate" title="${uiLabelMap.FinanceLeaseExpectedStartDate}"><display type="date"/></field>
+        <field name="firstPaymentDate" title="${uiLabelMap.FinanceFirstPaymentDate}"><display type="date"/></field>
+        <field name="createdDate" title="${uiLabelMap.FinanceCreatedDate}"><display/></field>
+    </form>
+
+    <grid name="ListLeaseAssetLines" list-name="assetLines" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="assetSeqId" title="${uiLabelMap.FinanceLeaseAssetSeqId}"><display/></field>
+        <field name="fixedAssetTypeId" title="${uiLabelMap.FinanceLeaseAssetType}"><display-entity entity-name="FixedAssetType"/></field>
+        <field name="assetName" title="${uiLabelMap.FinanceLeaseAssetName}"><display/></field>
+        <field name="quantity" title="${uiLabelMap.FinanceLeaseAssetQuantity}"><display/></field>
+        <field name="acquisitionCost" title="${uiLabelMap.FinanceLeaseAcquisitionCost}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="supplierPartyId" title="${uiLabelMap.FinanceLeaseSupplierPartyId}">
+            <display-entity entity-name="PartyNameView" key-field-name="partyId"
+                    description="${firstName} ${middleName} ${lastName} ${groupName} [${partyId}]"/>
+        </field>
+        <field name="fixedAssetId" title="${uiLabelMap.FinanceLeaseFixedAssetId}" use-when="${showFixedAsset == true}"><display/></field>
+    </grid>
+
+    <grid name="ListLeasePaymentSchedule" list-name="scheduleRows" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="installmentNumber" title="${uiLabelMap.FinanceInstallmentNumber}"><display/></field>
+        <field name="dueDate" title="${uiLabelMap.FinanceDueDate}"><display type="date"/></field>
+        <field name="periodFromDate" title="${uiLabelMap.FinanceLeasePeriodFrom}"><display type="date"/></field>
+        <field name="periodThruDate" title="${uiLabelMap.FinanceLeasePeriodThru}"><display type="date"/></field>
+        <field name="leaseAmount" title="${uiLabelMap.FinanceLeaseAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="taxAmount" title="${uiLabelMap.FinanceLeaseTaxAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="principalPortion" title="${uiLabelMap.FinanceLeasePrincipalPortion}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="interestPortion" title="${uiLabelMap.FinanceLeaseInterestPortion}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="remainingPrincipal" title="${uiLabelMap.FinanceLeaseRemainingPrincipal}"><display type="currency" currency="${currencyUomId}"/></field>
+    </grid>
+
+    <!-- ============================================================= -->
+    <!-- STEP L2: lease agreements                                     -->
+    <!-- ============================================================= -->
+    <form name="FindLeaseAgreements" type="single" target="FindLeaseAgreement" default-entity-name="LeaseAgreement">
+        <field name="noConditionFind"><hidden value="Y"/></field>
+        <field name="leaseAgreementId" title="${uiLabelMap.FinanceLeaseAgreementId}"><text-find/></field>
+        <field name="lesseePartyId" title="${uiLabelMap.FinanceLesseePartyId}"><lookup target-form-name="LookupPartyName"/></field>
+        <field name="productId" title="${uiLabelMap.FinanceProductId}">
+            <drop-down allow-empty="true">
+                <entity-options entity-name="FinancialProductAndType" key-field-name="productId" description="${productName} [${productId}]">
+                    <entity-constraint name="parentTypeId" value="LEASE"/>
+                    <entity-order-by field-name="productId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}">
+            <drop-down allow-empty="true">
+                <entity-options key-field-name="statusId" description="${description}" entity-name="StatusItem">
+                    <entity-constraint name="statusTypeId" value="LEASE_AGR_STATUS"/>
+                    <entity-order-by field-name="sequenceId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="searchButton" title="${uiLabelMap.CommonFind}"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListLeaseAgreements" list-name="listIt" paginate-target="FindLeaseAgreement"
+            default-entity-name="LeaseAgreement" separate-columns="true"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <actions>
+            <service service-name="performFind" result-map="result" result-map-list="listIt">
+                <field-map field-name="inputFields" from-field="parameters"/>
+                <field-map field-name="entityName" value="LeaseAgreement"/>
+                <field-map field-name="orderBy" from-field="parameters.sortField"/>
+                <field-map field-name="viewIndex" from-field="viewIndex"/>
+                <field-map field-name="viewSize" from-field="viewSize"/>
+            </service>
+        </actions>
+        <field name="leaseAgreementId" title="${uiLabelMap.FinanceLeaseAgreementId}" widget-style="buttontext" sort-field="true">
+            <hyperlink description="${leaseAgreementId}" target="ManageLeaseAgreement" also-hidden="false">
+                <parameter param-name="leaseAgreementId"/>
+            </hyperlink>
+        </field>
+        <field name="lesseePartyId" title="${uiLabelMap.FinanceLesseePartyId}" sort-field="true">
+            <display-entity entity-name="PartyNameView" key-field-name="partyId"
+                    description="${firstName} ${middleName} ${lastName} ${groupName} [${partyId}]"/>
+        </field>
+        <field name="productId" title="${uiLabelMap.FinanceProductId}" sort-field="true">
+            <display-entity entity-name="Product" description="${productName} [${productId}]"/>
+        </field>
+        <field name="acquisitionCost" title="${uiLabelMap.FinanceLeaseAcquisitionCost}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="monthlyLeaseAmount" title="${uiLabelMap.FinanceLeaseMonthlyAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="termMonths" title="${uiLabelMap.FinanceTermMonths}"><display/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}" sort-field="true"><display-entity entity-name="StatusItem"/></field>
+        <field name="agreementDate" title="${uiLabelMap.FinanceLeaseAgreementDate}" sort-field="true"><display type="date"/></field>
+    </grid>
+
+    <form name="ViewLeaseAgreementHeader" type="single" default-map-name="leaseAgreement">
+        <field name="leaseAgreementId" title="${uiLabelMap.FinanceLeaseAgreementId}"><display/></field>
+        <field name="financeContractId" title="${uiLabelMap.FinanceContractId}"><display/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem"/></field>
+        <field name="lesseePartyId" title="${uiLabelMap.FinanceLesseePartyId}">
+            <display-entity entity-name="PartyNameView" key-field-name="partyId"
+                    description="${firstName} ${middleName} ${lastName} ${groupName} [${partyId}]"/>
+        </field>
+        <field name="organizationPartyId" title="${uiLabelMap.FinanceLeaseLessor}">
+            <display-entity entity-name="PartyNameView" key-field-name="partyId"
+                    description="${firstName} ${middleName} ${lastName} ${groupName} [${partyId}]"/>
+        </field>
+        <field name="productId" title="${uiLabelMap.FinanceProductId}">
+            <display-entity entity-name="Product" description="${productName} [${productId}]"/>
+        </field>
+        <field name="leaseClassEnumId" title="${uiLabelMap.FinanceLeaseClass}"><display-entity entity-name="Enumeration" key-field-name="enumId"/></field>
+        <field name="revenueMethodEnumId" title="${uiLabelMap.FinanceLeaseRevenueMethod}"><display-entity entity-name="Enumeration" key-field-name="enumId"/></field>
+        <field name="leaseApplicationId" title="${uiLabelMap.FinanceLeaseApplicationId}">
+            <hyperlink description="${leaseAgreement.leaseApplicationId}" target="ManageLeaseApplication" also-hidden="false">
+                <parameter param-name="leaseApplicationId" from-field="leaseAgreement.leaseApplicationId"/>
+            </hyperlink>
+        </field>
+        <field name="leaseQuoteId" title="${uiLabelMap.FinanceLeaseQuoteId}">
+            <hyperlink description="${leaseAgreement.leaseQuoteId}" target="ViewLeaseQuote" also-hidden="false">
+                <parameter param-name="leaseQuoteId" from-field="leaseAgreement.leaseQuoteId"/>
+            </hyperlink>
+        </field>
+        <field name="acquisitionCost" title="${uiLabelMap.FinanceLeaseAcquisitionCost}"><display type="currency" currency="${leaseAgreement.currencyUomId}"/></field>
+        <field name="residualValue" title="${uiLabelMap.FinanceLeaseResidualValue}"><display type="currency" currency="${leaseAgreement.currencyUomId}"/></field>
+        <field name="termMonths" title="${uiLabelMap.FinanceTermMonths}"><display/></field>
+        <field name="paymentTimingEnumId" title="${uiLabelMap.FinanceLeasePaymentTiming}"><display-entity entity-name="Enumeration" key-field-name="enumId"/></field>
+        <field name="monthlyLeaseAmount" title="${uiLabelMap.FinanceLeaseMonthlyAmount}"><display type="currency" currency="${leaseAgreement.currencyUomId}"/></field>
+        <field name="calcInterestRate" title="${uiLabelMap.FinanceLeasePdfCalcRate}"><display/></field>
+        <field name="totalLeaseAmount" title="${uiLabelMap.FinanceLeaseTotalAmount}"><display type="currency" currency="${leaseAgreement.currencyUomId}"/></field>
+        <field name="totalInterestAmount" title="${uiLabelMap.FinanceLeaseTotalInterest}"><display type="currency" currency="${leaseAgreement.currencyUomId}"/></field>
+        <field name="totalTaxAmount" title="${uiLabelMap.FinanceLeaseTotalTax}"><display type="currency" currency="${leaseAgreement.currencyUomId}"/></field>
+        <field name="agreementDate" title="${uiLabelMap.FinanceLeaseAgreementDate}"><display type="date"/></field>
+        <field name="leaseStartDate" title="${uiLabelMap.FinanceLeaseStartDate}"><display type="date"/></field>
+        <field name="leaseEndDate" title="${uiLabelMap.FinanceLeaseEndDate}"><display type="date"/></field>
+    </form>
+
 </forms>
