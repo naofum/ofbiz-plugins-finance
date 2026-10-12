@@ -296,8 +296,24 @@ under the License.
                                     </section>
                                 </screenlet>
                                 <screenlet title="${uiLabelMap.FinanceLeaseAssets}">
-                                    <include-grid name="ListLeaseAssetLines" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                    <include-grid name="ListLeaseAgreementAssets" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                 </screenlet>
+                                <section>
+                                    <condition><not><if-empty field="leaseAcceptance"/></not></condition>
+                                    <widgets>
+                                        <screenlet title="${uiLabelMap.FinanceLeaseAcceptance}">
+                                            <include-form name="ViewLeaseAcceptance" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                    </widgets>
+                                </section>
+                                <section>
+                                    <condition><if-compare field="canAccept" operator="equals" value="true" type="Boolean"/></condition>
+                                    <widgets>
+                                        <screenlet title="${uiLabelMap.FinanceLeaseAcceptance}">
+                                            <include-form name="AcceptLeaseAgreement" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                    </widgets>
+                                </section>
                                 <screenlet title="${uiLabelMap.FinanceLeaseConfirmedSchedule} (${uiLabelMap.FinanceScheduleRevision} ${scheduleRevisionNumber})">
                                     <include-grid name="ListLeasePaymentSchedule" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                 </screenlet>

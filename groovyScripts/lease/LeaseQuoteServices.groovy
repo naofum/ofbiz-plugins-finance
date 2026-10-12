@@ -335,7 +335,8 @@ Map createLeaseAgreement() {
                 assetName       : a.assetName,
                 quantity        : a.quantity,
                 acquisitionCost : a.acquisitionCost,
-                supplierPartyId : a.supplierPartyId]).create()
+                supplierPartyId : a.supplierPartyId,
+                assetStatusId   : 'LSAST_PENDING']).create()
     }
 
     Map contracted = dispatcher.runSync('setLeaseApplicationStatus', [
@@ -351,6 +352,15 @@ Map setLeaseAgreementStatus() {
     GenericValue agreement = from('LeaseAgreement').where('leaseAgreementId', parameters.leaseAgreementId).queryOne()
     if (agreement == null) {
         return error(label('FinanceRecordNotFound', [entityName: 'LeaseAgreement', id: parameters.leaseAgreementId]))
+    }
+    // The lease start is performed only by the acceptance service (STEP L3).
+    if (parameters.statusId == 'LEASEAGR_ACTIVE' && agreement.statusId != 'LEASEAGR_ACTIVE') {
+        return error(label('FinanceLeaseStartRequiresAcceptance', [leaseAgreementId: agreement.leaseAgreementId]))
+    }
+    // A purchased asset cannot be left behind by a cancellation (disposal is out of scope).
+    if (parameters.statusId == 'LEASEAGR_CANCELLED'
+            && from('LeaseAssetPurchase').where('leaseAgreementId', agreement.leaseAgreementId).queryCount() > 0) {
+        return error(label('FinanceLeaseCancelAfterPurchase', [leaseAgreementId: agreement.leaseAgreementId]))
     }
     Map changed = changeStatus(agreement, parameters.statusId)
     if (changed.error) {

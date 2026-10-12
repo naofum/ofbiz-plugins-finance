@@ -1628,4 +1628,94 @@ under the License.
         <value xml:lang="en">Revision</value>
         <value xml:lang="ja">改定</value>
     </property>
+
+    <!-- ============ STEP L3: purchase, payment, acceptance ============ -->
+    <property key="FinanceLeaseAccept">
+        <value xml:lang="en">Accept (start lease)</value>
+        <value xml:lang="ja">検収（リース開始）</value>
+    </property>
+    <property key="FinanceLeaseAcceptance">
+        <value xml:lang="en">Acceptance</value>
+        <value xml:lang="ja">検収</value>
+    </property>
+    <property key="FinanceLeaseAcceptanceDate">
+        <value xml:lang="en">Acceptance date (= lease start)</value>
+        <value xml:lang="ja">検収日（＝リース開始日）</value>
+    </property>
+    <property key="FinanceLeaseAcceptDateInvalid">
+        <value xml:lang="en">The acceptance date ${acceptanceDate} must not be before the agreement date or a purchase date</value>
+        <value xml:lang="ja">検収日 ${acceptanceDate} は契約日・購入日より前にできません</value>
+    </property>
+    <property key="FinanceLeaseAcceptedBy">
+        <value xml:lang="en">Accepted by</value>
+        <value xml:lang="ja">検収者</value>
+    </property>
+    <property key="FinanceLeaseAcceptedByTooltip">
+        <value xml:lang="en">Empty = the lessee</value>
+        <value xml:lang="ja">空欄の場合は借手</value>
+    </property>
+    <property key="FinanceLeaseAcceptRequiresContracted">
+        <value xml:lang="en">Only a contracted lease awaiting acceptance can be accepted: ${leaseAgreementId}</value>
+        <value xml:lang="ja">検収待ちのリース契約のみ検収できます: ${leaseAgreementId}</value>
+    </property>
+    <property key="FinanceLeaseAcceptRequiresPurchase">
+        <value xml:lang="en">Asset ${assetSeqId} has not been purchased yet</value>
+        <value xml:lang="ja">物件 ${assetSeqId} は未購入です</value>
+    </property>
+    <property key="FinanceLeaseAssetAlreadyPurchased">
+        <value xml:lang="en">Asset ${assetSeqId} is already purchased</value>
+        <value xml:lang="ja">物件 ${assetSeqId} は購入済みです</value>
+    </property>
+    <property key="FinanceLeaseCancelAfterPurchase">
+        <value xml:lang="en">A lease agreement with purchased assets cannot be cancelled: ${leaseAgreementId}</value>
+        <value xml:lang="ja">物件購入済みのリース契約は取り消せません: ${leaseAgreementId}</value>
+    </property>
+    <property key="FinanceLeasePaySupplier">
+        <value xml:lang="en">Pay supplier</value>
+        <value xml:lang="ja">販売店へ支払</value>
+    </property>
+    <property key="FinanceLeasePurchaseAlreadyPaid">
+        <value xml:lang="en">The purchase of asset ${assetSeqId} is already paid</value>
+        <value xml:lang="ja">物件 ${assetSeqId} の購入代金は支払済みです</value>
+    </property>
+    <property key="FinanceLeasePurchaseInvoice">
+        <value xml:lang="en">Purchase invoice</value>
+        <value xml:lang="ja">仕入請求書</value>
+    </property>
+    <property key="FinanceLeasePurchaseNotFound">
+        <value xml:lang="en">No purchase is recorded for ${leaseAgreementId} / ${assetSeqId}</value>
+        <value xml:lang="ja">${leaseAgreementId} / ${assetSeqId} の購入記録がありません</value>
+    </property>
+    <property key="FinanceLeasePurchaseRequiresContracted">
+        <value xml:lang="en">Assets can be purchased only while the agreement awaits acceptance: ${leaseAgreementId}</value>
+        <value xml:lang="ja">物件の購入は検収待ちの契約のみ記録できます: ${leaseAgreementId}</value>
+    </property>
+    <property key="FinanceLeaseRecordPurchase">
+        <value xml:lang="en">Record purchase</value>
+        <value xml:lang="ja">購入記録</value>
+    </property>
+    <property key="FinanceLeaseRevenueMethodUnsupported">
+        <value xml:lang="en">Revenue method ${revenueMethodEnumId} is not supported</value>
+        <value xml:lang="ja">収益計上方式 ${revenueMethodEnumId} には対応していません</value>
+    </property>
+    <property key="FinanceLeaseStartAcctgTrans">
+        <value xml:lang="en">Start journal entry</value>
+        <value xml:lang="ja">開始仕訳</value>
+    </property>
+    <property key="FinanceLeaseStartRequiresAcceptance">
+        <value xml:lang="en">A lease starts only by acceptance: ${leaseAgreementId}</value>
+        <value xml:lang="ja">リースの開始は検収でのみ行います: ${leaseAgreementId}</value>
+    </property>
+    <property key="FinanceLeaseSupplierPayment">
+        <value xml:lang="en">Supplier payment</value>
+        <value xml:lang="ja">販売店支払</value>
+    </property>
+    <property key="FinanceLeaseSupplierRequired">
+        <value xml:lang="en">Specify the supplier of asset ${assetSeqId}</value>
+        <value xml:lang="ja">物件 ${assetSeqId} の販売店を指定してください</value>
+    </property>
+    <property key="FinanceLeasePaymentFutureDate">
+        <value xml:lang="en">The supplier payment date ${effectiveDate} must not be in the future</value>
+        <value xml:lang="ja">販売店への支払日 ${effectiveDate} に未来日は指定できません</value>
+    </property>
 </resource>

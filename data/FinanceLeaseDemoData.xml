@@ -54,4 +54,20 @@ under the License.
             assetName="カラー複合機" quantity="1" estimatedAcquisitionCost="1200000" supplierPartyId="DEMO_LS_SUPPLIER1"/>
     <LeaseApplicationAsset leaseApplicationId="DEMO_LEASEAPP1" assetSeqId="00002" fixedAssetTypeId="COMPUTER_HARDWARE"
             assetName="ノートPC" quantity="10" estimatedAcquisitionCost="1500000" supplierPartyId="DEMO_LS_SUPPLIER1"/>
+
+    <!-- STEP L3: lease GL accounts of the demo lessor organization (Company) -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_INVESTMENT" glAccountId="128500"/>
+    <GlAccountOrganization glAccountId="128500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_RECEIVABLE" glAccountId="128600"/>
+    <GlAccountOrganization glAccountId="128600" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_ASSET_SUSPENSE" glAccountId="147500"/>
+    <GlAccountOrganization glAccountId="147500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_DEFER_PROFIT" glAccountId="128700"/>
+    <GlAccountOrganization glAccountId="128700" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_SALES" glAccountId="403500"/>
+    <GlAccountOrganization glAccountId="403500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_COST_OF_SALES" glAccountId="503500"/>
+    <GlAccountOrganization glAccountId="503500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_DEFER_PROV" glAccountId="503600"/>
+    <GlAccountOrganization glAccountId="503600" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
 </entity-engine-xml>

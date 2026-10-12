@@ -651,6 +651,38 @@ under the License.
         <response name="error" type="view" value="ManageLeaseAgreement"/>
     </request-map>
 
+    <!-- STEP L3: lease asset purchase, supplier payment, acceptance -->
+    <request-map uri="recordLeaseAssetPurchase">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="recordLeaseAssetPurchase"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="payLeaseAssetPurchase">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="payLeaseAssetPurchase"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="acceptLeaseAgreement">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="acceptLeaseAgreement"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+
     <!-- View Mappings -->
     <view-map name="main" type="screen" page="component://finance/widget/FinanceScreens.xml#FindLoanApplication"/>
     <view-map name="LookupPartyName" type="screen" page="component://party/widget/partymgr/LookupScreens.xml#LookupPartyName"/>

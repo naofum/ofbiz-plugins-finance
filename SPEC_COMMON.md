@@ -28,6 +28,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 |------|------|------|
 | L0 | 共通層の切り出し（`FinanceContract`、契約ロック、審査・与信・延滞の共通化、パッケージ整理、顧客照会） | 完了（tests=50 / errors=0 / failures=0） |
 | L1 | 申込種別に依存しない審査作成・承認検証の登録、共通の金融商品画面（リース層側は `SPEC_LEASE.md`） | 完了（tests=63 / errors=0 / failures=0） |
+| L3 | 共通の GL 計上部品 `FinanceGlHelper`（リース層側は `SPEC_LEASE.md` 4 章） | 完了（testcase 44 件、errors=0 / failures=0） |
 | L2 | 与信額に CONTRACTED を算入、共通の与信枠チェック `financeValidateCustomerCreditLimit`、LEASE アダプタの登録 | 完了（tests=70 / errors=0 / failures=0） |
 | L6 | 延滞・督促へのリース用契約アダプタ登録（共通層側の変更） | 未着手 |
 
@@ -223,6 +224,22 @@ L0-1 で、未登録だった `FinanceStep8TypeData.xml` / `FinanceStep9TypeData
 
 L0 で追加したテスト：`FinanceContract` の作成と状態反映、与信合算（リース契約の加算・取消契約の除外）、
 延滞レコードの `financeContractId` と契約 ID 指定での呼出し、審査の申込参照、顧客照会。
+
+---
+
+## 9. GL 計上部品（STEP L3）
+
+`org.apache.ofbiz.finance.common.FinanceGlHelper`：
+
+| メソッド | 内容 |
+|----------|------|
+| `findGlAccountId(org, glAccountTypeId)` | 組織の `GlAccountTypeDefault`、なければ組織に割り当てた（`GlAccountOrganization`）同じタイプの最初の科目。ローン層の同名の非公開メソッドと同じ規則 |
+| `postTransaction(...)` | 複数明細の取引を、core の `createAcctgTransAndEntries` で作成して転記する（まだ転記されていない場合だけ `postAcctgTrans` を呼ぶ）。科目の割当がない、換算できない、貸借が一致しない場合はエラー。金額 0 の明細は作らない |
+| `postUnposted(field, value)` | `invoiceId` / `paymentId` を持つ未転記の取引を転記する |
+
+- 金額は契約通貨で受け取る。組織の基準通貨（`PartyAcctgPreference`）と違うときは明細ごとに `convertUom`（取引日基準）で換算して小数 2 桁に丸め、端数差は最大の貸方明細で調整する。元の金額・通貨は `origAmount` / `origCurrencyUomId` に残す。
+- 取引種別は `OTHER_INTERNAL`、会計種別は `ACTUAL`（ローン層の月次計上と同じ）。
+- ローン層の仕訳処理（`FinanceAccountingServices`）は L3 では変更していない。共通化は必要になった時点で行う。
 
 ---
 

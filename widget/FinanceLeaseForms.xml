@@ -482,4 +482,55 @@ under the License.
         <field name="leaseEndDate" title="${uiLabelMap.FinanceLeaseEndDate}"><display type="date"/></field>
     </form>
 
+    <!-- ============================================================= -->
+    <!-- STEP L3: agreement assets (purchase / payment) and acceptance -->
+    <!-- ============================================================= -->
+    <grid name="ListLeaseAgreementAssets" list-name="assetLines" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="assetSeqId" title="${uiLabelMap.FinanceLeaseAssetSeqId}"><display/></field>
+        <field name="fixedAssetTypeId" title="${uiLabelMap.FinanceLeaseAssetType}"><display-entity entity-name="FixedAssetType"/></field>
+        <field name="assetName" title="${uiLabelMap.FinanceLeaseAssetName}"><display/></field>
+        <field name="quantity" title="${uiLabelMap.FinanceLeaseAssetQuantity}"><display/></field>
+        <field name="acquisitionCost" title="${uiLabelMap.FinanceLeaseAcquisitionCost}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="supplierPartyId" title="${uiLabelMap.FinanceLeaseSupplierPartyId}">
+            <display-entity entity-name="PartyNameView" key-field-name="partyId"
+                    description="${firstName} ${middleName} ${lastName} ${groupName} [${partyId}]"/>
+        </field>
+        <field name="assetStatusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem" key-field-name="statusId"/></field>
+        <field name="fixedAssetId" title="${uiLabelMap.FinanceLeaseFixedAssetId}"><display/></field>
+        <field name="invoiceId" title="${uiLabelMap.FinanceLeasePurchaseInvoice}"><display/></field>
+        <field name="paymentId" title="${uiLabelMap.FinanceLeaseSupplierPayment}"><display/></field>
+        <field name="purchaseLink" title=" " widget-style="buttontext" use-when="${canPurchase == true}">
+            <hyperlink description="${uiLabelMap.FinanceLeaseRecordPurchase}" target="recordLeaseAssetPurchase" link-type="hidden-form" also-hidden="false">
+                <parameter param-name="leaseAgreementId"/>
+                <parameter param-name="assetSeqId"/>
+            </hyperlink>
+        </field>
+        <field name="payLink" title=" " widget-style="buttontext" use-when="${canPay == true}">
+            <hyperlink description="${uiLabelMap.FinanceLeasePaySupplier}" target="payLeaseAssetPurchase" link-type="hidden-form" also-hidden="false">
+                <parameter param-name="leaseAgreementId"/>
+                <parameter param-name="assetSeqId"/>
+            </hyperlink>
+        </field>
+    </grid>
+
+    <form name="AcceptLeaseAgreement" type="single" target="acceptLeaseAgreement">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="acceptanceDate" title="${uiLabelMap.FinanceLeaseAcceptanceDate}" required-field="true"><date-time type="date"/></field>
+        <field name="acceptedByPartyId" title="${uiLabelMap.FinanceLeaseAcceptedBy}" tooltip="${uiLabelMap.FinanceLeaseAcceptedByTooltip}"><lookup target-form-name="LookupPartyName"/></field>
+        <field name="comments" title="${uiLabelMap.FinanceComments}"><textarea cols="60" rows="2"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceLeaseAccept}"><submit button-type="button"/></field>
+    </form>
+
+    <form name="ViewLeaseAcceptance" type="single" default-map-name="leaseAcceptance">
+        <field name="acceptanceDate" title="${uiLabelMap.FinanceLeaseAcceptanceDate}"><display type="date"/></field>
+        <field name="acceptedByPartyId" title="${uiLabelMap.FinanceLeaseAcceptedBy}">
+            <display-entity entity-name="PartyNameView" key-field-name="partyId"
+                    description="${firstName} ${middleName} ${lastName} ${groupName} [${partyId}]"/>
+        </field>
+        <field name="scheduleRevisionNumber" title="${uiLabelMap.FinanceScheduleRevision}"><display/></field>
+        <field name="startAcctgTransId" title="${uiLabelMap.FinanceLeaseStartAcctgTrans}"><display/></field>
+        <field name="comments" title="${uiLabelMap.FinanceComments}"><display/></field>
+    </form>
+
 </forms>

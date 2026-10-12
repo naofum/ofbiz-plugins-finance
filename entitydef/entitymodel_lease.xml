@@ -338,6 +338,7 @@ under the License.
         <field name="acquisitionCost" type="currency-amount"></field>
         <field name="supplierPartyId" type="id"></field>
         <field name="fixedAssetId" type="id"><description>core FixedAsset owned by the lessor (STEP L3)</description></field>
+        <field name="assetStatusId" type="id"><description>LEASE_ASSET_STATUS: pending purchase / purchased / leased / returned / transferred (STEP L3)</description></field>
         <prim-key field="leaseAgreementId"/>
         <prim-key field="assetSeqId"/>
         <relation type="one" fk-name="LEASEAGRAS_AGR" rel-entity-name="LeaseAgreement">
@@ -351,6 +352,70 @@ under the License.
         </relation>
         <relation type="one" fk-name="LEASEAGRAS_FA" rel-entity-name="FixedAsset">
             <key-map field-name="fixedAssetId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAGRAS_STTS" rel-entity-name="StatusItem">
+            <key-map field-name="assetStatusId" rel-field-name="statusId"/>
+        </relation>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- STEP L3: purchase of the leased assets and acceptance     -->
+    <!-- ========================================================= -->
+    <entity entity-name="LeaseAssetPurchase" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease asset purchase from the supplier">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="assetSeqId" type="id"></field>
+        <field name="supplierPartyId" type="id"></field>
+        <field name="invoiceId" type="id"><description>core purchase invoice of the supplier</description></field>
+        <field name="supplierInvoiceRef" type="short-varchar"><description>supplier's invoice number</description></field>
+        <field name="purchaseDate" type="date-time"></field>
+        <field name="amount" type="currency-amount"><description>acquisition cost (tax excluded) = the agreement asset line</description></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="fixedAssetId" type="id"></field>
+        <field name="paymentId" type="id"><description>core vendor payment applied to the purchase invoice</description></field>
+        <field name="paidDate" type="date-time"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseAgreementId"/>
+        <prim-key field="assetSeqId"/>
+        <relation type="one" fk-name="LEASEPUR_ASSET" rel-entity-name="LeaseAgreementAsset">
+            <key-map field-name="leaseAgreementId"/>
+            <key-map field-name="assetSeqId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPUR_SUPP" title="Supplier" rel-entity-name="Party">
+            <key-map field-name="supplierPartyId" rel-field-name="partyId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPUR_INV" rel-entity-name="Invoice">
+            <key-map field-name="invoiceId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPUR_PMT" rel-entity-name="Payment">
+            <key-map field-name="paymentId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPUR_FA" rel-entity-name="FixedAsset">
+            <key-map field-name="fixedAssetId"/>
+        </relation>
+    </entity>
+
+    <!-- Acceptance by the lessee = lease start (one per agreement) -->
+    <entity entity-name="LeaseAcceptance" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease acceptance (lease start)">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="acceptanceDate" type="date-time"><description>acceptance date = lease start date</description></field>
+        <field name="acceptedByPartyId" type="id"></field>
+        <field name="comments" type="comment"></field>
+        <field name="scheduleRevisionNumber" type="numeric"><description>revision of the confirmed schedule dated from the lease start</description></field>
+        <field name="startAcctgTransId" type="id"><description>lease start entries (revenue method)</description></field>
+        <field name="receiptPrintedDate" type="date-time"><description>when the acceptance certificate was issued (STEP L8)</description></field>
+        <field name="createdByUserLogin" type="id-vlong"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseAgreementId"/>
+        <relation type="one" fk-name="LEASEACC_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEACC_PARTY" title="AcceptedBy" rel-entity-name="Party">
+            <key-map field-name="acceptedByPartyId" rel-field-name="partyId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEACC_TRANS" rel-entity-name="AcctgTrans">
+            <key-map field-name="startAcctgTransId" rel-field-name="acctgTransId"/>
         </relation>
     </entity>
 

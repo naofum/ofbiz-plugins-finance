@@ -191,10 +191,50 @@ under the License.
     <service name="setLeaseAgreementStatus" engine="groovy"
             location="component://finance/groovyScripts/lease/LeaseQuoteServices.groovy" invoke="setLeaseAgreementStatus" auth="true">
         <description>Change the status of a lease agreement (StatusValidChange) and project it onto FinanceContract.
-            In STEP L2 only CONTRACTED -> CANCELLED is allowed; the start is done by the acceptance service (STEP L3).</description>
+            CONTRACTED -> ACTIVE is rejected here (acceptLeaseAgreement only); cancellation is rejected once an asset is purchased.</description>
         <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
         <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
         <attribute name="statusId" type="String" mode="IN" optional="false"/>
         <attribute name="oldStatusId" type="String" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- STEP L3: asset purchase, supplier payment, acceptance (start) -->
+    <!-- ============================================================= -->
+    <service name="recordLeaseAssetPurchase" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseAcquisitionServices" invoke="recordLeaseAssetPurchase" auth="true">
+        <description>Record the purchase of one agreement asset: supplier purchase invoice (READY; core GL
+            Dr lease asset suspense / Cr accounts payable), lessor-owned FixedAsset and the link to the agreement asset</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="assetSeqId" type="String" mode="IN" optional="false"/>
+        <attribute name="supplierPartyId" type="String" mode="IN" optional="true"><description>defaults to the supplier of the asset line</description></attribute>
+        <attribute name="supplierInvoiceRef" type="String" mode="IN" optional="true"/>
+        <attribute name="purchaseDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="invoiceId" type="String" mode="OUT" optional="false"/>
+        <attribute name="fixedAssetId" type="String" mode="OUT" optional="false"/>
+    </service>
+    <service name="payLeaseAssetPurchase" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseAcquisitionServices" invoke="payLeaseAssetPurchase" auth="true">
+        <description>Pay the supplier invoice of a purchased lease asset with a core vendor payment (core GL for the payment and its application)</description>
+        <permission-service service-name="financePaymentPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="assetSeqId" type="String" mode="IN" optional="false"/>
+        <attribute name="paymentMethodTypeId" type="String" mode="IN" optional="true"><description>defaults to EFT_ACCOUNT</description></attribute>
+        <attribute name="effectiveDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="paymentId" type="String" mode="OUT" optional="false"/>
+    </service>
+    <service name="acceptLeaseAgreement" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseAcquisitionServices" invoke="acceptLeaseAgreement" auth="true">
+        <description>Record the lessee's acceptance: the acceptance date becomes the lease start, the confirmed schedule is
+            re-dated as a new revision, the agreement becomes LEASEAGR_ACTIVE and the start entries are posted once (idempotent)</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="acceptanceDate" type="Timestamp" mode="IN" optional="true"><description>defaults to today</description></attribute>
+        <attribute name="acceptedByPartyId" type="String" mode="IN" optional="true"><description>defaults to the lessee</description></attribute>
+        <attribute name="comments" type="String" mode="IN" optional="true"/>
+        <attribute name="acctgTransId" type="String" mode="OUT" optional="true"/>
+        <attribute name="scheduleRevisionNumber" type="Long" mode="OUT" optional="true"/>
+        <attribute name="created" type="Boolean" mode="OUT" optional="true"/>
     </service>
 </services>

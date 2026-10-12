@@ -99,4 +99,26 @@ under the License.
             defaultMonthlyRateFactor="0.018000" paymentTimingEnumId="LEASE_PAY_ADVANCE"
             residualValueRate="0" revenueMethodEnumId="LEASE_REV_AT_START" taxable="Y"/>
     <FinancialProductLeaseAssetType productId="TEST_LEASEPROD1" fixedAssetTypeId="EQUIPMENT"/>
+
+    <!-- STEP L3: USD lease product (base currency of Company, no FX conversion in GL)
+         and the lease GL accounts of Company (same values as the lease demo data). -->
+    <Product productId="TEST_LEASEPROD_USD" productTypeId="SERVICE" internalName="Test Equipment Lease USD" productName="Test Equipment Lease USD"/>
+    <FinancialProduct productId="TEST_LEASEPROD_USD" financialProductTypeId="LEASE_FIN_NONTRANS"
+            currencyUomId="USD" minTermMonths="12" maxTermMonths="60"/>
+    <FinancialProductLease productId="TEST_LEASEPROD_USD" leaseClassEnumId="LEASE_CLS_FIN_NONTR"
+            defaultMonthlyRateFactor="0.018000" paymentTimingEnumId="LEASE_PAY_ADVANCE"
+            residualValueRate="0" revenueMethodEnumId="LEASE_REV_AT_START" taxable="Y"/>    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_INVESTMENT" glAccountId="128500"/>
+    <GlAccountOrganization glAccountId="128500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_RECEIVABLE" glAccountId="128600"/>
+    <GlAccountOrganization glAccountId="128600" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_ASSET_SUSPENSE" glAccountId="147500"/>
+    <GlAccountOrganization glAccountId="147500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_DEFER_PROFIT" glAccountId="128700"/>
+    <GlAccountOrganization glAccountId="128700" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_SALES" glAccountId="403500"/>
+    <GlAccountOrganization glAccountId="403500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_COST_OF_SALES" glAccountId="503500"/>
+    <GlAccountOrganization glAccountId="503500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_DEFER_PROV" glAccountId="503600"/>
+    <GlAccountOrganization glAccountId="503600" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
 </entity-engine-xml>

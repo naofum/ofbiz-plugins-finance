@@ -30,12 +30,25 @@ if (leaseAgreement == null) {
 context.leaseAgreementId = leaseAgreement.leaseAgreementId
 context.currencyUomId = leaseAgreement.currencyUomId
 context.showFixedAsset = true
+// Asset lines with their purchase (STEP L3).
 context.assetLines = from('LeaseAgreementAsset').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
-        .orderBy('assetSeqId').queryList()
+        .orderBy('assetSeqId').queryList().collect { GenericValue a ->
+    GenericValue purchase = from('LeaseAssetPurchase').where('leaseAgreementId', a.leaseAgreementId, 'assetSeqId', a.assetSeqId).queryOne()
+    Map row = new LinkedHashMap(a.getAllFields())
+    row.invoiceId = purchase?.invoiceId
+    row.paymentId = purchase?.paymentId
+    row.purchaseDate = purchase?.purchaseDate
+    row.canPurchase = leaseAgreement.statusId == 'LEASEAGR_CONTRACTED' && purchase == null
+    row.canPay = purchase != null && !purchase.paymentId
+    return row
+}
+context.allPurchased = context.assetLines.every { it.invoiceId }
+context.leaseAcceptance = from('LeaseAcceptance').where('leaseAgreementId', leaseAgreement.leaseAgreementId).queryOne()
+context.canAccept = leaseAgreement.statusId == 'LEASEAGR_CONTRACTED' && context.allPurchased
 GenericValue latest = from('LeaseAgreementPaymentSchedule').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
         .orderBy('-scheduleRevisionNumber').queryFirst()
 context.scheduleRevisionNumber = latest?.scheduleRevisionNumber
 context.scheduleRows = latest == null ? [] : from('LeaseAgreementPaymentSchedule')
         .where('leaseAgreementId', leaseAgreement.leaseAgreementId, 'scheduleRevisionNumber', latest.scheduleRevisionNumber)
         .orderBy('installmentNumber').queryList()
-context.canCancel = leaseAgreement.statusId == 'LEASEAGR_CONTRACTED'
+context.canCancel = leaseAgreement.statusId == 'LEASEAGR_CONTRACTED' && !context.assetLines.any { it.invoiceId }

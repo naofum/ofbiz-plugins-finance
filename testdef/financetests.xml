@@ -54,4 +54,8 @@ under the License.
         <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseQuoteAgreementTests"/>
     </test-case>
 
+    <test-case case-name="lease-acceptance-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseAcceptanceTests"/>
+    </test-case>
+
 </test-suite>

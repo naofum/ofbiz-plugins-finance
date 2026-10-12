@@ -83,4 +83,32 @@ under the License.
     <StatusItem description="Completed" sequenceId="03" statusCode="COMPLETED" statusId="LEASEAGR_COMPLETED" statusTypeId="LEASE_AGR_STATUS"/>
     <StatusItem description="Cancelled" sequenceId="04" statusCode="CANCELLED" statusId="LEASEAGR_CANCELLED" statusTypeId="LEASE_AGR_STATUS"/>
     <StatusValidChange statusId="LEASEAGR_CONTRACTED" statusIdTo="LEASEAGR_CANCELLED" transitionName="Cancel"/>
+
+    <!-- ============ STEP L3: lease start (acceptance) ============ -->
+    <!-- Only the acceptance service (acceptLeaseAgreement) performs this transition. -->
+    <StatusValidChange statusId="LEASEAGR_CONTRACTED" statusIdTo="LEASEAGR_ACTIVE" transitionName="Start (acceptance)"/>
+
+    <StatusType description="Lease Asset" hasTable="N" statusTypeId="LEASE_ASSET_STATUS"/>
+    <StatusItem description="Pending purchase" sequenceId="01" statusCode="PENDING" statusId="LSAST_PENDING" statusTypeId="LEASE_ASSET_STATUS"/>
+    <StatusItem description="Purchased" sequenceId="02" statusCode="PURCHASED" statusId="LSAST_PURCHASED" statusTypeId="LEASE_ASSET_STATUS"/>
+    <StatusItem description="Leased" sequenceId="03" statusCode="LEASED" statusId="LSAST_LEASED" statusTypeId="LEASE_ASSET_STATUS"/>
+    <StatusItem description="Returned" sequenceId="04" statusCode="RETURNED" statusId="LSAST_RETURNED" statusTypeId="LEASE_ASSET_STATUS"/>
+    <StatusItem description="Transferred" sequenceId="05" statusCode="TRANSFERRED" statusId="LSAST_TRANSFERRED" statusTypeId="LEASE_ASSET_STATUS"/>
+
+    <!-- ============ STEP L3: lease GL account types and accounts ============ -->
+    <!-- Organization mappings (GlAccountTypeDefault / GlAccountOrganization) are demo data. -->
+    <GlAccountType description="Lease investment asset (finance lease, no ownership transfer)" glAccountTypeId="LEASE_INVESTMENT" hasTable="N" parentTypeId="CURRENT_ASSET"/>
+    <GlAccountType description="Lease receivable (finance lease, ownership transfer)" glAccountTypeId="LEASE_RECEIVABLE" hasTable="N" parentTypeId="CURRENT_ASSET"/>
+    <GlAccountType description="Lease asset suspense (purchased, not yet started)" glAccountTypeId="LEASE_ASSET_SUSPENSE" hasTable="N" parentTypeId="CURRENT_ASSET"/>
+    <GlAccountType description="Deferred lease profit" glAccountTypeId="LEASE_DEFER_PROFIT" hasTable="N"/>
+    <GlAccountType description="Lease sales" glAccountTypeId="LEASE_SALES" hasTable="N" parentTypeId="SALES_ACCOUNT"/>
+    <GlAccountType description="Lease cost of sales" glAccountTypeId="LEASE_COST_OF_SALES" hasTable="N" parentTypeId="COGS_ACCOUNT"/>
+    <GlAccountType description="Provision to deferred lease profit" glAccountTypeId="LEASE_DEFER_PROV" hasTable="N"/>
+    <GlAccount glAccountId="128500" accountCode="128500" glAccountClassId="CURRENT_ASSET" glAccountTypeId="LEASE_INVESTMENT" glResourceTypeId="MONEY" accountName="LEASE INVESTMENT ASSET"/>
+    <GlAccount glAccountId="128600" accountCode="128600" glAccountClassId="CURRENT_ASSET" glAccountTypeId="LEASE_RECEIVABLE" glResourceTypeId="MONEY" accountName="LEASE RECEIVABLE"/>
+    <GlAccount glAccountId="147500" accountCode="147500" glAccountClassId="CURRENT_ASSET" glAccountTypeId="LEASE_ASSET_SUSPENSE" glResourceTypeId="MONEY" accountName="LEASE ASSET SUSPENSE"/>
+    <GlAccount glAccountId="128700" accountCode="128700" glAccountClassId="CONTRA_ASSET" glAccountTypeId="LEASE_DEFER_PROFIT" glResourceTypeId="MONEY" accountName="DEFERRED LEASE PROFIT"/>
+    <GlAccount glAccountId="403500" accountCode="403500" glAccountClassId="REVENUE" glAccountTypeId="LEASE_SALES" glResourceTypeId="MONEY" accountName="LEASE SALES"/>
+    <GlAccount glAccountId="503500" accountCode="503500" glAccountClassId="COGS_EXPENSE" glAccountTypeId="LEASE_COST_OF_SALES" glResourceTypeId="MONEY" accountName="LEASE COST OF SALES"/>
+    <GlAccount glAccountId="503600" accountCode="503600" glAccountClassId="COGS_EXPENSE" glAccountTypeId="LEASE_DEFER_PROV" glResourceTypeId="MONEY" accountName="PROVISION TO DEFERRED LEASE PROFIT"/>
 </entity-engine-xml>

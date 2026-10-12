@@ -35,7 +35,7 @@
 - リース商品は `LEASE` 配下の `FinancialProductType` と `FinancialProductLease`（1:1）で定義する。リース区分は商品種別から導出し、不一致を許さない。
 - リース申込の内容・希望物件（`LeaseApplicationAsset`）の変更は `LEASEAPP_RECEIVED` 中だけ。希望物件のない申込は、申込・審査とも承認できない。
 - リースの審査は共通審査（`createLeaseUnderwriting` → `createFinanceUnderwriting`、`applicationTypeId=LEASE`）を使い、承認時の検証は `finance.properties` の `underwriting.approval.validator.LEASE` に登録する。
-- リース見積は生成後不変（取得価額＝希望物件の見積額合計）。リース契約は `LEASEAGR_CONTRACTED` で作成し、`ACTIVE` への遷移は検収（L3）でのみ行う。
+- リース見積は生成後不変（取得価額＝希望物件の見積額合計）。リース契約は `LEASEAGR_CONTRACTED` で作成し、`ACTIVE` への遷移は検収（`acceptLeaseAgreement`）でのみ行う。検収日がリース開始日で、確定リース料表を新しい revision に作り直し、開始仕訳を契約ごとに 1 回だけ計上する。物件購入後の契約取消は不可。
 - 収益計上はファイナンスリース第1法（リース取引開始日に売上高・売上原価を計上し、利息相当額を繰延リース利益として利息法で戻し入れる）を主とする。
 
 ## Data Rules

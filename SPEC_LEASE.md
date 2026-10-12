@@ -27,7 +27,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 |------|------|------|
 | L1 | リース商品・物件・申込の基盤 | 完了（tests=63 / errors=0 / failures=0） |
 | L2 | リース見積・審査・契約 | 完了（tests=70 / errors=0 / failures=0） |
-| L3 | 物件の購入・検収・リース開始（第1法の開始仕訳） | 未着手 |
+| L3 | 物件の購入・検収・リース開始（第1法の開始仕訳） | 完了（finance テスト errors=0 / failures=0、testcase 44 件） |
 | L4 | 月次会計・リース料請求・入金消込（繰延リース利益戻入） | 未着手 |
 | L5 | 消費税 | 未着手 |
 | L6 | 延滞・督促（リース用契約アダプタ。共通層側は `SPEC_COMMON.md`） | 未着手 |
@@ -222,9 +222,89 @@ L6 で実装し、それまでは「延滞なし」「請求書なし」を返�
 
 ---
 
+## 4. STEP L3 — 物件の購入・販売店支払・検収（リース開始）
+
+### 4.1 業務フロー
+
+1. 契約（`LEASEAGR_CONTRACTED`）後、契約物件ごとに **購入を記録** する（`recordLeaseAssetPurchase`）。
+   - 販売店の仕入請求書（core `Invoice`、`PURCHASE_INVOICE`）を作成して READY にする。core が「借 リース物件仮勘定 ／ 貸 買掛金」を計上する（明細の `overrideGlAccountId` を仮勘定にする）。
+   - リース会社所有の `FixedAsset`（種別・名称・取得日・取得価額・通貨、`partyId`＝貸手）を作成し、契約物件に `fixedAssetId` を設定する。
+   - 物件状態：`LSAST_PENDING` → `LSAST_PURCHASED`。
+2. **販売店へ支払う**（`payLeaseAssetPurchase`、任意・検収とは独立）。core の `VENDOR_PAYMENT`（`PMNT_SENT`）を作成して仕入請求書に消し込む。出金・消込の仕訳と、請求書の PAID 化は core が行う。**支払日は未来日不可**（core は効力日が現在以前の支払しか消込済みとみなさないため）。
+3. **検収**（`acceptLeaseAgreement`）。全物件の購入済みが必要。検収日は契約日・購入日以降とする。
+   - **検収日＝リース開始日**。確定リース料表を新しい revision（例：契約時 1 → 検収時 2）として作り直す。金額は変えず、支払期日・対象期間だけを開始日基準で付け直す（前払は初回期日＝開始日、後払は開始日＋1 か月。期日の営業日調整は STEP 10 の規則）。
+   - 契約に開始日・終了日（開始日＋期間−1 日）・初回支払日を設定し、`LEASEAGR_ACTIVE` にする（`FinanceContract` も `FINCTR_ACTIVE`）。物件状態は `LSAST_LEASED` になる。
+   - 収益計上方式の開始仕訳を 1 回だけ計上し、`LeaseAcceptance` に記録する。**同じ契約を再度検収しても、既存の検収結果を返すだけ**（冪等。新しい revision も仕訳も作らない）。
+- 状態サービス `setLeaseAgreementStatus` からの `ACTIVE` への変更は拒否する（開始は検収でのみ行う）。物件の購入後は契約を取り消せない（物件の処分は対象外）。
+- 契約単位の処理ロックは `FinanceContractHelper.lock` で取る。
+
+### 4.2 データモデル
+
+| エンティティ | 主キー | 内容 |
+|--------------|--------|------|
+| `LeaseAssetPurchase` | leaseAgreementId + assetSeqId | 販売店、仕入請求書、販売店の請求書番号、購入日、金額（＝契約物件の取得価額）、通貨、固定資産、支払、支払日 |
+| `LeaseAcceptance` | leaseAgreementId | 検収日（＝開始日）、検収者（既定は借手）、備考、開始時の revision、開始仕訳、受領書の発行日（L8 で使用）、作成者 |
+| `LeaseAgreementAsset`（追加列） | — | `assetStatusId`（`LEASE_ASSET_STATUS`：`LSAST_PENDING` / `PURCHASED` / `LEASED` / `RETURNED` / `TRANSFERRED`。返還・譲渡は L7） |
+
+seed：`LEASEAGR_CONTRACTED → LEASEAGR_ACTIVE` の遷移と、リース用の GL 科目タイプ・科目（下表）を追加した。
+会社（`Company`）への科目の割当（`GlAccountTypeDefault` / `GlAccountOrganization`）は demo データとテストデータに入れた。
+
+| GL 科目タイプ | 科目 | 区分 | 用途 |
+|---------------|------|------|------|
+| `LEASE_INVESTMENT` | 128500 | 流動資産 | リース投資資産（所有権移転外） |
+| `LEASE_RECEIVABLE` | 128600 | 流動資産 | リース債権（所有権移転） |
+| `LEASE_ASSET_SUSPENSE` | 147500 | 流動資産 | リース物件仮勘定（購入〜開始） |
+| `LEASE_DEFER_PROFIT` | 128700 | 資産の控除（CONTRA_ASSET） | 繰延リース利益 |
+| `LEASE_SALES` | 403500 | 収益 | リース売上高 |
+| `LEASE_COST_OF_SALES` | 503500 | 売上原価 | リース売上原価 |
+| `LEASE_DEFER_PROV` | 503600 | 売上原価 | 繰延リース利益繰入 |
+
+### 4.3 開始仕訳（第1法、`LeaseRevenueStrategy.AtStart`）
+
+| 借方 | 貸方 | 金額 |
+|------|------|------|
+| リース投資資産（移転外）／リース債権（移転） | リース売上高 | リース料総額（税抜） |
+| リース売上原価 | リース物件仮勘定 | 取得価額 − 残価 |
+| リース投資資産／リース債権 | リース物件仮勘定 | 残価（ある場合） |
+| 繰延リース利益繰入 | 繰延リース利益 | 利息相当額（＝リース料総額 −（取得価額 − 残価）） |
+
+- 開始時点で「売上高 − 売上原価 ＝ 繰延リース利益」となり、仮勘定は購入時の借方と同額が貸方に振り替わって残高 0 になる。投資資産の残高はリース料総額＋残価。
+- 残価があるときは、売上原価を取得価額−残価とし、残価分は仮勘定から投資資産へ振り替える方式とした。**第1法での残価の扱い（売上原価・売上高の測定）は要件 1.4 のとおり経理部門・会計監査人の確認事項**で、L4 着手前に確定する。
+- 収益計上方式は `revenueMethodEnumId` で戦略クラスを選ぶ（`LeaseRevenueStrategy.REGISTRY`）。L3 では第1法の開始仕訳だけを実装した。月次の戻し入れは L4、第3法は後続。
+- 仕訳は共通層の `FinanceGlHelper.postTransaction` で 1 取引・複数明細として計上・転記する（`SPEC_COMMON.md` 9 章）。
+
+### 4.4 画面
+
+`ManageLeaseAgreement` に次を追加した。物件一覧（状態・固定資産・仕入請求書・販売店支払の列、行ごとの「購入記録」「販売店へ支払」）、検収フォーム（検収日・検収者・備考、全物件の購入後に表示）、検収結果（検収日・検収者・revision・開始仕訳）。
+リース料表の欄には最新の revision を表示する。契約取消のボタンは、物件の購入後は表示しない。
+
+### 4.5 テスト（`LeaseAcceptanceTests`。USD 商品 `TEST_LEASEPROD_USD` を使い、テストごとに新しい借手を作る）
+
+| テスト | 内容 |
+|--------|------|
+| `testAssetPurchaseAndSupplierPayment` | 仕入請求書（PURCHASE_INVOICE、READY）と仕訳（借 仮勘定 ／ 貸 買掛金、転記済み）、固定資産、物件の紐付けと状態、二重購入・購入後の取消の拒否、未来日支払の拒否、支払（VENDOR_PAYMENT・SENT、請求書 PAID、仕訳転記済み）、二重支払の拒否 |
+| `testAcceptanceStartsLease` | 状態サービスでの開始の拒否、未購入・購入日前の検収の拒否、ACTIVE 化・開始日・終了日・初回支払日・共通状態、revision 2 の期日・期間（金額は revision 1 と同じ）、開始仕訳（貸借一致、各科目の金額、売上高−売上原価＝繰延リース利益、仮勘定の消滅）、再検収で同じ結果を返すこと、開始後の購入拒否 |
+| `testTransferLeaseWithResidualStartEntries` | 所有権移転・残価 10%：リース債権科目、借方＝リース料総額＋残価、売上原価＝取得価額−残価、貸借一致 |
+
+検収前の請求拒否は、請求機能を作る L4 でテストする。
+
+### 4.6 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 新規 2 テーブル、`LEASE_AGREEMENT_ASSET` に列追加、BUILD SUCCESSFUL |
+| `gradlew "ofbiz --test component=finance"` | errors=0 / failures=0（testcase 44 件、うちリース検収 3 件） |
+| demo 投入 | BUILD SUCCESSFUL |
+| 画面（OFBiz 起動） | L2 で作った JPY のデモ契約 `10010` で、購入記録 → 販売店支払 → 検収を画面のリクエストで実行した。ACTIVE 化、revision 2、開始仕訳 `11043`（6 明細、USD 換算後も貸借一致）、仕入請求書・支払の仕訳がすべて転記済みであることを DB で確認した |
+
+---
+
 ## 運用メモ
 
 - **seed の投入**：L1 で `FinanceLeaseTypeData.xml` を追加した。既存環境では `gradlew "ofbiz --load-data readers=seed --load-data component=finance"` を実行してからテスト・画面操作を行う（未投入だとリース商品種別・申込状態がなく失敗する）。
 - **demo**：`FinanceLeaseDemoData.xml`（事務機器ファイナンスリース・所有権移転外 `DEMO_LEASEPROD1`、借手 `DEMO_LESSEE1`、販売店 `DEMO_LS_SUPPLIER1`、受付中の申込 `DEMO_LEASEAPP1` と希望物件 2 件）。
 - **L2 の画面確認で作成したデータ**：開発 DB に借手 DEMO_LESSEE1 のリース申込 10030、見積 10010、契約 10010（FinanceContract 10230、CONTRACTED）が残っている。demo の再投入では消えない。不要なら画面から契約を取り消す。
 - **見積・契約の日付**：L2 の期日は開始予定日からの暫定値。リース開始日（検収日）で確定するのは L3。
+- **外貨建てリースの換算（既知の問題・core）**：契約通貨と貸手組織の基準通貨が違う場合（demo の JPY 契約と、基準通貨 USD の `Company`）、finance 側の仕訳は `convertUom`（JPY→USD 0.006666666667）で換算する。一方、core の支払消込仕訳（`createAcctgTransAndEntriesForPaymentApplication`）は換算率を小数 4 桁（0.0067）に丸めるため、1,500,000 JPY が 10,050 USD で計上され、買掛金・未消込買掛金に 50 USD の差が残った（契約 `10010` の取引 `11042`）。各取引の貸借は一致している。契約通貨と基準通貨が同じ本番構成（JPY の貸手）では発生しない。core は変更していない。外貨建てリースを扱う場合は L4 以降で対応を検討する。
+- **L3 の画面確認で検収したデモ契約**：開発 DB のデモ契約 `10010` は検収済み（ACTIVE、開始日 2026-10-12）。demo の再投入では元に戻らない。
