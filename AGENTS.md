@@ -14,9 +14,10 @@
 - `FinanceContract.statusId`（`FINCTR_*`）は各層の契約状態の写しである。各層の状態遷移サービスの中でだけ `FinanceContractHelper.updateStatus` により更新し、CRUDで直接変更しない。
 - 同一契約の計上・請求・入金・延滞処理は、`FinanceContract.processingLockVersion` の条件付き更新（`FinanceContractHelper.lock`）で直列化する。`LoanAgreement.processingLockVersion` は廃止済みで使用しない。
 - 与信判定は、同一顧客の `FINCTR_CONTRACTED` / `FINCTR_ACTIVE` の `FinanceContract`（ローン・リース合算）の元本で行う（`FinanceContractHelper.sumExposurePrincipal`、与信枠チェックは共通の `financeValidateCustomerCreditLimit`）。
-- 延滞判定・遅延損害金・督促・償却は共通層の `FinanceDelinquencyServices` が `FinanceContract` を起点に処理する。延滞関連レコードには `financeContractId` を必ず設定する（`loanAgreementId` は互換用）。
+- 延滞判定・遅延損害金・督促・償却は共通層の `FinanceDelinquencyServices` が `FinanceContract` を起点に処理する。延滞関連レコードには `financeContractId` を必ず設定する（`loanAgreementId` は互換用）。契約種別ごとの延滞額（元本・利息・消費税）、遅延損害金の計算基礎、償却の貸方科目は `FinanceContractAdapter` が返す（リースは `LeaseContractAdapter`、計算基礎は `lease.latefee.base`）。
 - 審査は `LOANUW_IN_REVIEW` で作成し、承認・否決後は変更不可。承認・否決は状態、decision、reviewDateを一貫して確定する。審査には `applicationTypeId`（LOAN/LEASE）と `applicationId` を設定する。
 - entity-auto等の通常CRUDで業務STATUSを変更してはならない。対応する状態遷移サービスを使用する（全層共通）。
+- 人が行う作業（満了時の返還・引取り、督促活動、保守作業 等）は core の `WorkEffort` でタスク化し、共通層の `FinanceContractWorkEffort` で契約に紐付ける（STEP L7〜、`plugins/finance/REQUIREMENTS_LEASE.md` 3.5）。WorkEffort の状態は作業の完了だけを表し、業務STATUSを変えない（業務サービスの結果としてタスクを完了にする）。タスクの自動作成は契約×作業種別×きっかけごとに1件（冪等）。バッチの定期実行は WorkEffort ではなくジョブスケジューラで行う。
 
 ## Loan Layer Rules（ローン層）
 - LoanApplicationは作成時に必ず `LOANAPP_RECEIVED`。内容更新はRECEIVED中だけに限定し、状態変更は専用ステータス遷移サービスのみを使用する。
@@ -37,6 +38,10 @@
 - リースの審査は共通審査（`createLeaseUnderwriting` → `createFinanceUnderwriting`、`applicationTypeId=LEASE`）を使い、承認時の検証は `finance.properties` の `underwriting.approval.validator.LEASE` に登録する。
 - リース見積は生成後不変（取得価額＝希望物件の見積額合計）。リース契約は `LEASEAGR_CONTRACTED` で作成し、`ACTIVE` への遷移は検収（`acceptLeaseAgreement`）でのみ行う。検収日がリース開始日で、確定リース料表を新しい revision に作り直し、開始仕訳を契約ごとに 1 回だけ計上する。物件購入後の契約取消は不可。
 - 収益計上はファイナンスリース第1法（リース取引開始日に売上高・売上原価を計上し、利息相当額を繰延リース利益として利息法で戻し入れる）を主とする。
+- リースの請求・繰延リース利益の戻入・入金は検収済み（`LEASEAGR_ACTIVE`）の契約だけで行い、請求は現在の revision の確定リース料表の回ごとに 1 件（冪等）とする。請求時に売上は計上しない（借 売掛金 ／ 貸 リース投資資産・リース債権・仮受消費税）。
+- 繰延リース利益の戻入は「累計戻入額（計上日まで）− 計上済み累計」で増分計上し、二重計上しない。満了時の累計は開始時の繰延リース利益と一致させる。方式ごとの仕訳は `LeaseRevenueStrategy` に置く。
+- リースの未回収元本は、有効な PaymentApplication と `PMNT_RECEIVED` / `PMNT_CONFIRMED` の Payment を正本とし、請求書ごとに消費税 → 利息相当額 → 元本回収額の順に充当して算定する。請求しただけでは減額しない。
+- リースの消費税率は検収日（リース開始日）に有効な core `TaxAuthorityRateProduct`（商品の税カテゴリ）で契約に固定し、請求日の税率は使わない。計上時期（各回／開始時一括、`LEASE_TAX_TIMING`）も検収時に固定する。端数は通貨別端数処理で、開始時一括は総額を 1 回丸めて最終回で調整する。
 
 ## Data Rules
 - `data/*TypeData.xml` はseed、`data/*DemoData.xml` はdemo、`testdef/data/*` はテスト専用。用途を混在させない。

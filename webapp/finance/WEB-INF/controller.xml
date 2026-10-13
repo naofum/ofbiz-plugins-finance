@@ -683,6 +683,127 @@ under the License.
         </response>
     </request-map>
 
+    <!-- STEP L4: lease billing, deferred profit release, monthly batch, payments -->
+    <request-map uri="createLeaseInstallmentInvoice">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createLeaseInstallmentInvoice"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="recognizeLeaseProfit">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="recognizeLeaseProfit"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="receiveLeasePayment">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="receiveLeasePayment"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="runLeaseMonthlyAccountingBatch">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="runLeaseMonthlyAccountingBatch"/>
+        <response name="success" type="request-redirect" value="FindLeaseAgreement"/>
+        <response name="error" type="request-redirect" value="FindLeaseAgreement"/>
+    </request-map>
+
+    <!-- STEP L6: lease late fee, dunning notice (common delinquency services) -->
+    <request-map uri="runLeaseLateFeeAccrual">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="runLateFeeAccrual"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="createLeaseDunningNotice">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createLoanDunningNotice"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <!-- STEP L7: lease expiry -->
+    <request-map uri="issueLeaseExpiryNotice">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="issueLeaseExpiryNotice"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>    </request-map>
+    <request-map uri="returnLeaseAsset">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="returnLeaseAsset"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>    </request-map>
+    <request-map uri="disposeLeaseAsset">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="disposeLeaseAsset"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>    </request-map>
+    <request-map uri="transferLeaseOwnership">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="transferLeaseOwnership"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>    </request-map>
+    <request-map uri="completeLeaseAgreement">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="completeLeaseAgreement"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>    </request-map>
+    <request-map uri="FindLeaseExpiry">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="FindLeaseExpiry"/>
+    </request-map>
+    <request-map uri="runLeaseExpiryBatch">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="runLeaseExpiryBatch"/>
+        <response name="success" type="request-redirect" value="FindLeaseExpiry"/>
+        <response name="error" type="request-redirect" value="FindLeaseExpiry"/>
+    </request-map>    <request-map uri="PrintLeaseDunningNotice.pdf">
+        <security https="true" auth="true"/>
+        <event type="groovy" path="component://finance/groovyScripts/lease/PrepareLeaseDunningNotice.groovy"/>
+        <response name="success" type="view" value="DunningNoticePdf"/>
+        <response name="error" type="view" value="ManageLeaseAgreement"/>
+    </request-map>
+
     <!-- View Mappings -->
     <view-map name="main" type="screen" page="component://finance/widget/FinanceScreens.xml#FindLoanApplication"/>
     <view-map name="LookupPartyName" type="screen" page="component://party/widget/partymgr/LookupScreens.xml#LookupPartyName"/>
@@ -718,6 +839,7 @@ under the License.
     <view-map name="ViewLeaseQuote" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#ViewLeaseQuote"/>
     <view-map name="FindLeaseAgreement" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#FindLeaseAgreement"/>
     <view-map name="ManageLeaseAgreement" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#ManageLeaseAgreement"/>
+    <view-map name="FindLeaseExpiry" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#FindLeaseExpiry"/>
     <!-- Lease quote / agreement PDF (one report, title switched by the event) -->
     <view-map name="LeaseReportPdf" type="jasperreports"
             page="component://finance/webapp/finance/reports/LeaseReport.jrxml"

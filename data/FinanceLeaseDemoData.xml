@@ -42,6 +42,11 @@ under the License.
             residualValueRate="0" revenueMethodEnumId="LEASE_REV_AT_START" taxable="Y"/>
     <FinancialProductLeaseAssetType productId="DEMO_LEASEPROD1" fixedAssetTypeId="EQUIPMENT"/>
     <FinancialProductLeaseAssetType productId="DEMO_LEASEPROD1" fixedAssetTypeId="COMPUTER_HARDWARE"/>
+    <!-- STEP L6: delinquency classification of the demo lease product -->
+    <FinancialProductDelinquency productId="DEMO_LEASEPROD1" delinquencyLevelEnumId="DELINQ_D1" minDaysPastDue="1" maxDaysPastDue="30" dunningLevelEnumId="DUN_L1" writeoffFlag="N" legalActionFlag="N"/>
+    <FinancialProductDelinquency productId="DEMO_LEASEPROD1" delinquencyLevelEnumId="DELINQ_D2" minDaysPastDue="31" maxDaysPastDue="60" dunningLevelEnumId="DUN_L2" writeoffFlag="N" legalActionFlag="N"/>
+    <FinancialProductDelinquency productId="DEMO_LEASEPROD1" delinquencyLevelEnumId="DELINQ_D3" minDaysPastDue="61" maxDaysPastDue="90" dunningLevelEnumId="DUN_L3" writeoffFlag="N" legalActionFlag="N"/>
+    <FinancialProductDelinquency productId="DEMO_LEASEPROD1" delinquencyLevelEnumId="DELINQ_D4" minDaysPastDue="91" dunningLevelEnumId="DUN_L4" writeoffFlag="Y" legalActionFlag="Y"/>
 
     <!-- A received lease application with two requested assets -->
     <LeaseApplication leaseApplicationId="DEMO_LEASEAPP1" productId="DEMO_LEASEPROD1"
@@ -70,4 +75,30 @@ under the License.
     <GlAccountOrganization glAccountId="503500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_DEFER_PROV" glAccountId="503600"/>
     <GlAccountOrganization glAccountId="503600" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <!-- STEP L4: deferred profit release and consumption tax received -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_PROFIT_RELEASE" glAccountId="403600"/>
+    <GlAccountOrganization glAccountId="403600" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_TAX_PAYABLE" glAccountId="224500"/>
+    <GlAccountOrganization glAccountId="224500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <!-- STEP L5: consumption tax. Demo tax authority (Japan), its GL account for Company,
+         a tax category for lease products and the standard 10% rate (from 2019-10-01). -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_TAX_RECEIVABLE" glAccountId="128800"/>
+    <GlAccountOrganization glAccountId="128800" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <!-- STEP L7: settlement of the residual value at disposal / transfer -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_DISPOSAL_RECV" glAccountId="128900"/>
+    <GlAccountOrganization glAccountId="128900" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_DISPOSAL_GAIN" glAccountId="403700"/>
+    <GlAccountOrganization glAccountId="403700" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_DISPOSAL_LOSS" glAccountId="503700"/>
+    <GlAccountOrganization glAccountId="503700" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <Party partyId="DEMO_TAXAUTH_JP" partyTypeId="PARTY_GROUP"/>
+    <PartyGroup partyId="DEMO_TAXAUTH_JP" groupName="消費税（デモ税務当局）"/>
+    <PartyRole partyId="DEMO_TAXAUTH_JP" roleTypeId="TAX_AUTHORITY"/>
+    <TaxAuthority taxAuthGeoId="JPN" taxAuthPartyId="DEMO_TAXAUTH_JP" includeTaxInPrice="N"/>
+    <TaxAuthorityGlAccount taxAuthGeoId="JPN" taxAuthPartyId="DEMO_TAXAUTH_JP" organizationPartyId="Company" glAccountId="224500"/>
+    <ProductCategory productCategoryId="DEMO_LEASE_TAX_STD" productCategoryTypeId="TAX_CATEGORY" categoryName="リース料（標準税率・デモ）"/>
+    <ProductCategoryMember productCategoryId="DEMO_LEASE_TAX_STD" productId="DEMO_LEASEPROD1" fromDate="2001-01-01 00:00:00.0"/>
+    <TaxAuthorityRateProduct taxAuthorityRateSeqId="DEMO_LS_TAX10" taxAuthGeoId="JPN" taxAuthPartyId="DEMO_TAXAUTH_JP"
+            taxAuthorityRateTypeId="SALES_TAX" productCategoryId="DEMO_LEASE_TAX_STD" taxPercentage="10"
+            fromDate="2019-10-01 00:00:00.0" description="消費税 標準税率 10%（デモ）"/>
 </entity-engine-xml>

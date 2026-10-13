@@ -30,6 +30,7 @@ import org.apache.ofbiz.finance.common.FinanceContractHelper
 import org.apache.ofbiz.finance.common.FinanceInterestCalculator
 import org.apache.ofbiz.finance.lease.LeaseCalculator
 import org.apache.ofbiz.finance.lease.LeaseProductHelper
+import org.apache.ofbiz.finance.lease.LeaseTaxHelper
 import org.apache.ofbiz.service.ServiceUtil
 
 String label(String key, Map args = [:]) {
@@ -129,10 +130,9 @@ Map createLeaseQuote() {
         BigDecimal rate = terms.getBigDecimal('residualValueRate') ?: BigDecimal.ZERO
         residual = acquisitionCost.multiply(rate).setScale(scale, mode)
     }
-    BigDecimal taxRate = BigDecimal.ZERO
-    if (terms.taxable != 'N') {
-        taxRate = new BigDecimal(EntityUtilProperties.getPropertyValue('finance', 'lease.tax.rate', '0.10', delegator).trim())
-    }
+    // Consumption tax rate at the expected lease start (STEP L5); fixed again at the actual start (acceptance).
+    Timestamp expectedStart = UtilDateTime.getDayStart((Timestamp) (param('leaseStartDate') ?: UtilDateTime.nowTimestamp()))
+    BigDecimal taxRate = LeaseTaxHelper.resolveRate(delegator, application.productId as String, expectedStart).rate
 
     LeaseCalculator.Result calc
     try {
@@ -356,6 +356,10 @@ Map setLeaseAgreementStatus() {
     // The lease start is performed only by the acceptance service (STEP L3).
     if (parameters.statusId == 'LEASEAGR_ACTIVE' && agreement.statusId != 'LEASEAGR_ACTIVE') {
         return error(label('FinanceLeaseStartRequiresAcceptance', [leaseAgreementId: agreement.leaseAgreementId]))
+    }
+    // The completion is performed only by the expiry services (return / ownership transfer, STEP L7).
+    if (parameters.statusId == 'LEASEAGR_COMPLETED' && agreement.statusId != 'LEASEAGR_COMPLETED') {
+        return error(label('FinanceLeaseCompleteRequiresExpiry', [leaseAgreementId: agreement.leaseAgreementId]))
     }
     // A purchased asset cannot be left behind by a cancellation (disposal is out of scope).
     if (parameters.statusId == 'LEASEAGR_CANCELLED'

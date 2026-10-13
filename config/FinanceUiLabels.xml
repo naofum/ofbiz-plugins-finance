@@ -1718,4 +1718,308 @@ under the License.
         <value xml:lang="en">The supplier payment date ${effectiveDate} must not be in the future</value>
         <value xml:lang="ja">販売店への支払日 ${effectiveDate} に未来日は指定できません</value>
     </property>
+
+    <!-- ============ STEP L4: monthly accounting, billing, payments ============ -->
+    <property key="FinanceLeaseAccountingRequiresActive">
+        <value xml:lang="en">Billing, profit release and payments require an active (accepted) lease: ${leaseAgreementId}</value>
+        <value xml:lang="ja">請求・繰延リース利益の戻入・入金は、検収済み（有効）のリース契約のみ行えます: ${leaseAgreementId}</value>
+    </property>
+    <property key="FinanceLeaseInstallmentNotDue">
+        <value xml:lang="en">Installment ${installmentNumber} of lease ${leaseAgreementId} is not due yet</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} の第 ${installmentNumber} 回は期日が到来していません</value>
+    </property>
+    <property key="FinanceLeaseRecognitionBeforeStart">
+        <value xml:lang="en">The recognition date ${recognitionDate} is before the lease start of ${leaseAgreementId}</value>
+        <value xml:lang="ja">計上日 ${recognitionDate} はリース契約 ${leaseAgreementId} の開始日より前です</value>
+    </property>
+    <property key="FinanceLeasePaymentInvoiceMismatch">
+        <value xml:lang="en">Invoice ${invoiceId} is not an open lease invoice of ${leaseAgreementId}</value>
+        <value xml:lang="ja">請求書 ${invoiceId} はリース契約 ${leaseAgreementId} の消込可能な請求書ではありません</value>
+    </property>
+    <property key="FinanceLeasePaymentExceedsOpen">
+        <value xml:lang="en">The payment ${amount} exceeds the open amount ${openAmount} of the lease invoices</value>
+        <value xml:lang="ja">入金額 ${amount} が請求残高 ${openAmount} を超えています</value>
+    </property>
+    <property key="FinanceLeaseMonthlyBatchFailed">
+        <value xml:lang="en">Lease monthly batch failed for ${leaseAgreementId}: ${cause}</value>
+        <value xml:lang="ja">リース月次バッチがリース契約 ${leaseAgreementId} で失敗しました: ${cause}</value>
+    </property>
+    <property key="FinanceLeaseRunMonthlyBatch">
+        <value xml:lang="en">Lease monthly batch (billing and profit release)</value>
+        <value xml:lang="ja">リース月次バッチ（請求・繰延リース利益戻入）</value>
+    </property>
+    <property key="FinanceLeaseBalance">
+        <value xml:lang="en">Collection status</value>
+        <value xml:lang="ja">回収状況</value>
+    </property>
+    <property key="FinanceLeaseBilledCount">
+        <value xml:lang="en">Installments billed</value>
+        <value xml:lang="ja">請求済み回数</value>
+    </property>
+    <property key="FinanceLeaseBilledAmount">
+        <value xml:lang="en">Billed (incl. tax)</value>
+        <value xml:lang="ja">請求額（税込）</value>
+    </property>
+    <property key="FinanceLeaseAppliedAmount">
+        <value xml:lang="en">Applied payments</value>
+        <value xml:lang="ja">消込額</value>
+    </property>
+    <property key="FinanceLeaseUnpaidBilled">
+        <value xml:lang="en">Unpaid</value>
+        <value xml:lang="ja">未入金額</value>
+    </property>
+    <property key="FinanceLeaseCollectedPrincipal">
+        <value xml:lang="en">Principal collected</value>
+        <value xml:lang="ja">回収済み元本</value>
+    </property>
+    <property key="FinanceLeaseOutstandingPrincipal">
+        <value xml:lang="en">Outstanding principal</value>
+        <value xml:lang="ja">未回収元本</value>
+    </property>
+    <property key="FinanceLeaseUnbilledAmount">
+        <value xml:lang="en">Unbilled lease payments</value>
+        <value xml:lang="ja">未請求リース料</value>
+    </property>
+    <property key="FinanceLeaseRecognizedProfit">
+        <value xml:lang="en">Deferred profit released</value>
+        <value xml:lang="ja">繰延リース利益戻入額</value>
+    </property>
+    <property key="FinanceLeaseDeferredProfitBalance">
+        <value xml:lang="en">Deferred lease profit balance</value>
+        <value xml:lang="ja">繰延リース利益残高</value>
+    </property>
+    <property key="FinanceLeaseCumulativeAmount">
+        <value xml:lang="en">Cumulative</value>
+        <value xml:lang="ja">累計</value>
+    </property>
+    <property key="FinanceLeaseBillInstallment">
+        <value xml:lang="en">Bill installment</value>
+        <value xml:lang="ja">リース料請求</value>
+    </property>
+    <property key="FinanceLeaseRecognizeProfit">
+        <value xml:lang="en">Release deferred lease profit</value>
+        <value xml:lang="ja">繰延リース利益戻入</value>
+    </property>
+    <property key="FinanceLeaseRecognitionDate">
+        <value xml:lang="en">Recognize through</value>
+        <value xml:lang="ja">計上日（この日まで）</value>
+    </property>
+    <property key="FinanceLeaseDefaultToday">
+        <value xml:lang="en">Empty = today</value>
+        <value xml:lang="ja">空欄の場合は当日</value>
+    </property>
+    <property key="FinanceLeaseReceivePayment">
+        <value xml:lang="en">Receive payment</value>
+        <value xml:lang="ja">入金受付</value>
+    </property>
+    <property key="FinanceLeaseReceiptDate">
+        <value xml:lang="en">Receipt date</value>
+        <value xml:lang="ja">入金日</value>
+    </property>
+    <property key="FinanceLeasePaymentId">
+        <value xml:lang="en">Payment</value>
+        <value xml:lang="ja">入金</value>
+    </property>
+    <property key="FinanceLeasePaymentInvoiceTooltip">
+        <value xml:lang="en">Empty = open invoices, oldest due first</value>
+        <value xml:lang="ja">空欄の場合は期日の古い未入金請求から充当</value>
+    </property>
+    <property key="FinanceLeaseInvoices">
+        <value xml:lang="en">Lease invoices</value>
+        <value xml:lang="ja">リース料請求書</value>
+    </property>
+    <property key="FinanceLeaseProfitRecognitions">
+        <value xml:lang="en">Deferred lease profit releases</value>
+        <value xml:lang="ja">繰延リース利益戻入</value>
+    </property>
+    <property key="FinanceLeasePaymentReceipts">
+        <value xml:lang="en">Payment receipts</value>
+        <value xml:lang="ja">入金記録</value>
+    </property>
+
+    <!-- ============ STEP L5: consumption tax ============ -->
+    <property key="FinanceLeaseTaxTiming">
+        <value xml:lang="en">Taxable sale timing</value>
+        <value xml:lang="ja">消費税の計上時期</value>
+    </property>
+    <property key="FinanceLeaseTaxTimingTooltip">
+        <value xml:lang="en">Empty = lease.tax.timing (finance.properties)</value>
+        <value xml:lang="ja">空欄の場合は finance.properties の lease.tax.timing</value>
+    </property>
+    <property key="FinanceLeaseTaxAuthority">
+        <value xml:lang="en">Tax authority</value>
+        <value xml:lang="ja">税務当局</value>
+    </property>
+    <property key="FinanceLeaseStartTaxAcctgTrans">
+        <value xml:lang="en">Consumption tax at start</value>
+        <value xml:lang="ja">開始時消費税仕訳</value>
+    </property>
+
+    <!-- ============ STEP L6: delinquency and dunning ============ -->
+    <property key="FinanceLeaseDunningNotice">
+        <value xml:lang="en">Reminder of overdue lease payments</value>
+        <value xml:lang="ja">リース料お支払いのご請求（督促状）</value>
+    </property>
+    <property key="FinanceLeaseOverdueLease">
+        <value xml:lang="en">Overdue lease payments (excl. tax)</value>
+        <value xml:lang="ja">延滞リース料（税抜）</value>
+    </property>
+    <property key="FinanceLeaseOverdueTax">
+        <value xml:lang="en">Overdue consumption tax</value>
+        <value xml:lang="ja">延滞消費税</value>
+    </property>
+    <property key="FinanceLeaseDelinquency">
+        <value xml:lang="en">Delinquency</value>
+        <value xml:lang="ja">延滞・督促</value>
+    </property>
+    <property key="FinanceLeaseLateFeeBase">
+        <value xml:lang="en">Late fee base</value>
+        <value xml:lang="ja">遅延損害金の計算基礎</value>
+    </property>
+
+    <!-- ============ STEP L7: expiry and tasks ============ -->
+    <property key="FinanceLeaseCompleteRequiresExpiry">
+        <value xml:lang="en">A lease is completed only by the return / ownership transfer at expiry: ${leaseAgreementId}</value>
+        <value xml:lang="ja">リース契約の完了は満了時の返還・所有権移転でのみ行います: ${leaseAgreementId}</value>
+    </property>
+    <property key="FinanceLeaseCompleteAssetsPending">
+        <value xml:lang="en">Some assets of ${leaseAgreementId} are not returned or transferred yet</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} に返還・譲渡が済んでいない物件があります</value>
+    </property>
+    <property key="FinanceLeaseCompleteOpenBalance">
+        <value xml:lang="en">Lease ${leaseAgreementId} has unbilled installments or unpaid invoices</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} に未請求の回または未入金の請求があります</value>
+    </property>
+    <property key="FinanceLeaseBeforeExpiry">
+        <value xml:lang="en">Lease ${leaseAgreementId} has not expired yet (lease end ${leaseEndDate})</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} は満了前です（リース終了日 ${leaseEndDate}）</value>
+    </property>
+    <property key="FinanceLeaseReturnNotForTransfer">
+        <value xml:lang="en">Assets of an ownership-transfer lease are transferred, not returned: ${leaseAgreementId}</value>
+        <value xml:lang="ja">所有権移転リースの物件は返還ではなく譲渡します: ${leaseAgreementId}</value>
+    </property>
+    <property key="FinanceLeaseTransferNotAllowed">
+        <value xml:lang="en">Only an ownership-transfer lease can transfer the ownership: ${leaseAgreementId}</value>
+        <value xml:lang="ja">所有権移転リースのみ所有権を移転できます: ${leaseAgreementId}</value>
+    </property>
+    <property key="FinanceLeaseTransferRequiresFinalPayment">
+        <value xml:lang="en">The ownership is transferred after the final payment (every installment billed and paid): ${leaseAgreementId}</value>
+        <value xml:lang="ja">所有権移転は最終回の入金後（全回請求・入金済み）に行えます: ${leaseAgreementId}</value>
+    </property>
+    <property key="FinanceLeaseAssetNotLeased">
+        <value xml:lang="en">Asset ${assetSeqId} is not under lease</value>
+        <value xml:lang="ja">物件 ${assetSeqId} はリース中ではありません</value>
+    </property>
+    <property key="FinanceLeaseAssetNotReturned">
+        <value xml:lang="en">Asset ${assetSeqId} has not been returned (or is already disposed)</value>
+        <value xml:lang="ja">物件 ${assetSeqId} は返還されていないか、処分済みです</value>
+    </property>
+    <property key="FinanceLeaseDisposalBeforeReturn">
+        <value xml:lang="en">The disposal of asset ${assetSeqId} must not be before its return</value>
+        <value xml:lang="ja">物件 ${assetSeqId} の処分日は返還日より前にできません</value>
+    </property>
+    <property key="FinanceLeaseDisposalProceedsInvalid">
+        <value xml:lang="en">Invalid proceeds ${proceedsAmount} (zero or more; zero for scrap)</value>
+        <value xml:lang="ja">処分価額 ${proceedsAmount} が不正です（0 以上、廃棄は 0）</value>
+    </property>
+    <property key="FinanceLeaseExpiry">
+        <value xml:lang="en">Expiry</value>
+        <value xml:lang="ja">満了処理</value>
+    </property>
+    <property key="FinanceLeaseExpiryList">
+        <value xml:lang="en">Leases nearing expiry</value>
+        <value xml:lang="ja">満了予定一覧</value>
+    </property>
+    <property key="FinanceLeaseExpiryBatch">
+        <value xml:lang="en">Create expiry tasks</value>
+        <value xml:lang="ja">満了タスク作成</value>
+    </property>
+    <property key="FinanceLeaseMonthsAhead">
+        <value xml:lang="en">Months ahead</value>
+        <value xml:lang="ja">対象（か月以内）</value>
+    </property>
+    <property key="FinanceLeaseOpenTasks">
+        <value xml:lang="en">Open tasks</value>
+        <value xml:lang="ja">未完了タスク</value>
+    </property>
+    <property key="FinanceLeaseIssueExpiryNotice">
+        <value xml:lang="en">Issue expiry notice</value>
+        <value xml:lang="ja">満了通知</value>
+    </property>
+    <property key="FinanceLeaseExpiryNoticeDate">
+        <value xml:lang="en">Expiry notice date</value>
+        <value xml:lang="ja">満了通知日</value>
+    </property>
+    <property key="FinanceLeaseReturnAsset">
+        <value xml:lang="en">Record return</value>
+        <value xml:lang="ja">返還記録</value>
+    </property>
+    <property key="FinanceLeaseReturnDate">
+        <value xml:lang="en">Return date</value>
+        <value xml:lang="ja">返還日</value>
+    </property>
+    <property key="FinanceLeaseDisposeAsset">
+        <value xml:lang="en">Record disposal</value>
+        <value xml:lang="ja">処分記録</value>
+    </property>
+    <property key="FinanceLeaseDisposalType">
+        <value xml:lang="en">Disposal</value>
+        <value xml:lang="ja">処分方法</value>
+    </property>
+    <property key="FinanceLeaseDisposalDate">
+        <value xml:lang="en">Disposal date</value>
+        <value xml:lang="ja">処分日</value>
+    </property>
+    <property key="FinanceLeaseProceeds">
+        <value xml:lang="en">Proceeds (excl. tax)</value>
+        <value xml:lang="ja">処分価額（税抜）</value>
+    </property>
+    <property key="FinanceLeaseBuyer">
+        <value xml:lang="en">Buyer</value>
+        <value xml:lang="ja">売却先</value>
+    </property>
+    <property key="FinanceLeaseGainLoss">
+        <value xml:lang="en">Gain / loss</value>
+        <value xml:lang="ja">処分損益</value>
+    </property>
+    <property key="FinanceLeaseTransferOwnership">
+        <value xml:lang="en">Transfer ownership</value>
+        <value xml:lang="ja">所有権移転</value>
+    </property>
+    <property key="FinanceLeaseTransferDate">
+        <value xml:lang="en">Transfer date</value>
+        <value xml:lang="ja">譲渡日</value>
+    </property>
+    <property key="FinanceLeaseTransferPrice">
+        <value xml:lang="en">Transfer price (empty = residual value)</value>
+        <value xml:lang="ja">譲渡価額（空欄は残価）</value>
+    </property>
+    <property key="FinanceLeaseCompleteAgreement">
+        <value xml:lang="en">Complete lease</value>
+        <value xml:lang="ja">契約完了</value>
+    </property>
+    <property key="FinanceLeaseSettlements">
+        <value xml:lang="en">Return / disposal / transfer</value>
+        <value xml:lang="ja">返還・処分・譲渡</value>
+    </property>
+    <property key="FinanceContractTasks">
+        <value xml:lang="en">Tasks</value>
+        <value xml:lang="ja">タスク</value>
+    </property>
+    <property key="FinanceWorkType">
+        <value xml:lang="en">Work type</value>
+        <value xml:lang="ja">作業種別</value>
+    </property>
+    <property key="FinanceTaskName">
+        <value xml:lang="en">Task</value>
+        <value xml:lang="ja">タスク名</value>
+    </property>
+    <property key="FinanceLeaseCompletedOn">
+        <value xml:lang="en">Completed on</value>
+        <value xml:lang="ja">完了日</value>
+    </property>
+    <property key="FinanceLeaseAssignee">
+        <value xml:lang="en">Assignee</value>
+        <value xml:lang="ja">担当者</value>
+    </property>
 </resource>

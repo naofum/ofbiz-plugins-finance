@@ -121,4 +121,25 @@ under the License.
     <GlAccountOrganization glAccountId="503500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_DEFER_PROV" glAccountId="503600"/>
     <GlAccountOrganization glAccountId="503600" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <!-- STEP L4: deferred profit release and consumption tax received -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_PROFIT_RELEASE" glAccountId="403600"/>
+    <GlAccountOrganization glAccountId="403600" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_TAX_PAYABLE" glAccountId="224500"/>
+    <GlAccountOrganization glAccountId="224500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <!-- STEP L5: tax receivable (lump sum) and a Japanese consumption tax authority for the tests.
+         Rates (TaxAuthorityRateProduct) are created by the tests on a test-only product category. -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_TAX_RECEIVABLE" glAccountId="128800"/>
+    <GlAccountOrganization glAccountId="128800" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <!-- STEP L7: settlement of the residual value at disposal / transfer -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_DISPOSAL_RECV" glAccountId="128900"/>
+    <GlAccountOrganization glAccountId="128900" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_DISPOSAL_GAIN" glAccountId="403700"/>
+    <GlAccountOrganization glAccountId="403700" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_DISPOSAL_LOSS" glAccountId="503700"/>
+    <GlAccountOrganization glAccountId="503700" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <Party partyId="TEST_TAXAUTH_JP" partyTypeId="PARTY_GROUP"/>
+    <PartyGroup partyId="TEST_TAXAUTH_JP" groupName="Test Consumption Tax Authority"/>
+    <PartyRole partyId="TEST_TAXAUTH_JP" roleTypeId="TAX_AUTHORITY"/>
+    <TaxAuthority taxAuthGeoId="JPN" taxAuthPartyId="TEST_TAXAUTH_JP" includeTaxInPrice="N"/>
+    <TaxAuthorityGlAccount taxAuthGeoId="JPN" taxAuthPartyId="TEST_TAXAUTH_JP" organizationPartyId="Company" glAccountId="224500"/>
 </entity-engine-xml>

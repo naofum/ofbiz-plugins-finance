@@ -58,4 +58,20 @@ under the License.
         <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseAcceptanceTests"/>
     </test-case>
 
+    <test-case case-name="lease-accounting-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseAccountingTests"/>
+    </test-case>
+
+    <test-case case-name="lease-tax-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseTaxTests"/>
+    </test-case>
+
+    <test-case case-name="lease-delinquency-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseDelinquencyTests"/>
+    </test-case>
+
+    <test-case case-name="lease-expiry-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseExpiryTests"/>
+    </test-case>
+
 </test-suite>

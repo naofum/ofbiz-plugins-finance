@@ -249,6 +249,9 @@ under the License.
                         <screenlet title="${uiLabelMap.FinanceFindLeaseAgreements}">
                             <include-form name="FindLeaseAgreements" location="component://finance/widget/FinanceLeaseForms.xml"/>
                         </screenlet>
+                        <screenlet title="${uiLabelMap.FinanceLeaseRunMonthlyBatch}">
+                            <include-form name="RunLeaseMonthlyAccountingBatch" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        </screenlet>
                         <screenlet title="${uiLabelMap.FinanceLeaseAgreements}">
                             <include-grid name="ListLeaseAgreements" location="component://finance/widget/FinanceLeaseForms.xml"/>
                         </screenlet>
@@ -317,6 +320,90 @@ under the License.
                                 <screenlet title="${uiLabelMap.FinanceLeaseConfirmedSchedule} (${uiLabelMap.FinanceScheduleRevision} ${scheduleRevisionNumber})">
                                     <include-grid name="ListLeasePaymentSchedule" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                 </screenlet>
+                                <!-- STEP L4: billing, deferred profit release, payments -->
+                                <section>
+                                    <condition><not><if-empty field="leaseAcceptance"/></not></condition>
+                                    <widgets>
+                                        <screenlet title="${uiLabelMap.FinanceLeaseBalance}">
+                                            <include-form name="ViewLeaseBalance" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                        <section>
+                                            <condition><if-compare field="isActive" operator="equals" value="true" type="Boolean"/></condition>
+                                            <widgets>
+                                                <screenlet title="${uiLabelMap.FinanceLeaseBillInstallment}">
+                                                    <include-form name="CreateLeaseInstallmentInvoice" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </screenlet>
+                                                <screenlet title="${uiLabelMap.FinanceLeaseRecognizeProfit}">
+                                                    <include-form name="RecognizeLeaseProfit" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </screenlet>
+                                                <screenlet title="${uiLabelMap.FinanceLeaseReceivePayment}">
+                                                    <include-form name="ReceiveLeasePayment" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </screenlet>
+                                            </widgets>
+                                        </section>
+                                        <screenlet title="${uiLabelMap.FinanceLeaseInvoices}">
+                                            <include-grid name="ListLeaseInstallmentInvoices" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                        <screenlet title="${uiLabelMap.FinanceLeaseProfitRecognitions}">
+                                            <include-grid name="ListLeaseProfitRecognitions" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                        <screenlet title="${uiLabelMap.FinanceLeasePaymentReceipts}">
+                                            <include-grid name="ListLeasePaymentReceipts" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                        <!-- STEP L6: delinquency, late fee, dunning -->
+                                        <screenlet title="${uiLabelMap.FinanceLeaseDelinquency}">
+                                            <include-grid name="ListLeaseDelinquencies" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                            <section>
+                                                <condition><if-compare field="isActive" operator="equals" value="true" type="Boolean"/></condition>
+                                                <widgets>
+                                                    <include-form name="RunLeaseLateFeeAccrual" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </widgets>
+                                            </section>
+                                            <include-grid name="ListLeaseLateFeeAccruals" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                        <screenlet title="${uiLabelMap.FinanceDunningNotices}">
+                                            <include-form name="CreateLeaseDunningNotice" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                            <include-grid name="ListLeaseDunningNotices" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                        <screenlet title="${uiLabelMap.FinanceDelinquencyActions}">
+                                            <include-grid name="ListLeaseDelinquencyActions" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                        <!-- STEP L7: expiry and tasks -->
+                                        <screenlet title="${uiLabelMap.FinanceLeaseExpiry}">
+                                            <section>
+                                                <condition><if-compare field="canIssueNotice" operator="equals" value="true" type="Boolean"/></condition>
+                                                <widgets>
+                                                    <include-form name="IssueLeaseExpiryNotice" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </widgets>
+                                                <fail-widgets>
+                                                    <label text="${uiLabelMap.FinanceLeaseExpiryNoticeDate}: ${expiryNotice.noticeDate}"/>
+                                                </fail-widgets>
+                                            </section>
+                                            <section>
+                                                <condition><if-compare field="canTransfer" operator="equals" value="true" type="Boolean"/></condition>
+                                                <widgets>
+                                                    <include-form name="TransferLeaseOwnership" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </widgets>
+                                            </section>
+                                            <section>
+                                                <condition><not><if-empty field="returnedAssets"/></not></condition>
+                                                <widgets>
+                                                    <include-form name="DisposeLeaseAsset" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </widgets>
+                                            </section>
+                                            <section>
+                                                <condition><if-compare field="isActive" operator="equals" value="true" type="Boolean"/></condition>
+                                                <widgets>
+                                                    <include-form name="CompleteLeaseAgreement" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </widgets>
+                                            </section>
+                                            <include-grid name="ListLeaseAssetSettlements" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                        <screenlet title="${uiLabelMap.FinanceContractTasks}">
+                                            <include-grid name="ListFinanceContractTasks" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                    </widgets>
+                                </section>
                             </widgets>
                             <fail-widgets>
                                 <label text="${uiLabelMap.FinanceRecordNotFound}"/>
@@ -328,4 +415,27 @@ under the License.
         </section>
     </screen>
 
+    <!-- Leases nearing expiry and the expiry task batch (STEP L7) -->
+    <screen name="FindLeaseExpiry">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceLeaseExpiryList"/>
+                <set field="headerItem" value="LeaseExpiry"/>
+                <script location="component://finance/groovyScripts/lease/PrepareLeaseExpiry.groovy"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <screenlet title="${uiLabelMap.FinanceLeaseExpiryBatch}">
+                            <include-form name="RunLeaseExpiryBatch" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        </screenlet>
+                        <screenlet title="${uiLabelMap.FinanceLeaseExpiryList}">
+                            <include-form name="FilterLeaseExpiry" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                            <include-grid name="ListLeaseExpiry" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        </screenlet>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
 </screens>

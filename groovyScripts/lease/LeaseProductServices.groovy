@@ -35,7 +35,7 @@ Object param(String name) {
 
 List<String> editableFields() {
     return ['defaultMonthlyRateFactor', 'defaultCalcInterestRate', 'paymentTimingEnumId',
-            'residualValueRate', 'revenueMethodEnumId', 'taxable']
+            'residualValueRate', 'revenueMethodEnumId', 'taxable', 'taxTimingEnumId']
 }
 
 /** Validate rates and enumerations of a lease terms value; returns an error message or null. */
@@ -66,6 +66,12 @@ String validateTerms(GenericValue terms) {
     }
     if (!(terms.taxable in ['Y', 'N'])) {
         return label('FinanceLeaseEnumInvalid', [field: 'taxable', value: terms.taxable])
+    }
+    if (terms.taxTimingEnumId) {
+        GenericValue timing = from('Enumeration').where('enumId', terms.taxTimingEnumId).cache().queryOne()
+        if (timing == null || timing.enumTypeId != 'LEASE_TAX_TIMING') {
+            return label('FinanceLeaseEnumInvalid', [field: 'taxTimingEnumId', value: terms.taxTimingEnumId])
+        }
     }
     return null
 }

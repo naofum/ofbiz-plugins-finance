@@ -31,6 +31,9 @@ under the License.
         <menu-item name="LeaseAgreements" title="${uiLabelMap.FinanceLeaseAgreements}">
             <link target="FindLeaseAgreement"/>
         </menu-item>
+        <menu-item name="LeaseExpiry" title="${uiLabelMap.FinanceLeaseExpiryList}">
+            <link target="FindLeaseExpiry"/>
+        </menu-item>
         <menu-item name="LoanAgreements" title="${uiLabelMap.FinanceLoanAgreement}">
             <link target="FindLoanAgreement"/>
         </menu-item>

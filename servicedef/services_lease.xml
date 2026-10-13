@@ -234,7 +234,151 @@ under the License.
         <attribute name="acceptedByPartyId" type="String" mode="IN" optional="true"><description>defaults to the lessee</description></attribute>
         <attribute name="comments" type="String" mode="IN" optional="true"/>
         <attribute name="acctgTransId" type="String" mode="OUT" optional="true"/>
+        <attribute name="taxAcctgTransId" type="String" mode="OUT" optional="true"><description>lump-sum consumption tax at the start (STEP L5)</description></attribute>
         <attribute name="scheduleRevisionNumber" type="Long" mode="OUT" optional="true"/>
         <attribute name="created" type="Boolean" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- STEP L4: billing, deferred profit release, batch, payments    -->
+    <!-- ============================================================= -->
+    <service name="createLeaseInstallmentInvoice" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseAccountingServices" invoke="createLeaseInstallmentInvoice" auth="true">
+        <description>Bill one installment of the confirmed lease payment schedule (ACTIVE agreement, due by today):
+            SALES_INVOICE (READY) with the lease payment (credits the lease investment / receivable) and the consumption tax
+            (credits tax received); the core debits accounts receivable. Idempotent per installment.</description>
+        <permission-service service-name="financeBillingPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="installmentNumber" type="Long" mode="IN" optional="false"/>
+        <attribute name="invoiceId" type="String" mode="OUT" optional="true"/>
+        <attribute name="billedAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="invoiceCreated" type="Boolean" mode="OUT" optional="true"/>
+    </service>
+    <service name="recognizeLeaseProfit" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseAccountingServices" invoke="recognizeLeaseProfit" auth="true">
+        <description>Release the deferred lease profit earned (interest method) from the day after the last recognition
+            through the recognition date, one record and one transaction per calendar month
+            (Dr deferred lease profit / Cr deferred lease profit release). Re-running creates nothing twice.</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="recognitionDate" type="Timestamp" mode="IN" optional="true"><description>defaults to today</description></attribute>
+        <attribute name="leaseProfitRecognitionId" type="String" mode="OUT" optional="true"/>
+        <attribute name="recognizedAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="cumulativeAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="createdCount" type="Long" mode="OUT" optional="true"/>
+    </service>
+    <service name="runLeaseMonthlyAccountingBatch" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseAccountingServices" invoke="runLeaseMonthlyAccountingBatch" auth="true">
+        <description>For every ACTIVE lease (or the given one): bill the installments due through the processing date in
+            due-date order, then release the deferred lease profit through the processing date</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="processingDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="true"/>
+        <attribute name="processedAgreementCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="createdInvoiceCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="createdRecognitionCount" type="Long" mode="OUT" optional="true"/>
+    </service>
+    <service name="receiveLeasePayment" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseAccountingServices" invoke="receiveLeasePayment" auth="true">
+        <description>Receive a customer payment (PMNT_RECEIVED) for an ACTIVE lease and apply it to the given lease invoice,
+            or to the open lease invoices oldest due first; the amount may not exceed the open amount</description>
+        <permission-service service-name="financePaymentPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="invoiceId" type="String" mode="IN" optional="true"/>
+        <attribute name="amount" type="BigDecimal" mode="IN" optional="false"/>
+        <attribute name="paymentMethodTypeId" type="String" mode="IN" optional="true"><description>defaults to EFT_ACCOUNT</description></attribute>
+        <attribute name="effectiveDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="paymentId" type="String" mode="OUT" optional="true"/>
+        <attribute name="leasePaymentReceiptId" type="String" mode="OUT" optional="true"/>
+        <attribute name="appliedInvoiceCount" type="Long" mode="OUT" optional="true"/>
+    </service>
+    <service name="getLeaseAgreementBalance" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseAccountingServices" invoke="getLeaseAgreementBalance" auth="true">
+        <description>Collection status of a lease from the valid payment applications on its invoices
+            (tax, then interest, then principal) and the deferred profit recognized</description>
+        <permission-service service-name="financeGenericPermission" main-action="VIEW"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="billedCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="billedLeaseAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="billedTaxAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="billedAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="appliedAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="unpaidBilledAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="collectedTaxAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="collectedInterestAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="collectedPrincipalAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="outstandingPrincipal" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="unbilledLeaseAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="recognizedProfitAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="deferredProfitBalance" type="BigDecimal" mode="OUT" optional="true"/>
+    </service>
+    <!-- ============================================================= -->
+    <!-- STEP L7: expiry (tasks, notice, return, disposal, transfer)   -->
+    <!-- ============================================================= -->
+    <service name="runLeaseExpiryBatch" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseExpiryServices" invoke="runLeaseExpiryBatch" auth="true">
+        <description>For ACTIVE leases ending within monthsAhead months: expiry notice task; after the lease end, a return
+            task per asset (no transfer) or an ownership transfer task once every installment is settled (transfer). Idempotent.</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <attribute name="processingDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="monthsAhead" type="Long" mode="IN" optional="true"><description>defaults to lease.expiry.notice.months</description></attribute>
+        <attribute name="assigneePartyId" type="String" mode="IN" optional="true"/>
+        <attribute name="processedAgreementCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="createdTaskCount" type="Long" mode="OUT" optional="true"/>
+    </service>
+    <service name="issueLeaseExpiryNotice" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseExpiryServices" invoke="issueLeaseExpiryNotice" auth="true">
+        <description>Record the expiry notice to the lessee (one per agreement) and complete the notice task</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="noticeDate" type="Timestamp" mode="INOUT" optional="true"/>
+        <attribute name="comments" type="String" mode="IN" optional="true"/>
+        <attribute name="workEffortId" type="String" mode="OUT" optional="true"/>
+    </service>
+    <service name="returnLeaseAsset" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseExpiryServices" invoke="returnLeaseAsset" auth="true">
+        <description>Record the return of an asset (no ownership transfer, on or after the lease end); completes the return
+            task, creates the disposal task and completes the agreement when every asset is back and everything is settled</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="assetSeqId" type="String" mode="IN" optional="false"/>
+        <attribute name="returnDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="comments" type="String" mode="IN" optional="true"/>
+        <attribute name="assigneePartyId" type="String" mode="IN" optional="true"><description>assignee of the disposal task</description></attribute>
+        <attribute name="agreementCompleted" type="Boolean" mode="OUT" optional="true"/>
+    </service>
+    <service name="disposeLeaseAsset" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseExpiryServices" invoke="disposeLeaseAsset" auth="true">
+        <description>Record the sale / scrap of a returned asset and settle its residual value (gain / loss); completes the disposal task</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="assetSeqId" type="String" mode="IN" optional="false"/>
+        <attribute name="disposalTypeEnumId" type="String" mode="IN" optional="false"/>
+        <attribute name="disposalDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="proceedsAmount" type="BigDecimal" mode="IN" optional="true"><description>sale price (tax excluded); 0 for scrap</description></attribute>
+        <attribute name="disposalPartyId" type="String" mode="IN" optional="true"><description>buyer</description></attribute>
+        <attribute name="acctgTransId" type="String" mode="OUT" optional="true"/>
+        <attribute name="gainLossAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="workEffortId" type="String" mode="OUT" optional="true"/>
+    </service>
+    <service name="transferLeaseOwnership" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseExpiryServices" invoke="transferLeaseOwnership" auth="true">
+        <description>Transfer the ownership of the assets of a transfer lease to the lessee after the final payment; settles the
+            residual with the transfer price, updates FixedAsset.partyId, completes the task and the agreement</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="transferDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="transferPrice" type="BigDecimal" mode="IN" optional="true"><description>defaults to the residual value</description></attribute>
+        <attribute name="acctgTransIds" type="List" mode="OUT" optional="true"/>
+        <attribute name="agreementCompleted" type="Boolean" mode="OUT" optional="true"/>
+    </service>
+    <service name="completeLeaseAgreement" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseExpiryServices" invoke="completeLeaseAgreement" auth="true">
+        <description>Complete a lease (LEASEAGR_COMPLETED) when every asset is returned / disposed / transferred and every
+            installment is billed and settled (e.g. after the last payment arrives); releases the deferred profit through the end</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="completionDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="agreementCompleted" type="Boolean" mode="OUT" optional="true"/>
     </service>
 </services>

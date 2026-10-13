@@ -78,4 +78,21 @@ under the License.
         <attribute name="existingOutstanding" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="totalExposure" type="BigDecimal" mode="OUT" optional="true"/>
     </service>
+    <!-- STEP L7: work management (tasks of a contract as core WorkEffort) -->
+    <service name="createFinanceContractTask" engine="java"
+            location="org.apache.ofbiz.finance.common.FinanceWorkEffortHelper" invoke="createFinanceContractTask" auth="true">
+        <description>Create (or return the existing) task of a loan or lease contract: core WorkEffort TASK linked by
+            FinanceContractWorkEffort; one task per contract x work type x trigger key</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <attribute name="financeContractId" type="String" mode="IN" optional="false"/>
+        <attribute name="financeWorkTypeEnumId" type="String" mode="IN" optional="true"><description>FINANCE_WORK_TYPE; defaults to FINWE_OTHER</description></attribute>
+        <attribute name="triggerKey" type="String" mode="IN" optional="true"><description>defaults to a new manual key (always a new task)</description></attribute>
+        <attribute name="workEffortName" type="String" mode="IN" optional="false"/>
+        <attribute name="description" type="String" mode="IN" optional="true"/>
+        <attribute name="dueDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="assigneePartyId" type="String" mode="IN" optional="true"/>
+        <attribute name="fixedAssetId" type="String" mode="IN" optional="true"/>
+        <attribute name="workEffortId" type="String" mode="OUT" optional="true"/>
+        <attribute name="taskCreated" type="Boolean" mode="OUT" optional="true"/>
+    </service>
 </services>

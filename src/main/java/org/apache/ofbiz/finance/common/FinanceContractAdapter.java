@@ -75,4 +75,18 @@ public interface FinanceContractAdapter {
      * compatibility (e.g. {@code loanAgreementId}); may be empty.
      */
     Map<String, Object> getAgreementKeyFields(GenericValue agreement);
+
+    /** Write-off components of {@link DelinquencyComputation}. */
+    String WRITEOFF_PRINCIPAL = "PRINCIPAL";
+    String WRITEOFF_INTEREST = "INTEREST";
+    String WRITEOFF_TAX = "TAX";
+
+    /**
+     * GL account type credited when a component of the overdue balance is written
+     * off (STEP L6). Default (loan): principal and tax from accounts receivable,
+     * interest from interest receivable.
+     */
+    default String getWriteOffCreditAccountType(String component) {
+        return WRITEOFF_INTEREST.equals(component) ? "INTRSTINC_RECEIVABLE" : "ACCOUNTS_RECEIVABLE";
+    }
 }

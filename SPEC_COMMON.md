@@ -55,7 +55,8 @@ L0 のコミット：L0-1 `6d46268`、L0-2 `fe644c8`、L0-3 `ae6fa2e`、L0-4 `2a
 | 共通 | `FinanceContractHelper` | 共通契約台帳の作成・状態反映・ロック・与信合算 |
 | 共通 | `FinanceContractAdapter` | 契約種別アダプタのインターフェース |
 | 共通 | `FinanceContractAdapters` | アダプタ登録簿（`contract.adapter.<type>`）、サービス引数からの契約解決 |
-| 共通 | `DelinquencyComputation` | 延滞日数・延滞元本・延滞利息の値オブジェクト |
+| 共通 | `DelinquencyComputation` | 延滞日数・延滞元本・延滞利息の値オブジェクト（STEP L6 で延滞消費税と遅延損害金の計算基礎を追加。償却科目はアダプタの `getWriteOffCreditAccountType`。詳細は `SPEC_LEASE.md` 7.2） |
+| 共通 | `FinanceWorkEffortHelper` | STEP L7：契約のタスク（core WorkEffort、`FinanceContractWorkEffort` で紐付け）の作成（冪等）・完了・一覧、サービス `createFinanceContractTask`。詳細は `SPEC_LEASE.md` 8.1 |
 | 共通 | `FinanceDelinquencyServices` | 延滞判定バッチ・遅延損害金・督促・償却/法的手続き（契約種別に依存しない） |
 | 共通 | `FinanceInterestCalculator` | 日割り基準・端算入・通貨別丸め・設定解決（STEP 8〜10 から移動） |
 | 共通 | `BusinessDayCalculator` | 営業日調整（STEP 10 から移動） |

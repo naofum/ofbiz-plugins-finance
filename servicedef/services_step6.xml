@@ -33,6 +33,7 @@ under the License.
         <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
         <attribute name="processingDate" type="Timestamp" mode="IN" optional="true"/>
         <attribute name="loanAgreementId" type="String" mode="IN" optional="true"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="true"><description>lease agreement (STEP L6)</description></attribute>
         <attribute name="financeContractId" type="String" mode="IN" optional="true"/>
         <attribute name="processedAgreementCount" type="Long" mode="OUT" optional="true"/>
         <attribute name="createdDelinquencyCount" type="Long" mode="OUT" optional="true"/>
@@ -47,6 +48,7 @@ under the License.
         <description>Accrue late fee on the overdue balance and post the GL journal</description>
         <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
         <attribute name="loanAgreementId" type="String" mode="IN" optional="true"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="true"><description>lease agreement (STEP L6)</description></attribute>
         <attribute name="financeContractId" type="String" mode="IN" optional="true"/>
         <attribute name="accrualDate" type="Timestamp" mode="IN" optional="true"/>
         <attribute name="loanLateFeeAccrualId" type="String" mode="OUT" optional="true"/>
@@ -54,6 +56,8 @@ under the License.
         <attribute name="lateFeeAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="overduePrincipal" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="overdueInterest" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="overdueTax" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="lateFeeBaseAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="accrualCreated" type="Boolean" mode="OUT" optional="true"/>
     </service>
 
@@ -61,6 +65,7 @@ under the License.
             location="org.apache.ofbiz.finance.common.FinanceDelinquencyServices" invoke="runLateFeeAccrual" auth="true">
         <description>Internal late fee accrual (no permission check)</description>
         <attribute name="loanAgreementId" type="String" mode="IN" optional="true"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="true"><description>lease agreement (STEP L6)</description></attribute>
         <attribute name="financeContractId" type="String" mode="IN" optional="true"/>
         <attribute name="accrualDate" type="Timestamp" mode="IN" optional="true"/>
         <attribute name="loanLateFeeAccrualId" type="String" mode="OUT" optional="true"/>
@@ -68,6 +73,8 @@ under the License.
         <attribute name="lateFeeAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="overduePrincipal" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="overdueInterest" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="overdueTax" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="lateFeeBaseAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="accrualCreated" type="Boolean" mode="OUT" optional="true"/>
     </service>
 
@@ -79,6 +86,7 @@ under the License.
         <description>Record a dunning notice for a loan agreement</description>
         <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
         <attribute name="loanAgreementId" type="String" mode="IN" optional="true"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="true"><description>lease agreement (STEP L6)</description></attribute>
         <attribute name="financeContractId" type="String" mode="IN" optional="true"/>
         <attribute name="dunningLevelEnumId" type="String" mode="IN" optional="false"/>
         <attribute name="noticeDate" type="Timestamp" mode="IN" optional="true"/>

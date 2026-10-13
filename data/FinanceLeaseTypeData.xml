@@ -111,4 +111,38 @@ under the License.
     <GlAccount glAccountId="403500" accountCode="403500" glAccountClassId="REVENUE" glAccountTypeId="LEASE_SALES" glResourceTypeId="MONEY" accountName="LEASE SALES"/>
     <GlAccount glAccountId="503500" accountCode="503500" glAccountClassId="COGS_EXPENSE" glAccountTypeId="LEASE_COST_OF_SALES" glResourceTypeId="MONEY" accountName="LEASE COST OF SALES"/>
     <GlAccount glAccountId="503600" accountCode="503600" glAccountClassId="COGS_EXPENSE" glAccountTypeId="LEASE_DEFER_PROV" glResourceTypeId="MONEY" accountName="PROVISION TO DEFERRED LEASE PROFIT"/>
+
+    <!-- ============ STEP L4: billing and deferred profit release ============ -->
+    <!-- Lease invoice items: the GL account is given per item (overrideGlAccountId). -->
+    <InvoiceItemType description="Lease payment" hasTable="N" invoiceItemTypeId="LEASE_PAYMENT"/>
+    <InvoiceItemType description="Consumption tax on lease payment" hasTable="N" invoiceItemTypeId="LEASE_CONS_TAX"/>
+    <InvoiceItemTypeMap invoiceTypeId="SALES_INVOICE" invoiceItemMapKey="LEASE_PAYMENT" invoiceItemTypeId="LEASE_PAYMENT"/>
+    <InvoiceItemTypeMap invoiceTypeId="SALES_INVOICE" invoiceItemMapKey="LEASE_CONS_TAX" invoiceItemTypeId="LEASE_CONS_TAX"/>
+    <GlAccountType description="Deferred lease profit release (income)" glAccountTypeId="LEASE_PROFIT_RELEASE" hasTable="N" parentTypeId="INCOME"/>
+    <GlAccountType description="Consumption tax received on lease payments" glAccountTypeId="LEASE_TAX_PAYABLE" hasTable="N" parentTypeId="CURRENT_LIABILITY"/>
+    <GlAccount glAccountId="403600" accountCode="403600" glAccountClassId="REVENUE" glAccountTypeId="LEASE_PROFIT_RELEASE" glResourceTypeId="MONEY" accountName="DEFERRED LEASE PROFIT RELEASE"/>
+    <GlAccount glAccountId="224500" accountCode="224500" glAccountClassId="CURRENT_LIABILITY" glAccountTypeId="LEASE_TAX_PAYABLE" glResourceTypeId="MONEY" accountName="CONSUMPTION TAX RECEIVED (LEASE)"/>
+
+    <!-- ============ STEP L5: consumption tax ============ -->
+    <EnumerationType description="Lease Consumption Tax Timing" enumTypeId="LEASE_TAX_TIMING" hasTable="N"/>
+    <Enumeration description="Taxable sale per installment (各回)" enumCode="INSTALLMENT" enumId="LEASE_TAX_INSTALL" sequenceId="01" enumTypeId="LEASE_TAX_TIMING"/>
+    <Enumeration description="Taxable sale in full at the lease start (開始時一括)" enumCode="AT_START" enumId="LEASE_TAX_AT_START" sequenceId="02" enumTypeId="LEASE_TAX_TIMING"/>
+    <!-- Lump sum: the tax of all payments is booked at the start; billing collects this receivable. -->
+    <GlAccountType description="Consumption tax receivable on lease payments (lump sum at start)" glAccountTypeId="LEASE_TAX_RECEIVABLE" hasTable="N" parentTypeId="CURRENT_ASSET"/>
+    <GlAccount glAccountId="128800" accountCode="128800" glAccountClassId="CURRENT_ASSET" glAccountTypeId="LEASE_TAX_RECEIVABLE" glResourceTypeId="MONEY" accountName="LEASE CONSUMPTION TAX RECEIVABLE"/>
+
+    <!-- ============ STEP L7: expiry (return, disposal, ownership transfer) ============ -->
+    <!-- Only the expiry services (return / transfer) perform this transition. -->
+    <StatusValidChange statusId="LEASEAGR_ACTIVE" statusIdTo="LEASEAGR_COMPLETED" transitionName="Complete (expiry)"/>
+    <StatusItem description="Disposed" sequenceId="06" statusCode="DISPOSED" statusId="LSAST_DISPOSED" statusTypeId="LEASE_ASSET_STATUS"/>
+    <EnumerationType description="Lease Asset Disposal Type" enumTypeId="LEASE_DISPOSAL_TYPE" hasTable="N"/>
+    <Enumeration description="Sale (売却)" enumCode="SALE" enumId="LEASE_DISP_SALE" sequenceId="01" enumTypeId="LEASE_DISPOSAL_TYPE"/>
+    <Enumeration description="Scrap (廃棄)" enumCode="SCRAP" enumId="LEASE_DISP_SCRAP" sequenceId="02" enumTypeId="LEASE_DISPOSAL_TYPE"/>
+    <!-- Settlement of the residual value booked in the lease investment / receivable. -->
+    <GlAccountType description="Receivable from the sale / transfer of a leased asset" glAccountTypeId="LEASE_DISPOSAL_RECV" hasTable="N" parentTypeId="CURRENT_ASSET"/>
+    <GlAccountType description="Gain on disposal of leased assets" glAccountTypeId="LEASE_DISPOSAL_GAIN" hasTable="N" parentTypeId="INCOME"/>
+    <GlAccountType description="Loss on disposal of leased assets" glAccountTypeId="LEASE_DISPOSAL_LOSS" hasTable="N"/>
+    <GlAccount glAccountId="128900" accountCode="128900" glAccountClassId="CURRENT_ASSET" glAccountTypeId="LEASE_DISPOSAL_RECV" glResourceTypeId="MONEY" accountName="RECEIVABLE ON LEASED ASSET DISPOSAL"/>
+    <GlAccount glAccountId="403700" accountCode="403700" glAccountClassId="REVENUE" glAccountTypeId="LEASE_DISPOSAL_GAIN" glResourceTypeId="MONEY" accountName="GAIN ON DISPOSAL OF LEASED ASSETS"/>
+    <GlAccount glAccountId="503700" accountCode="503700" glAccountClassId="COGS_EXPENSE" glAccountTypeId="LEASE_DISPOSAL_LOSS" glResourceTypeId="MONEY" accountName="LOSS ON DISPOSAL OF LEASED ASSETS"/>
 </entity-engine-xml>

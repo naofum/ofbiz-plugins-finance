@@ -28,10 +28,10 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L1 | リース商品・物件・申込の基盤 | 完了（tests=63 / errors=0 / failures=0） |
 | L2 | リース見積・審査・契約 | 完了（tests=70 / errors=0 / failures=0） |
 | L3 | 物件の購入・検収・リース開始（第1法の開始仕訳） | 完了（finance テスト errors=0 / failures=0、testcase 44 件） |
-| L4 | 月次会計・リース料請求・入金消込（繰延リース利益戻入） | 未着手 |
-| L5 | 消費税 | 未着手 |
-| L6 | 延滞・督促（リース用契約アダプタ。共通層側は `SPEC_COMMON.md`） | 未着手 |
-| L7 | 期間満了処理（返還・所有権移転） | 未着手 |
+| L4 | 月次会計・リース料請求・入金消込（繰延リース利益戻入） | 完了（tests=97 / errors=0 / failures=0） |
+| L5 | 消費税 | 完了（tests=107 / errors=0 / failures=0） |
+| L6 | 延滞・督促（リース用契約アダプタ。共通層側は `SPEC_COMMON.md`） | 完了（tests=110 / errors=0 / failures=0） |
+| L7 | 期間満了処理（返還・所有権移転）。作業管理（WorkEffort）を共通層に導入（`REQUIREMENTS_LEASE.md` 3.5） | 完了（tests=119 / errors=0 / failures=0） |
 | L8 | 帳票・照会 | 未着手 |
 
 前提：STEP L0（共通層の切り出し、`SPEC_COMMON.md`）の完了後に着手する。
@@ -42,7 +42,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 
 | 種別 | 配置 |
 |------|------|
-| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`） |
+| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`） |
 | Groovy | `groovyScripts/lease/`（`LeaseProductServices` / `LeaseApplicationServices` / `PrepareLeaseApplication`） |
 | entitydef | `entitymodel_lease.xml` |
 | servicedef | `services_lease.xml` |
@@ -300,6 +300,293 @@ seed：`LEASEAGR_CONTRACTED → LEASEAGR_ACTIVE` の遷移と、リース用の 
 
 ---
 
+## 5. STEP L4 — 月次会計・リース料請求・入金消込
+
+実装：`LeaseAccountingServices`（サービス）、`LeaseProfitAllocator`（戻入額の計算、エンティティ非依存）、`LeaseRevenueStrategy`（方式ごとの仕訳）。
+すべての処理は契約単位で `FinanceContractHelper.lock` を取り、**検収済み（`LEASEAGR_ACTIVE`）の契約だけ** を対象にする（検収前の請求・戻入・入金は拒否）。
+
+### 5.1 データモデル
+
+| エンティティ | 主キー | 内容 |
+|--------------|--------|------|
+| `LeaseInstallmentInvoice` | leaseAgreementId + installmentNumber | 請求した回と core `Invoice`（一意）。請求した revision、期日、リース料・元本回収額・利息相当額・消費税・請求額（税込）の写し |
+| `LeaseProfitRecognition` | leaseProfitRecognitionId（採番） | 繰延リース利益の戻入。期間（fromDate〜thruDate、日単位・両端含む）、当期額、累計額、仕訳。契約＋fromDate で一意 |
+| `LeasePaymentReceipt` | leasePaymentReceiptId（採番） | 入金（core `Payment`、一意）、指定した請求書（任意）、金額、入金日 |
+
+seed（`FinanceLeaseTypeData.xml`）：請求明細種別 `LEASE_PAYMENT`（リース料）・`LEASE_CONS_TAX`（消費税）と `SALES_INVOICE` への InvoiceItemTypeMap、
+GL 科目タイプ `LEASE_PROFIT_RELEASE`（403600 繰延リース利益戻入益、収益）・`LEASE_TAX_PAYABLE`（224500 仮受消費税（リース）、流動負債）。
+`Company` への割当は demo・テストデータに追加した。売掛金は core の `ACCOUNTS_RECEIVABLE`（Company は 120000）を使う。
+
+### 5.2 請求（`createLeaseInstallmentInvoice`）
+
+- 現在の revision の確定リース料表（検収で作り直したもの）の 1 回分を、core の `SALES_INVOICE` として作成し READY にする。期日が当日以前の回だけ。同じ回の再請求は既存の請求書を返す（冪等）。
+- 明細と仕訳（第1法）：
+
+| 借方 | 貸方 | 金額 |
+|------|------|------|
+| 売掛金（core が計上） | リース投資資産（移転外）／リース債権（移転）（明細 `LEASE_PAYMENT` の `overrideGlAccountId`） | リース料（税抜） |
+| 売掛金（core が計上） | 仮受消費税（明細 `LEASE_CONS_TAX` の `overrideGlAccountId`） | 消費税（リース料表の `taxAmount`） |
+
+- 売上は開始時に計上済みのため、請求では計上しない。貸方科目は戦略クラスの `billingCreditAccountType` で決める。
+- 消費税は core の税明細（`ITM_SALES_TAX` / `TaxAuthority`）を使わず、L2 の表示用税額をそのまま独自の明細種別で計上した。税率の固定・税務当局・課税時期は L5 で扱う。
+
+### 5.3 繰延リース利益の戻入（`recognizeLeaseProfit`）
+
+- 各回の利息相当額（利息法、L2 のリース料表）を、その利息が生じるリース期間に割り当てる。
+  - 後払：第 k 回の利息相当額は第 k 期間に帰属する。
+  - 前払：第 k 回（k ≥ 2）の利息相当額は、その回の期日で終わる第 k−1 期間に帰属する（第 1 回は利息 0）。したがって前払では第 n−1 期間の末日で全額の戻入が終わる。
+- ある日までの累計戻入額 ＝ 終了した期間の利息相当額の合計 ＋ 進行中の期間の日割り（通貨別丸め）。各回は「累計（今回の計上日）− 計上済み累計」を計上するので、**月中の再実行は直前計上日の翌日から増分だけを計上し、二重計上しない**。累計は最終の帰属日に利息相当額合計（＝開始時の繰延リース利益）と一致する（端数は最終期間で吸収）。
+- 記録は暦月ごとに 1 件（例：開始日〜月末、翌月 1 日〜計上日）。計上日が最終の帰属日より後なら最終の帰属日までとする。0 円の期間は記録だけを作り、仕訳は作らない。
+- 仕訳：借 繰延リース利益（128700）／ 貸 繰延リース利益戻入益（403600）。仕訳日は記録の thruDate。
+- 戦略クラスの `recognitionEntries` で方式ごとの仕訳を返す（第3法を追加するときはここと `billingCreditAccountType` を実装する）。
+
+### 5.4 月次バッチ（`runLeaseMonthlyAccountingBatch`）
+
+全 ACTIVE リース契約（または指定契約）について、①処理日までに期日の来た回を期日順に請求し、②処理日までの繰延リース利益を戻入する。
+請求と戻入は互いの結果に依存しない（戻入はリース料表の利息相当額から計算し、請求・入金の有無に左右されない）ので、ローンの「期日まで計上 → 請求 → 残期間の計上」の 3 段は不要である。再実行は請求・戻入とも何も作らない。
+処理件数（契約・請求書・戻入記録）を返す。画面は `FindLeaseAgreement` の「リース月次バッチ」。
+
+### 5.5 入金消込（`receiveLeasePayment`）と回収状況（`getLeaseAgreementBalance`）
+
+- core の `CUSTOMER_PAYMENT`（`PMNT_RECEIVED`、支払方法の既定 `EFT_ACCOUNT`）を作成し、指定した請求書へ、指定がなければ **期日の古い未入金のリース請求書から順に** `PaymentApplication` で消し込む。入金額が対象請求書の未消込額を超える場合は拒否する。入金・消込の仕訳は core が作り、未転記分を転記する。`LeasePaymentReceipt` に記録する。
+- 他契約・取消済み・貸倒済み・通貨や借手が違う請求書への消込は拒否する。
+- 回収状況は **有効な消込（`PMNT_RECEIVED` / `PMNT_CONFIRMED` の Payment の `PaymentApplication`）と請求した回の金額** から毎回算定する（スナップショットは持たない）。1 請求書の消込額は **消費税 → 利息相当額 → 元本回収額** の順に充当する。
+  - 未回収元本 ＝ 取得価額 − 充当された元本回収額の累計。**請求しただけでは減らない**。
+  - ほかに請求額・消込額・未入金額・未請求リース料・戻入累計・繰延リース利益残高を返す。
+- 消込解除は core の `removePaymentApplication`（core 修正済み、`SPEC.md` 14 章）をそのまま使い、請求書は READY に戻り、回収状況にも自動で反映される。
+- 遅延損害金の先行充当は L6（延滞）で扱う。
+
+### 5.6 画面
+
+`ManageLeaseAgreement`（検収後）に、回収状況、リース料請求（回を指定）、繰延リース利益戻入（計上日）、入金受付（金額・請求書・入金日）のフォームと、
+請求書一覧（未入金額・状態）、戻入一覧（期間・額・累計・仕訳）、入金記録の一覧を追加した。フォームは ACTIVE の間だけ表示する。
+
+### 5.7 テスト（`LeaseAccountingTests`。USD 商品 `TEST_LEASEPROD_USD`、テストごとに新しい借手、開始日は当日より前）
+
+| テスト | 内容 |
+|--------|------|
+| `testBillingFromConfirmedSchedule` | 検収前の請求・戻入・バッチ・入金の拒否、請求額＝確定リース料表（revision 2）、請求書（SALES_INVOICE・READY・期日・明細 2 行）、GL（借 売掛金 ／ 貸 投資資産・仮受消費税、売上なし、貸借一致）、再請求の冪等性、期日前の請求拒否、バッチでの期日到来分の一括請求と再実行で 0 件、請求だけでは未回収元本が減らないこと |
+| `testDeferredProfitReleaseOverFullTerm` | 利子率方式 12 か月：前払の帰属（第 1 期間＝第 2 回の利息）、月中実行の暦月分割、同日再実行で 0、翌日からの増分、戻入仕訳、満了後のバッチで全 12 回請求・**戻入累計＝開始時の繰延リース利益**・期間の連続（重複なし）、投資資産の開始借方＝請求の貸方合計、満了後の再実行で 0 件 |
+| `testPaymentApplicationAndOutstandingPrincipal` | 0 円・他請求書・超過入金の拒否、一部入金（消費税 → 元本の充当）、請求書指定なしで古い順に 2 件消込（PAID）、利息・元本の充当額と未回収元本、消込解除で請求書 READY・未回収元本と未入金額が戻ること |
+
+### 5.8 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 新規 3 テーブル作成、`FinanceLeaseTypeData.xml` 73 件、BUILD SUCCESSFUL |
+| `gradlew "ofbiz --test component=finance"` | tests=97 / errors=0 / failures=0（リース会計 3 件を含む） |
+| demo 投入 | `FinanceLeaseDemoData.xml` 32 件、BUILD SUCCESSFUL |
+| 画面 | 未確認（OFBiz を起動しての画面操作は行っていない） |
+
+### 5.9 要確認・制約
+
+- **戻入の帰属（前払）**：前払の第 k 回の利息相当額を第 k−1 期間に帰属させた（利息は期間の経過で生じ、期日に回収される）。経理部門の確認事項とする。
+- **残価**：残価がある契約では、投資資産の開始借方（リース料総額＋残価）のうち残価分は請求では減らず、満了時（L7）の処分で精算する。
+- **消費税**：L4 は表示用税額（`lease.tax.rate`）を仮受消費税で計上するだけ。課税時期（開始時一括／各回）・税率の固定・core 税明細との関係は L5。
+- **外貨建て**：契約通貨と貸手の基準通貨が違う場合、戻入は `FinanceGlHelper` で換算するが、請求・入金の仕訳は core の換算（4 桁丸め）による。L3 の運用メモと同じ差が生じうる。
+
+---
+
+## 6. STEP L5 — 消費税
+
+実装：`LeaseTaxHelper`（税率・計上時期の解決、税額の配分）。検収（`acceptLeaseAgreement`）で税率と計上時期を契約に固定し、請求（`createLeaseInstallmentInvoice`）が固定した内容で税明細を作る。
+
+### 6.1 税率の解決と固定
+
+- 税率は core の `TaxAuthorityRateProduct`（`taxAuthorityRateTypeId=SALES_TAX`）から取る。対象は、リース商品が属する商品カテゴリ（`ProductCategoryMember`）の行のうち、`finance.properties` の `lease.tax.authority.geoId`（既定 `JPN`）の税務当局のもので、**リース開始日（検収日）に有効なもの**（fromDate 以前・thruDate より前）。複数あれば fromDate の新しいもの。`taxPercentage`（%）を 100 で割って率にする。
+- 非課税商品（`taxable=N`）は 0。該当する税率行がない商品は `lease.tax.rate`（既定 0.10）を使い、税務当局なしとする（L2〜L4 と同じ挙動）。
+- 検収時に、税率・税務当局（`taxAuthPartyId` / `taxAuthGeoId` / `taxAuthorityRateSeqId`）・計上時期を `LeaseAgreement` に保存し、確定リース料表の新 revision の消費税額と `totalTaxAmount` を固定した税率で計算し直す。**以後の請求は請求日の税率ではなくこの固定値を使う**（税率改定をまたぐ契約も開始時の税率のまま。経過措置を想定）。
+- 見積の税率（表示用）も、見積の開始予定日で同じ方法で解決する。
+
+### 6.2 計上時期（`LEASE_TAX_TIMING`）
+
+商品の `FinancialProductLease.taxTimingEnumId` → `lease.tax.timing`（既定 `LEASE_TAX_INSTALL`）の順で決め、検収時に契約へ固定する。
+
+| 計上時期 | 開始時 | 請求時の税明細 | 請求時の仕訳（税） |
+|----------|--------|----------------|--------------------|
+| 各回（`LEASE_TAX_INSTALL`、税務当局あり） | なし | core の `ITM_SALES_TAX`（税務当局・税率行つき） | 貸 `TaxAuthorityGlAccount` の科目（Company は 224500 仮受消費税）。core の税集計の対象になる |
+| 各回（税務当局なし） | なし | `LEASE_CONS_TAX` | 貸 仮受消費税（L4 と同じ） |
+| 開始時一括（`LEASE_TAX_AT_START`） | 借 未収消費税（リース、128800）／ 貸 仮受消費税（224500）：消費税総額。`LeaseAcceptance.startTaxAcctgTransId` に記録 | `LEASE_CONS_TAX` | 貸 未収消費税（リース）。仮受消費税は再計上しない。満了時に未収消費税の残高は 0 |
+
+- 各回の税務当局つきの経路では、請求書の税明細と GL の仮受消費税が一致する（core の売上請求の仕訳が税務当局ごとに貸方を作る）。
+
+### 6.3 端数処理
+
+- 通貨別端数処理（JPY は切り捨て、USD は四捨五入 2 桁）を消費税にも適用する。
+- 各回：回ごとに「リース料 × 税率」を丸める。消費税総額は各回の合計（明細単位の端数は総額に合わせない）。
+- 開始時一括：消費税総額＝「リース料総額 × 税率」を 1 回だけ丸め、各回は回ごとの丸め額、**最終回で総額との差を調整**する（各回の合計＝開始時に計上した総額）。
+
+### 6.4 seed・demo・テストデータ
+
+- seed：`LEASE_TAX_TIMING`（`LEASE_TAX_INSTALL` / `LEASE_TAX_AT_START`）、GL 科目タイプ `LEASE_TAX_RECEIVABLE`（128800 未収消費税（リース）、流動資産）。
+- `FinancialProductLease.taxTimingEnumId`、`LeaseAgreement.taxTimingEnumId` / `taxAuthPartyId` / `taxAuthGeoId` / `taxAuthorityRateSeqId`、`LeaseAcceptance.startTaxAcctgTransId` を追加した。商品画面に計上時期、契約画面に税率・計上時期・税務当局、検収結果に開始時消費税仕訳を表示する。
+- demo：税務当局 `DEMO_TAXAUTH_JP`（JPN）、Company の `TaxAuthorityGlAccount`（224500）、税カテゴリ `DEMO_LEASE_TAX_STD`（`DEMO_LEASEPROD1` が所属）、10%（2019-10-01〜）。
+- テスト：税務当局 `TEST_TAXAUTH_JP` と GL 割当。税カテゴリと税率行はテストごとに作る（日付は当日基準）。
+
+### 6.5 テスト（`LeaseTaxTests`）
+
+| テスト | 内容 |
+|--------|------|
+| `testTaxAllocationRounding` | JPY 切り捨て（各回／一括の最終回調整）、USD 四捨五入、非課税商品の税率 0、税率行のない商品は `lease.tax.rate`・税務当局なし |
+| `testTaxRateFixedAtLeaseStart` | 1 か月前に 8% → 12% に改定：改定前開始の契約は見積・契約・全回とも 8%、改定後に期日の来た回も 8% で請求、`ITM_SALES_TAX`（税務当局つき）と GL（貸 224500＝税額、借 売掛金＝請求額、貸借一致）。改定後開始の契約は 12% |
+| `testLumpSumTaxAtStart` | 開始時一括：開始時仕訳（借 128800 ／ 貸 224500＝総額）、各回の税の合計＝総額、請求は `LEASE_CONS_TAX` で 224500 を再計上せず 128800 を回収（合計＝総額）、再検収で同じ仕訳 |
+
+### 6.6 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 列追加（`LEASE_AGREEMENT` 4 列、`LEASE_ACCEPTANCE` 1 列、`FINANCIAL_PRODUCT_LEASE` 1 列）、`FinanceLeaseTypeData.xml` 78 件 |
+| `gradlew "ofbiz --test component=finance"` | tests=107 / errors=0 / failures=0 |
+| demo 投入 | `FinanceLeaseDemoData.xml` 42 件、BUILD SUCCESSFUL |
+| 画面 | 未確認 |
+
+### 6.7 要確認・制約
+
+- **計上時期の既定値**：要件 1.4 の確認（経理部門・税理士）が済んでいないため、既定は L4 と同じ「各回」とした。税法上の原則（引渡時の一括）を既定にする場合は `lease.tax.timing=LEASE_TAX_AT_START` に変える。
+- **開始時一括の申告データ**：一括の税額は GL 仕訳だけで、core の税明細（`ITM_SALES_TAX`）を持たないため、core の税集計画面には出ない。
+- **税込経理・軽減税率・インボイス制度の記載事項**は対象外。
+- **既存契約**：L5 以前に検収した契約（開発 DB のデモ契約 `10010` 等）は計上時期・税務当局が空で、各回・税務当局なし（L4 の挙動）で請求される。
+
+---
+
+## 7. STEP L6 — 延滞・督促
+
+延滞判定・区分・遅延損害金・督促・償却は共通層の `FinanceDelinquencyServices`（`SPEC_COMMON.md`）をそのまま使い、リース固有の部分を `LeaseContractAdapter` に実装した。延滞関連レコード（`LoanDelinquency` / `LoanLateFeeAccrual` / `LoanDunningNotice` / `LoanDelinquencyAction`）は `financeContractId` だけを持ち、`loanAgreementId` は空。
+
+### 7.1 延滞の算定（`LeaseContractAdapter.computeDelinquency`）
+
+- 現在の revision の確定リース料表のうち、期日が判定日以前で、請求書が PAID / WRITEOFF / CANCELLED でない回（未請求の回を含む）を延滞とする。延滞額は請求書の未消込額（未請求なら リース料＋消費税）。
+- 入金は消費税 → 利息相当額 → 元本回収額の順に充当する（L4）ので、未払額は **元本回収額 → 利息相当額 → 消費税** の順に残る。これを延滞元本・延滞利息（利息相当額）・延滞消費税に分ける。
+- 延滞日数は最も古い延滞回の期日からの日数。区分は商品の `FinancialProductDelinquency`（ローンと同じ）。
+- `findOpenInvoiceIds`：未決済のリース請求書。償却時に `INVOICE_WRITEOFF` にする。
+
+### 7.2 共通層の変更
+
+| 変更 | 内容 |
+|------|------|
+| `DelinquencyComputation` | 延滞消費税（`overdueTax`）と遅延損害金の計算基礎（`lateFeeBase`、既定は延滞合計）を追加。延滞合計＝元本＋利息＋消費税。ローンは従来のコンストラクタのままで値は変わらない |
+| `FinanceContractAdapter.getWriteOffCreditAccountType` | 償却時の貸方科目タイプを構成要素（元本／利息／消費税）ごとに返す default メソッド。既定（ローン）は元本・消費税＝売掛金、利息＝未収利息。リースはすべて売掛金（請求書で売掛金に計上済みのため） |
+| `runLateFeeAccrual` | 計算基礎を `getLateFeeBase()` にした。`LoanLateFeeAccrual` に `overdueTax` / `lateFeeBaseAmount`、結果に同名の出力を追加 |
+| 償却 | 構成要素ごとに「借 貸倒損失（`WRITEOFF`）／ 貸 アダプタの科目」を計上（消費税の償却を追加） |
+| `LoanDelinquency.overdueTaxAmount` | 延滞消費税を記録 |
+| `services_step6.xml` | `runLoanDelinquencyBatch` / `runLateFeeAccrual(Internal)` / `createLoanDunningNotice` に `leaseAgreementId` を追加（`FinanceContractAdapters.resolveContractId` が LEASE アダプタで解決） |
+| `FindLoanDelinquency` | 一覧に `financeContractId`（`ViewFinanceContract` 経由で各層の契約画面へ）を追加。リースの行も表示される |
+
+### 7.3 遅延損害金
+
+- 年率は商品（`FinancialProduct.lateFeeAnnualRate`）、日割り・端数・GL（借 未収利息 121800 ／ 貸 遅延損害金収益 810100）はローンと同じ。
+- 計算基礎は `finance.properties` の `lease.latefee.base`（SystemProperty で上書き可）：`TAX_INCLUDED`（既定、延滞リース料＋消費税）／ `TAX_EXCLUDED`（延滞リース料のみ）。
+
+### 7.4 督促状・画面
+
+- 督促状 PDF（`PrintLeaseDunningNotice.pdf`、`PrepareLeaseDunningNotice.groovy`）はローンの `DunningNotice.jrxml` を共用し、見出し・項目をリース用の文言（リース料お支払いのご請求、延滞リース料（税抜）・延滞消費税、明細は回・期日・未払額・リース料・消費税）で渡す。貸手名は契約の貸手組織の名称。
+- `ManageLeaseAgreement`（検収後）に、延滞の判定結果、遅延損害金の計上（ACTIVE 中）と一覧、督促状の記録・PDF、償却・法的手続きの一覧を追加した。
+- 顧客単位の照会（`FinanceCustomerSummary`）はローン・リースの延滞・督促を合わせて表示する（L0 の画面のまま）。
+- demo：`DEMO_LEASEPROD1` に延滞区分 D1〜D4（償却・法的手続きは D4）を追加した。
+
+### 7.5 テスト（`LeaseDelinquencyTests`。テストごとに USD のリース商品（遅延損害金 14.6%、区分 D1〜D4）と新しい借手）
+
+| テスト | 内容 |
+|--------|------|
+| `testLeaseDelinquencyAndLateFee` | 45 日延滞・一部入金：D2、延滞日数 45、元本・利息相当額・消費税の分割と合計、同日再実行で 0 件、`loanAgreementId` 空、遅延損害金（計算基礎＝税込延滞額、GL 121800 ／ 810100、再実行で作成なし）、`TAX_EXCLUDED` で計算基礎から消費税が除かれること、全額入金済みの契約は延滞なし |
+| `testLeaseWriteOffAndLegalAction` | 100 日延滞（D4）：償却記録（金額＝未決済請求額）、法的手続き記録、全請求書 WRITEOFF、償却仕訳 3 件（元本・利息・消費税）の貸方合計＝未決済額（売掛金 120000）、償却後は延滞なし |
+| `testCustomerSummaryAcrossLoanAndLease` | 同一顧客のローン（45 日延滞）とリース（20 日延滞、D1）：契約指定のバッチ、`leaseAgreementId` での督促記録、顧客照会に両方の契約・延滞・督促、与信額＝両契約の元本合計 |
+
+ローンの延滞テスト（`LoanDelinquencyTests`）を含む既存テストは全件成功した。
+
+### 7.6 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 列追加（`LOAN_DELINQUENCY.OVERDUE_TAX_AMOUNT`、`LOAN_LATE_FEE_ACCRUAL.OVERDUE_TAX` / `LATE_FEE_BASE_AMOUNT`） |
+| `gradlew "ofbiz --test component=finance"` | tests=110 / errors=0 / failures=0 |
+| demo 投入 | `FinanceLeaseDemoData.xml` 46 件、BUILD SUCCESSFUL |
+| 督促状 PDF・画面 | 未確認（OFBiz を起動しての確認は行っていない） |
+
+### 7.7 要確認・制約
+
+- **遅延損害金の計算基礎の既定**：税込（`TAX_INCLUDED`）とした。契約書の約定に合わせて経理・法務で確認する。遅延損害金は請求書を作らず GL 計上だけ（ローン STEP 6 と同じ）のため、入金時の遅延損害金の先行充当は行わない。
+- **償却**：延滞分（期日到来分）の売掛金だけを償却する。未経過分のリース投資資産・繰延リース利益・物件の扱い（契約の終了）は対象外（中途解約 L10 で扱う）。償却時の消費税（貸倒れに係る税額控除）は GL 上は売掛金の償却に含めただけで、仮受消費税の調整は行わない（要確認）。
+- **未請求の延滞回**：期日到来・未請求の回も延滞額に含める（ローンと同じ）。償却仕訳は売掛金を貸方にするため、月次バッチで請求してから延滞判定する運用とする。
+- **一意索引**：延滞関連エンティティの一意索引は `loanAgreementId` を含む（STEP 6）。リースの行は `loanAgreementId` が空なので、NULL を重複とみなさない Derby では同日・同月の複数リースで衝突しない（テストで確認）。NULL を重複とみなす DB（SQL Server 等）では衝突するため、その DB を使う場合は索引を `financeContractId` ベースに見直す必要がある。
+- **テストの前提**：遅延損害金・償却の GL 科目（810100 / 517000）は `FinanceStep6DemoData.xml` の割当を使う（ローンの延滞テストと同じ。テスト用 DB に demo が投入されていること）。
+
+---
+
+## 8. STEP L7 — 期間満了処理（返還・処分・所有権移転）と作業管理
+
+実装：共通層 `FinanceWorkEffortHelper`（作業管理）、リース層 `LeaseExpiryServices`。
+
+### 8.1 作業管理（共通層、`REQUIREMENTS_LEASE.md` 3.5）
+
+| 項目 | 内容 |
+|------|------|
+| `FinanceContractWorkEffort`（`entitymodel_common.xml`） | `financeContractId` + `workEffortId`（PK）、作業種別 `financeWorkTypeEnumId`、`triggerKey`、作成日。契約＋作業種別＋きっかけで一意 |
+| 作業種別（seed `FINANCE_WORK_TYPE`） | `FINWE_EXPIRY_NOTICE` 満了通知 / `FINWE_ASSET_RETURN` 返還引取り / `FINWE_ASSET_DISPOSAL` 物件処分 / `FINWE_OWN_TRANSFER` 所有権移転 / `FINWE_OTHER`（ID は 20 文字以内） |
+| `ensureTask` | core `createWorkEffort`（`TASK`、`CAL_NEEDS_ACTION`、予定開始・期限）を呼び、担当者（`assignPartyToWorkEffort`、`CAL_OWNER`）と物件（`createWorkEffortFixedAssetAssign`）を任意で割り当てる。既存なら作らない（冪等） |
+| `completeTask` | `updateWorkEffort` で `CAL_COMPLETED` と完了日を設定する。タスクがない・完了済みなら何もしない |
+| `createFinanceContractTask`（サービス） | ローン・リースを問わず契約にタスクを作る（手動タスク。`triggerKey` 省略時は毎回新規） |
+
+タスクの完了は業務サービスの結果として行い、タスクを完了にしても契約・物件の状態は変わらない（テストで確認）。タスクの一覧・編集は workeffort アプリ（`/workeffort/control/EditWorkEffort`）を使う。
+
+### 8.2 データモデル（リース層）
+
+| エンティティ | 内容 |
+|--------------|------|
+| `LeaseExpiryNotice` | 満了通知（契約ごとに 1 件）：通知日、対象のリース終了日、備考 |
+| `LeaseAssetSettlement` | 物件ごとの満了時の処理：残価（契約の残価を取得価額比で按分、最終物件で端数調整）、返還日・備考、譲渡日、処分方法（`LEASE_DISPOSAL_TYPE`：売却／廃棄）・処分日・売却先・処分価額・処分損益・仕訳 |
+| `LeaseAgreement.completedDate` | 完了日 |
+
+seed：`LEASEAGR_ACTIVE → LEASEAGR_COMPLETED`、物件状態 `LSAST_DISPOSED`、GL 科目タイプ `LEASE_DISPOSAL_RECV`（128900 未収入金（物件売却））・`LEASE_DISPOSAL_GAIN`（403700 物件処分益）・`LEASE_DISPOSAL_LOSS`（503700 物件処分損）。Company への割当は demo・テストデータ。`lease.expiry.notice.months`（既定 3）を `finance.properties` に追加した。
+
+### 8.3 サービス（`services_lease.xml`）
+
+| サービス | 内容 |
+|----------|------|
+| `runLeaseExpiryBatch` | N か月以内に終了する ACTIVE 契約に満了通知タスク（きっかけ＝終了日）。終了日到来後は、所有権移転外なら物件ごとに返還引取りタスク（物件を割当）、所有権移転なら全回請求・入金済みのとき所有権移転タスク。再実行で重複しない |
+| `issueLeaseExpiryNotice` | 満了通知を記録（契約ごとに 1 件、再実行は既存を返す）し、満了通知タスクを完了にする |
+| `returnLeaseAsset` | 所有権移転外のみ。**リース終了日より前は拒否**。物件を `LSAST_RETURNED` にし、返還タスクを完了、処分タスクを作成。全物件返還・全回請求済み・請求書が全て決済済みなら契約を完了する |
+| `disposeLeaseAsset` | 返還済みの物件の売却／廃棄（廃棄は処分価額 0）。残価を精算し（借 未収入金 ／ 貸 リース投資資産、差額を処分益／処分損）、物件を `LSAST_DISPOSED`、`FixedAsset.actualEndOfLife` を設定、処分タスクを完了。契約の完了後も可 |
+| `transferLeaseOwnership` | 所有権移転リースのみ。**全回請求・入金済み、譲渡日が最終期日以降**でなければ拒否。譲渡価額（既定＝残価）で残価を精算、`FixedAsset.partyId` を借手に変更、物件を `LSAST_TRANSFERRED`、所有権移転タスクを完了し、契約を完了する |
+| `completeLeaseAgreement` | 返還後に入金が揃った場合などの明示的な完了。条件は上と同じ。所有権移転外は終了日前を拒否 |
+
+- 完了（`LEASEAGR_COMPLETED`、`FinanceContract` も `FINCTR_COMPLETED`）の前に、繰延リース利益をリース終了日まで戻し入れる（累計＝開始時の繰延リース利益）。`setLeaseAgreementStatus` からの完了は拒否する。
+- 会計：開始時にリース投資資産／リース債権へ計上した残価は、処分・譲渡の精算で消える（開始・請求・精算を通して投資資産・債権の残高は 0。テストで確認）。
+
+### 8.4 画面
+
+- メニュー「満了予定一覧」（`FindLeaseExpiry`）：N か月以内に終了する ACTIVE 契約（借手・区分・終了日・満了通知日・未完了タスク数）と満了タスク作成（対象月数・担当者）。
+- `ManageLeaseAgreement`：物件一覧に「返還記録」、満了処理欄（満了通知、所有権移転、処分記録、契約完了、返還・処分・譲渡の一覧）、タスク一覧（作業種別・タスク名（workeffort へのリンク）・状態・期限・完了日）。
+
+### 8.5 テスト（`LeaseExpiryTests`。テストごとに USD のリース商品（12 か月、料率 0.09、残価率あり）と借手。開始は 14 か月前）
+
+| テスト | 内容 |
+|--------|------|
+| `testReturnDisposalAndCompletion` | 移転外・残価 10%：状態サービスでの完了拒否、終了日前の返還拒否、移転外の譲渡拒否、満了予定一覧、タスク作成（物件・担当者の割当）と再実行で重複なし、満了通知でタスク完了・契約は ACTIVE のまま、タスクを手で完了にしても状態不変、未入金のまま返還→契約は未完了・処分タスク作成・明示完了は拒否、入金後に完了（共通状態、戻入累計＝繰延リース利益）、廃棄で処分価額ありを拒否、売却（処分益 30,000、GL 128900 ／ 128500 ／ 403700）、FixedAsset の終了日、処分タスク完了、二重処分の拒否、投資資産の残高 0 |
+| `testOwnershipTransfer` | 移転・残価 5%：返還の拒否、未入金での譲渡拒否と移転タスクなし、入金後に移転タスク、譲渡で契約完了・タスク完了・物件 TRANSFERRED・FixedAsset の所有者＝借手・処分損益 0、リース債権の残高 0、完了後の再譲渡拒否 |
+| `testTaskOnLoanContract` | ローン契約へのタスク（冪等、担当者割当、契約状態は不変）、存在しない契約の拒否 |
+
+### 8.6 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 新規 3 テーブル（`FINANCE_CONTRACT_WORK_EFFORT` / `LEASE_ASSET_SETTLEMENT` / `LEASE_EXPIRY_NOTICE`）、`LEASE_AGREEMENT.COMPLETED_DATE` |
+| `gradlew "ofbiz --test component=finance"` | tests=119 / errors=0 / failures=0（所要 22.6 分） |
+| demo 投入 | BUILD SUCCESSFUL |
+| 画面 | 未確認 |
+
+### 8.7 要確認・制約
+
+- **満了通知書 PDF** は L8（帳票）で作る。L7 は通知の記録だけ（L3 の物件受領書と同じ扱い）。
+- **処分代金の回収**：売却・譲渡代金は未収入金（128900）に計上するだけで、請求書・入金は扱わない。売却時の消費税も対象外。
+- **所有権移転タスクの作成**は満了バッチで行う（最終回の入金時には作らない）。
+- **満了バッチの対象**は DB 内の全 ACTIVE 契約。テスト DB には過去のテスト実行の契約が残るため、テスト時間が実行のたびに伸びる（今回は全体で 22.6 分、前回 L6 は 7.4 分。ローンのテストも同様に遅くなっており、L7 固有の処理ではなく DB の肥大が主因と見られる）。運用メモ参照。
+---
+
 ## 運用メモ
 
 - **seed の投入**：L1 で `FinanceLeaseTypeData.xml` を追加した。既存環境では `gradlew "ofbiz --load-data readers=seed --load-data component=finance"` を実行してからテスト・画面操作を行う（未投入だとリース商品種別・申込状態がなく失敗する）。
@@ -308,3 +595,4 @@ seed：`LEASEAGR_CONTRACTED → LEASEAGR_ACTIVE` の遷移と、リース用の 
 - **見積・契約の日付**：L2 の期日は開始予定日からの暫定値。リース開始日（検収日）で確定するのは L3。
 - **外貨建てリースの換算（既知の問題・core）**：契約通貨と貸手組織の基準通貨が違う場合（demo の JPY 契約と、基準通貨 USD の `Company`）、finance 側の仕訳は `convertUom`（JPY→USD 0.006666666667）で換算する。一方、core の支払消込仕訳（`createAcctgTransAndEntriesForPaymentApplication`）は換算率を小数 4 桁（0.0067）に丸めるため、1,500,000 JPY が 10,050 USD で計上され、買掛金・未消込買掛金に 50 USD の差が残った（契約 `10010` の取引 `11042`）。各取引の貸借は一致している。契約通貨と基準通貨が同じ本番構成（JPY の貸手）では発生しない。core は変更していない。外貨建てリースを扱う場合は L4 以降で対応を検討する。
 - **L3 の画面確認で検収したデモ契約**：開発 DB のデモ契約 `10010` は検収済み（ACTIVE、開始日 2026-10-12）。demo の再投入では元に戻らない。
+- **テスト時間の増加（L7 時点）**：テストは既定 DB を共有し、実行のたびに契約・請求・仕訳が残る。L7 のテストは全体で 22.6 分かかった（L6 では 7.4 分）。各サービスの処理時間が全体的に伸びており、DB の肥大が主因と見られる。短縮するには、開発用 DB を作り直す（`gradlew cleanAll loadAll` 等。開発 DB の全データが消えるため、実施前に確認すること）か、テスト専用の DB（別 delegator）を用意する。

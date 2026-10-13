@@ -29,4 +29,12 @@ under the License.
     <StatusItem description="Active" sequenceId="02" statusCode="ACTIVE" statusId="FINCTR_ACTIVE" statusTypeId="FINANCE_CTR_STATUS"/>
     <StatusItem description="Completed" sequenceId="03" statusCode="COMPLETED" statusId="FINCTR_COMPLETED" statusTypeId="FINANCE_CTR_STATUS"/>
     <StatusItem description="Cancelled" sequenceId="04" statusCode="CANCELLED" statusId="FINCTR_CANCELLED" statusTypeId="FINANCE_CTR_STATUS"/>
+
+    <!-- STEP L7: work types of contract tasks (core WorkEffort, FinanceContractWorkEffort) -->
+    <EnumerationType description="Finance Work Type" enumTypeId="FINANCE_WORK_TYPE" hasTable="N"/>
+    <Enumeration description="Lease expiry notice (満了通知)" enumCode="EXPIRY_NOTICE" enumId="FINWE_EXPIRY_NOTICE" sequenceId="01" enumTypeId="FINANCE_WORK_TYPE"/>
+    <Enumeration description="Asset return / pickup (返還引取り)" enumCode="ASSET_RETURN" enumId="FINWE_ASSET_RETURN" sequenceId="02" enumTypeId="FINANCE_WORK_TYPE"/>
+    <Enumeration description="Asset disposal (物件処分)" enumCode="ASSET_DISPOSAL" enumId="FINWE_ASSET_DISPOSAL" sequenceId="03" enumTypeId="FINANCE_WORK_TYPE"/>
+    <Enumeration description="Ownership transfer (所有権移転)" enumCode="OWNERSHIP_TRANS" enumId="FINWE_OWN_TRANSFER" sequenceId="04" enumTypeId="FINANCE_WORK_TYPE"/>
+    <Enumeration description="Other contract task (その他)" enumCode="OTHER" enumId="FINWE_OTHER" sequenceId="99" enumTypeId="FINANCE_WORK_TYPE"/>
 </entity-engine-xml>

@@ -43,6 +43,7 @@ under the License.
         <field name="residualValueRate" type="fixed-point"><description>estimated residual value / acquisition cost (0 to 1); non-transfer default 0</description></field>
         <field name="revenueMethodEnumId" type="id"><description>LEASE_REV_METHOD: revenue recognition method; initially LEASE_REV_AT_START</description></field>
         <field name="taxable" type="indicator"><description>Y when lease payments are subject to consumption tax (default Y)</description></field>
+        <field name="taxTimingEnumId" type="id"><description>LEASE_TAX_TIMING: taxable sale per installment or lump sum at the lease start (STEP L5); empty = lease.tax.timing</description></field>
         <prim-key field="productId"/>
         <relation type="one" fk-name="FINPRODLS_PROD" rel-entity-name="FinancialProduct">
             <key-map field-name="productId"/>
@@ -265,6 +266,11 @@ under the License.
         <field name="firstPaymentDate" type="date-time"><description>provisional until the lease start (STEP L3)</description></field>
         <field name="leaseStartDate" type="date-time"><description>acceptance date = lease start (set in STEP L3)</description></field>
         <field name="leaseEndDate" type="date-time"><description>set in STEP L3</description></field>
+        <field name="taxTimingEnumId" type="id"><description>LEASE_TAX_TIMING fixed at the lease start (STEP L5)</description></field>
+        <field name="taxAuthPartyId" type="id"><description>tax authority of the rate fixed at the lease start (empty = no core tax authority)</description></field>
+        <field name="taxAuthGeoId" type="id"></field>
+        <field name="taxAuthorityRateSeqId" type="id"><description>core TaxAuthorityRateProduct of the fixed rate</description></field>
+        <field name="completedDate" type="date-time"><description>date the lease was completed by return / ownership transfer (STEP L7)</description></field>
         <prim-key field="leaseAgreementId"/>
         <relation type="one" fk-name="LEASEAGR_FINCTR" rel-entity-name="FinanceContract">
             <key-map field-name="financeContractId"/>
@@ -404,6 +410,7 @@ under the License.
         <field name="comments" type="comment"></field>
         <field name="scheduleRevisionNumber" type="numeric"><description>revision of the confirmed schedule dated from the lease start</description></field>
         <field name="startAcctgTransId" type="id"><description>lease start entries (revenue method)</description></field>
+        <field name="startTaxAcctgTransId" type="id"><description>lump-sum consumption tax at the lease start (STEP L5, LEASE_TAX_AT_START only)</description></field>
         <field name="receiptPrintedDate" type="date-time"><description>when the acceptance certificate was issued (STEP L8)</description></field>
         <field name="createdByUserLogin" type="id-vlong"></field>
         <field name="createdDate" type="date-time"></field>
@@ -419,4 +426,135 @@ under the License.
         </relation>
     </entity>
 
+    <!-- ========================================================= -->
+    <!-- STEP L4: billing, deferred profit release, payments       -->
+    <!-- ========================================================= -->
+    <!-- One sales invoice per installment of the confirmed schedule -->
+    <entity entity-name="LeaseInstallmentInvoice" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease installment to Invoice link">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="installmentNumber" type="numeric"></field>
+        <field name="scheduleRevisionNumber" type="numeric"><description>revision of the confirmed schedule that was billed</description></field>
+        <field name="invoiceId" type="id"><description>core SALES_INVOICE (READY)</description></field>
+        <field name="dueDate" type="date-time"></field>
+        <field name="leaseAmount" type="currency-amount"><description>lease payment billed (tax excluded)</description></field>
+        <field name="principalPortion" type="currency-amount"></field>
+        <field name="interestPortion" type="currency-amount"></field>
+        <field name="taxAmount" type="currency-amount"></field>
+        <field name="billedAmount" type="currency-amount"><description>lease amount + tax</description></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseAgreementId"/>
+        <prim-key field="installmentNumber"/>
+        <relation type="one" fk-name="LEASEII_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEII_INV" rel-entity-name="Invoice">
+            <key-map field-name="invoiceId"/>
+        </relation>
+        <index name="LEASEII_INV_UQ" unique="true">
+            <index-field name="invoiceId"/>
+        </index>
+    </entity>
+
+    <!-- Release of the deferred lease profit (method 1), one row per recognized period -->
+    <entity entity-name="LeaseProfitRecognition" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease deferred profit recognition">
+        <field name="leaseProfitRecognitionId" col-name="LEASE_PROFIT_RECOG_ID" type="id"><description>primary sequenced ID</description></field>
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="fromDate" type="date-time"><description>first day recognized (day start)</description></field>
+        <field name="thruDate" type="date-time"><description>last day recognized (day start, inclusive)</description></field>
+        <field name="amount" type="currency-amount"><description>interest equivalent recognized in the period</description></field>
+        <field name="cumulativeAmount" type="currency-amount"><description>cumulative recognized through thruDate</description></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="acctgTransId" type="id"><description>Dr deferred lease profit / Cr deferred profit release (none when 0)</description></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseProfitRecognitionId"/>
+        <relation type="one" fk-name="LEASEPRC_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPRC_TRANS" rel-entity-name="AcctgTrans">
+            <key-map field-name="acctgTransId"/>
+        </relation>
+        <index name="LEASEPRC_FROM_UQ" unique="true">
+            <index-field name="leaseAgreementId"/>
+            <index-field name="fromDate"/>
+        </index>
+    </entity>
+
+    <!-- Customer payment received for a lease agreement (core Payment, applied to lease invoices) -->
+    <entity entity-name="LeasePaymentReceipt" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease payment receipt">
+        <field name="leasePaymentReceiptId" type="id"></field>
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="paymentId" type="id"></field>
+        <field name="invoiceId" type="id"><description>invoice given by the caller (empty = applied to open invoices oldest first)</description></field>
+        <field name="amount" type="currency-amount"></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="receiptDate" type="date-time"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leasePaymentReceiptId"/>
+        <relation type="one" fk-name="LEASEPR_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPR_PAY" rel-entity-name="Payment">
+            <key-map field-name="paymentId"/>
+        </relation>
+        <relation type="one-nofk" rel-entity-name="Invoice">
+            <key-map field-name="invoiceId"/>
+        </relation>
+        <index name="LEASEPR_PAY_UQ" unique="true">
+            <index-field name="paymentId"/>
+        </index>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- STEP L7: expiry (notice, return, disposal, transfer)       -->
+    <!-- ========================================================= -->
+    <!-- Expiry notice to the lessee (one per agreement; the PDF is STEP L8) -->
+    <entity entity-name="LeaseExpiryNotice" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease expiry notice">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="noticeDate" type="date-time"></field>
+        <field name="leaseEndDate" type="date-time"><description>lease end date the notice refers to</description></field>
+        <field name="comments" type="comment"></field>
+        <field name="createdByUserLogin" type="id-vlong"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseAgreementId"/>
+        <relation type="one" fk-name="LEASEEXN_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+    </entity>
+
+    <!-- End of the lease of one asset: return (no transfer) or ownership transfer, and disposal -->
+    <entity entity-name="LeaseAssetSettlement" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease asset settlement at expiry">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="assetSeqId" type="id"></field>
+        <field name="residualValue" type="currency-amount"><description>residual value of the asset (agreement residual allocated by acquisition cost)</description></field>
+        <field name="returnDate" type="date-time"><description>return / pickup date (no ownership transfer)</description></field>
+        <field name="returnComments" type="comment"></field>
+        <field name="transferDate" type="date-time"><description>ownership transfer date (transfer leases)</description></field>
+        <field name="disposalTypeEnumId" type="id"><description>LEASE_DISPOSAL_TYPE (sale / scrap); transfer = sale to the lessee</description></field>
+        <field name="disposalDate" type="date-time"></field>
+        <field name="disposalPartyId" type="id"><description>buyer (sale) or the lessee (transfer)</description></field>
+        <field name="proceedsAmount" type="currency-amount"><description>sale / transfer price (tax excluded)</description></field>
+        <field name="gainLossAmount" type="currency-amount"><description>proceeds - residual (positive = gain)</description></field>
+        <field name="acctgTransId" type="id"><description>settlement of the residual value (none when residual and proceeds are 0)</description></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseAgreementId"/>
+        <prim-key field="assetSeqId"/>
+        <relation type="one" fk-name="LEASESTL_ASSET" rel-entity-name="LeaseAgreementAsset">
+            <key-map field-name="leaseAgreementId"/>
+            <key-map field-name="assetSeqId"/>
+        </relation>
+        <relation type="one" fk-name="LEASESTL_DTYPE" rel-entity-name="Enumeration">
+            <key-map field-name="disposalTypeEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one-nofk" title="Disposal" rel-entity-name="Party">
+            <key-map field-name="disposalPartyId" rel-field-name="partyId"/>
+        </relation>
+        <relation type="one" fk-name="LEASESTL_TRANS" rel-entity-name="AcctgTrans">
+            <key-map field-name="acctgTransId"/>
+        </relation>
+    </entity>
 </entitymodel>

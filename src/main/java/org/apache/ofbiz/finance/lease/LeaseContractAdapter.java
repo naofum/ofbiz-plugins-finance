@@ -21,28 +21,39 @@ package org.apache.ofbiz.finance.lease;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.util.Collections;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.ofbiz.accounting.invoice.InvoiceWorker;
 import org.apache.ofbiz.base.util.UtilMisc;
 import org.apache.ofbiz.entity.Delegator;
 import org.apache.ofbiz.entity.GenericEntityException;
 import org.apache.ofbiz.entity.GenericValue;
 import org.apache.ofbiz.entity.util.EntityQuery;
+import org.apache.ofbiz.entity.util.EntityUtilProperties;
 import org.apache.ofbiz.finance.common.DelinquencyComputation;
 import org.apache.ofbiz.finance.common.FinanceContractAdapter;
 import org.apache.ofbiz.finance.common.FinanceContractHelper;
 
 /**
- * Lease-layer implementation of {@link FinanceContractAdapter} (STEP L2).
+ * Lease-layer implementation of {@link FinanceContractAdapter} (registered in STEP L2,
+ * delinquency in STEP L6).
  *
- * <p>Registered from STEP L2 so the common customer summary and contract
- * navigation resolve lease agreements. Lease payments are billed from STEP L4;
- * until the delinquency computation is implemented (STEP L6) this adapter
- * reports no delinquency and no open invoices.
+ * <p>Delinquency of a lease is derived from the current revision of the confirmed
+ * lease payment schedule: every installment due by the as-of date whose invoice is
+ * not settled (or that is not billed yet) is overdue by its unpaid amount. Payments
+ * are allocated tax first, then interest, then principal (STEP L4), so the unpaid
+ * amount of an installment is principal first, then interest, then tax. Days past
+ * due are counted from the oldest overdue due date. The late fee base is the overdue
+ * lease payments with or without the tax ({@code lease.latefee.base}).
  */
 public final class LeaseContractAdapter implements FinanceContractAdapter {
+
+    public static final String LATE_FEE_BASE_TAX_INCLUDED = "TAX_INCLUDED";
+    public static final String LATE_FEE_BASE_TAX_EXCLUDED = "TAX_EXCLUDED";
 
     @Override
     public String getContractTypeId() {
@@ -89,22 +100,122 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
         return agreement.getString("organizationPartyId");
     }
 
-    @Override
-    public DelinquencyComputation computeDelinquency(Delegator delegator, GenericValue agreement,
-            Timestamp asOfDate) {
-        // STEP L6: derive from the confirmed lease payment schedule and lease invoices.
-        return new DelinquencyComputation(0L, BigDecimal.ZERO, BigDecimal.ZERO);
+    private static boolean isSettled(GenericValue invoice) {
+        String status = invoice.getString("statusId");
+        return "INVOICE_PAID".equals(status) || "INVOICE_WRITEOFF".equals(status)
+                || "INVOICE_CANCELLED".equals(status);
+    }
+
+    private static BigDecimal nz(BigDecimal v) {
+        return v == null ? BigDecimal.ZERO : v;
+    }
+
+    /** Late fee base setting: TAX_INCLUDED (default) or TAX_EXCLUDED. */
+    public static boolean lateFeeIncludesTax(Delegator delegator) {
+        String base = EntityUtilProperties.getPropertyValue("finance", "lease.latefee.base",
+                LATE_FEE_BASE_TAX_INCLUDED, delegator).trim();
+        return !LATE_FEE_BASE_TAX_EXCLUDED.equals(base);
+    }
+
+    /** Overdue installments of the agreement as of a date (unpaid split into principal / interest / tax). */
+    public static List<Map<String, Object>> overdueInstallments(Delegator delegator, GenericValue agreement,
+            Timestamp asOfDate) throws GenericEntityException {
+        String leaseAgreementId = agreement.getString("leaseAgreementId");
+        List<Map<String, Object>> rows = new ArrayList<>();
+        List<GenericValue> schedule = EntityQuery.use(delegator).from("LeaseAgreementPaymentSchedule")
+                .where("leaseAgreementId", leaseAgreementId,
+                        "scheduleRevisionNumber", LeaseAccountingServices.currentScheduleRevision(delegator, leaseAgreementId))
+                .orderBy("dueDate", "installmentNumber").queryList();
+        for (GenericValue row : schedule) {
+            Timestamp dueDate = row.getTimestamp("dueDate");
+            if (dueDate == null || dueDate.after(asOfDate)) {
+                continue;
+            }
+            BigDecimal principal = nz(row.getBigDecimal("principalPortion"));
+            BigDecimal interest = nz(row.getBigDecimal("interestPortion"));
+            BigDecimal tax = nz(row.getBigDecimal("taxAmount"));
+            BigDecimal unpaid = nz(row.getBigDecimal("leaseAmount")).add(tax);
+            GenericValue link = EntityQuery.use(delegator).from("LeaseInstallmentInvoice")
+                    .where("leaseAgreementId", leaseAgreementId, "installmentNumber", row.getLong("installmentNumber"))
+                    .queryOne();
+            String invoiceId = null;
+            if (link != null) {
+                // The billed amounts are those of the invoice (the revision billed).
+                principal = nz(link.getBigDecimal("principalPortion"));
+                interest = nz(link.getBigDecimal("interestPortion"));
+                tax = nz(link.getBigDecimal("taxAmount"));
+                invoiceId = link.getString("invoiceId");
+                GenericValue invoice = EntityQuery.use(delegator).from("Invoice").where("invoiceId", invoiceId)
+                        .cache(false).queryOne();
+                if (invoice == null || isSettled(invoice)) {
+                    continue;
+                }
+                unpaid = nz(InvoiceWorker.getInvoiceNotApplied(invoice));
+            }
+            if (unpaid.signum() <= 0) {
+                continue;
+            }
+            BigDecimal unpaidPrincipal = unpaid.min(principal).max(BigDecimal.ZERO);
+            BigDecimal unpaidInterest = unpaid.subtract(unpaidPrincipal).min(interest).max(BigDecimal.ZERO);
+            BigDecimal unpaidTax = unpaid.subtract(unpaidPrincipal).subtract(unpaidInterest).max(BigDecimal.ZERO);
+            rows.add(UtilMisc.toMap("installmentNumber", row.getLong("installmentNumber"), "dueDate", dueDate,
+                    "invoiceId", invoiceId, "unpaidAmount", unpaid, "principalAmount", unpaidPrincipal,
+                    "interestAmount", unpaidInterest, "taxAmount", unpaidTax,
+                    "leaseAmount", unpaidPrincipal.add(unpaidInterest)));
+        }
+        return rows;
     }
 
     @Override
-    public List<String> findOpenInvoiceIds(Delegator delegator, GenericValue agreement) {
-        // STEP L6: lease invoices are created from STEP L4.
-        return Collections.emptyList();
+    public DelinquencyComputation computeDelinquency(Delegator delegator, GenericValue agreement,
+            Timestamp asOfDate) throws GenericEntityException {
+        BigDecimal principal = BigDecimal.ZERO;
+        BigDecimal interest = BigDecimal.ZERO;
+        BigDecimal tax = BigDecimal.ZERO;
+        Timestamp oldest = null;
+        for (Map<String, Object> row : overdueInstallments(delegator, agreement, asOfDate)) {
+            principal = principal.add((BigDecimal) row.get("principalAmount"));
+            interest = interest.add((BigDecimal) row.get("interestAmount"));
+            tax = tax.add((BigDecimal) row.get("taxAmount"));
+            if (oldest == null) {
+                oldest = (Timestamp) row.get("dueDate");
+            }
+        }
+        long daysPastDue = 0;
+        if (oldest != null) {
+            LocalDate due = oldest.toLocalDateTime().toLocalDate();
+            LocalDate asOf = asOfDate.toLocalDateTime().toLocalDate();
+            daysPastDue = Math.max(ChronoUnit.DAYS.between(due, asOf), 0L);
+        }
+        BigDecimal base = lateFeeIncludesTax(delegator) ? principal.add(interest).add(tax) : principal.add(interest);
+        return new DelinquencyComputation(daysPastDue, principal, interest, tax, base);
+    }
+
+    @Override
+    public List<String> findOpenInvoiceIds(Delegator delegator, GenericValue agreement)
+            throws GenericEntityException {
+        List<String> invoiceIds = new ArrayList<>();
+        for (GenericValue link : EntityQuery.use(delegator).from("LeaseInstallmentInvoice")
+                .where("leaseAgreementId", agreement.getString("leaseAgreementId"))
+                .orderBy("installmentNumber").queryList()) {
+            GenericValue invoice = EntityQuery.use(delegator).from("Invoice")
+                    .where("invoiceId", link.getString("invoiceId")).cache(false).queryOne();
+            if (invoice != null && !isSettled(invoice)) {
+                invoiceIds.add(link.getString("invoiceId"));
+            }
+        }
+        return invoiceIds;
     }
 
     @Override
     public Map<String, Object> getAgreementKeyFields(GenericValue agreement) {
         // Delinquency records carry financeContractId only; there is no lease key column.
         return UtilMisc.toMap();
+    }
+
+    /** Every component of a lease invoice (payment and tax) is in accounts receivable. */
+    @Override
+    public String getWriteOffCreditAccountType(String component) {
+        return "ACCOUNTS_RECEIVABLE";
     }
 }

@@ -68,6 +68,7 @@ under the License.
         <field name="delinquencyLevelEnumId" type="id"></field>
         <field name="overduePrincipalAmount" type="currency-amount"></field>
         <field name="overdueInterestAmount" type="currency-amount"></field>
+        <field name="overdueTaxAmount" type="currency-amount"><description>unpaid consumption tax of the overdue installments (lease, STEP L6)</description></field>
         <field name="lateFeeAccruedAmount" type="currency-amount"><description>cumulative late fee accrued to date</description></field>
         <field name="createdDate" type="date-time"></field>
         <field name="financeContractId" type="id"><description>FK to the common contract ledger (STEP L0); loanAgreementId is kept for backward compatibility and is empty for non-loan contracts</description></field>
@@ -102,6 +103,8 @@ under the License.
         <field name="thruDate" type="date-time"></field>
         <field name="overduePrincipal" type="currency-amount"><description>delinquent principal the fee was computed on</description></field>
         <field name="overdueInterest" type="currency-amount"><description>delinquent interest the fee was computed on</description></field>
+        <field name="overdueTax" type="currency-amount"><description>delinquent consumption tax (lease, STEP L6)</description></field>
+        <field name="lateFeeBaseAmount" type="currency-amount"><description>overdue amount the fee was computed on (lease: tax included or excluded by lease.latefee.base)</description></field>
         <field name="lateFeeAmount" type="currency-amount"></field>
         <field name="currencyUomId" type="id"></field>
         <field name="acctgTransId" type="id"><description>optional link to a posted AcctgTrans (GL)</description></field>

@@ -30,8 +30,9 @@ import org.apache.ofbiz.finance.common.FinanceGlHelper;
 
 /**
  * Revenue recognition strategy of a finance lease (selected by
- * {@code LeaseAgreement.revenueMethodEnumId}, LEASE_REV_METHOD). STEP L3 uses
- * {@link #startEntries}; the monthly recognition is added in STEP L4.
+ * {@code LeaseAgreement.revenueMethodEnumId}, LEASE_REV_METHOD): the start
+ * entries (STEP L3), the account credited by a lease payment invoice and the
+ * entries of the periodic recognition of the interest equivalent (STEP L4).
  */
 public interface LeaseRevenueStrategy {
 
@@ -42,9 +43,24 @@ public interface LeaseRevenueStrategy {
     String GL_COST_OF_SALES = "LEASE_COST_OF_SALES";
     String GL_DEFER_PROVISION = "LEASE_DEFER_PROV";
     String GL_DEFERRED_PROFIT = "LEASE_DEFER_PROFIT";
+    String GL_PROFIT_RELEASE = "LEASE_PROFIT_RELEASE";
+    String GL_TAX_PAYABLE = "LEASE_TAX_PAYABLE";
+    String GL_TAX_RECEIVABLE = "LEASE_TAX_RECEIVABLE";
 
     /** GL lines booked at the lease start (acceptance date). */
     List<FinanceGlHelper.Line> startEntries(GenericValue agreement);
+
+    /**
+     * GL account type credited by the lease payment item of an installment invoice
+     * (the invoice debits accounts receivable through the core sales invoice posting).
+     */
+    String billingCreditAccountType(GenericValue agreement);
+
+    /**
+     * GL lines recognizing {@code amount} of the interest equivalent for a period
+     * (interest method). A negative amount reverses the lines.
+     */
+    List<FinanceGlHelper.Line> recognitionEntries(GenericValue agreement, BigDecimal amount);
 
     /** Strategies by revenue method enumId. */
     Map<String, LeaseRevenueStrategy> REGISTRY = UtilMisc.toMap(
@@ -58,7 +74,8 @@ public interface LeaseRevenueStrategy {
 
     /**
      * Method 1 (第1法): sales and cost of sales at the lease start; the interest
-     * equivalent is deferred and released with the interest method (STEP L4).
+     * equivalent is deferred and released with the interest method
+     * ({@link LeaseProfitAllocator}, STEP L4).
      *
      * <pre>
      *   Dr lease investment / receivable   total lease payments   Cr lease sales
@@ -85,6 +102,23 @@ public interface LeaseRevenueStrategy {
             lines.add(new FinanceGlHelper.Line(GL_ASSET_SUSPENSE, false, cost));
             lines.add(new FinanceGlHelper.Line(GL_DEFER_PROVISION, true, interest));
             lines.add(new FinanceGlHelper.Line(GL_DEFERRED_PROFIT, false, interest));
+            return lines;
+        }
+
+        /** Billing reduces the lease investment / receivable booked at the start (no sales at billing). */
+        @Override
+        public String billingCreditAccountType(GenericValue agreement) {
+            return assetAccountType(agreement);
+        }
+
+        /** Dr deferred lease profit / Cr deferred lease profit release (income). */
+        @Override
+        public List<FinanceGlHelper.Line> recognitionEntries(GenericValue agreement, BigDecimal amount) {
+            boolean forward = amount.signum() >= 0;
+            BigDecimal abs = amount.abs();
+            List<FinanceGlHelper.Line> lines = new ArrayList<>();
+            lines.add(new FinanceGlHelper.Line(GL_DEFERRED_PROFIT, forward, abs));
+            lines.add(new FinanceGlHelper.Line(GL_PROFIT_RELEASE, !forward, abs));
             return lines;
         }
 

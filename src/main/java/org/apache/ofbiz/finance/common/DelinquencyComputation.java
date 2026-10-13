@@ -23,19 +23,33 @@ import java.math.BigDecimal;
 
 /**
  * Delinquency state of one contract at a point in time, computed by the
- * contract-type adapter. "Interest" is the interest portion for loans and
- * may be zero for contract types that bill a single amount (e.g. lease payments).
+ * contract-type adapter. "Interest" is the interest portion (loans; the interest
+ * equivalent for leases) and "tax" the unpaid consumption tax billed with the
+ * installments (leases, STEP L6; zero for loans). The late fee base is the overdue
+ * amount the late fee is computed on (default: the overdue total).
  */
 public final class DelinquencyComputation {
 
     private final long daysPastDue;
     private final BigDecimal overduePrincipal;
     private final BigDecimal overdueInterest;
+    private final BigDecimal overdueTax;
+    private final BigDecimal lateFeeBase;
 
     public DelinquencyComputation(long daysPastDue, BigDecimal overduePrincipal, BigDecimal overdueInterest) {
+        this(daysPastDue, overduePrincipal, overdueInterest, BigDecimal.ZERO, null);
+    }
+
+    /**
+     * @param lateFeeBase overdue amount the late fee is computed on; null = the overdue total
+     */
+    public DelinquencyComputation(long daysPastDue, BigDecimal overduePrincipal, BigDecimal overdueInterest,
+            BigDecimal overdueTax, BigDecimal lateFeeBase) {
         this.daysPastDue = daysPastDue;
         this.overduePrincipal = overduePrincipal == null ? BigDecimal.ZERO : overduePrincipal;
         this.overdueInterest = overdueInterest == null ? BigDecimal.ZERO : overdueInterest;
+        this.overdueTax = overdueTax == null ? BigDecimal.ZERO : overdueTax;
+        this.lateFeeBase = lateFeeBase == null ? getOverdueTotal() : lateFeeBase;
     }
 
     public long getDaysPastDue() {
@@ -50,7 +64,16 @@ public final class DelinquencyComputation {
         return overdueInterest;
     }
 
+    public BigDecimal getOverdueTax() {
+        return overdueTax;
+    }
+
+    /** Principal + interest + tax. */
     public BigDecimal getOverdueTotal() {
-        return overduePrincipal.add(overdueInterest);
+        return overduePrincipal.add(overdueInterest).add(overdueTax);
+    }
+
+    public BigDecimal getLateFeeBase() {
+        return lateFeeBase;
     }
 }

@@ -39,6 +39,12 @@ under the License.
                 <parameter param-name="loanAgreementId"/>
             </hyperlink>
         </field>
+        <!-- STEP L6: every contract type (lease rows have no loanAgreementId) -->
+        <field name="financeContractId" title="${uiLabelMap.FinanceContractId}" widget-style="buttontext">
+            <hyperlink description="${financeContractId}" target="ViewFinanceContract" also-hidden="false">
+                <parameter param-name="financeContractId"/>
+            </hyperlink>
+        </field>
         <field name="asOfDate" title="${uiLabelMap.FinanceProcessingDate}"><display type="date"/></field>
         <field name="daysPastDue" title="${uiLabelMap.FinanceDaysPastDue}"><display/></field>
         <field name="delinquencyLevelEnumId" title="${uiLabelMap.FinanceDelinquencyLevel}"><display-entity entity-name="Enumeration"/></field>

@@ -345,15 +345,33 @@ public final class LeaseAcquisitionServices {
             Timestamp firstPayment = advance ? start : addMonths(start, 1);
             String dueDateConvention = FinanceInterestCalculator.resolveDueDateConvention(delegator,
                     agreement.getString("productId"));
-            for (GenericValue row : EntityQuery.use(delegator).from("LeaseAgreementPaymentSchedule")
+            // STEP L5: the consumption tax rate and timing are fixed at the lease start.
+            LeaseTaxHelper.TaxRate taxRate = LeaseTaxHelper.resolveRate(delegator, agreement.getString("productId"), start);
+            String taxTiming = LeaseTaxHelper.resolveTiming(delegator, agreement.getString("productId"));
+            boolean lumpSum = LeaseTaxHelper.TIMING_AT_START.equals(taxTiming);
+            List<GenericValue> baseRows = EntityQuery.use(delegator).from("LeaseAgreementPaymentSchedule")
                     .where("leaseAgreementId", leaseAgreementId, "scheduleRevisionNumber", baseRevision)
-                    .orderBy("installmentNumber").queryList()) {
+                    .orderBy("installmentNumber").queryList();
+            List<BigDecimal> leaseAmounts = new java.util.ArrayList<>();
+            for (GenericValue row : baseRows) {
+                leaseAmounts.add(row.getBigDecimal("leaseAmount"));
+            }
+            String currency = agreement.getString("currencyUomId");
+            List<BigDecimal> taxes = LeaseTaxHelper.allocate(leaseAmounts, taxRate.getRate(), lumpSum,
+                    FinanceInterestCalculator.resolveScale(currency, delegator),
+                    FinanceInterestCalculator.resolveRoundingMode(currency, delegator));
+            BigDecimal totalTax = BigDecimal.ZERO;
+            int index = 0;
+            for (GenericValue row : baseRows) {
                 int k = row.getLong("installmentNumber").intValue();
                 GenericValue line = delegator.makeValue("LeaseAgreementPaymentSchedule", row.getAllFields());
                 line.set("scheduleRevisionNumber", newRevision);
                 line.set("dueDate", BusinessDayCalculator.adjust(addMonths(firstPayment, k - 1), dueDateConvention));
                 line.set("periodFromDate", addMonths(start, k - 1));
                 line.set("periodThruDate", minusOneDay(addMonths(start, k)));
+                line.set("taxAmount", taxes.get(index));
+                totalTax = totalTax.add(taxes.get(index));
+                index++;
                 line.create();
             }
 
@@ -361,6 +379,12 @@ public final class LeaseAcquisitionServices {
             agreement.set("leaseStartDate", start);
             agreement.set("leaseEndDate", minusOneDay(addMonths(start, term)));
             agreement.set("firstPaymentDate", firstPayment);
+            agreement.set("taxRate", taxRate.getRate());
+            agreement.set("totalTaxAmount", totalTax);
+            agreement.set("taxTimingEnumId", taxTiming);
+            agreement.set("taxAuthPartyId", taxRate.getTaxAuthPartyId());
+            agreement.set("taxAuthGeoId", taxRate.getTaxAuthGeoId());
+            agreement.set("taxAuthorityRateSeqId", taxRate.getTaxAuthorityRateSeqId());
             agreement.set("statusId", "LEASEAGR_ACTIVE");
             agreement.store();
             FinanceContractHelper.updateStatus(delegator, agreement.getString("financeContractId"),
@@ -374,6 +398,15 @@ public final class LeaseAcquisitionServices {
                     "Lease start " + leaseAgreementId, start, agreement.getString("organizationPartyId"),
                     agreement.getString("lesseePartyId"), agreement.getString("currencyUomId"),
                     strategy.startEntries(agreement), userLogin);
+            // Lump sum: the tax of all payments is a taxable sale at the start (Dr tax receivable / Cr tax received).
+            String startTaxAcctgTransId = null;
+            if (lumpSum && totalTax.signum() > 0) {
+                startTaxAcctgTransId = FinanceGlHelper.postTransaction(delegator, dispatcher,
+                        "Lease consumption tax at start " + leaseAgreementId, start,
+                        agreement.getString("organizationPartyId"), agreement.getString("lesseePartyId"), currency,
+                        UtilMisc.toList(new FinanceGlHelper.Line(LeaseRevenueStrategy.GL_TAX_RECEIVABLE, true, totalTax),
+                                new FinanceGlHelper.Line(LeaseRevenueStrategy.GL_TAX_PAYABLE, false, totalTax)), userLogin);
+            }
 
             String acceptedBy = UtilValidate.isNotEmpty((String) context.get("acceptedByPartyId"))
                     ? (String) context.get("acceptedByPartyId") : agreement.getString("lesseePartyId");
@@ -384,6 +417,7 @@ public final class LeaseAcquisitionServices {
             acceptance.set("comments", context.get("comments"));
             acceptance.set("scheduleRevisionNumber", newRevision);
             acceptance.set("startAcctgTransId", acctgTransId);
+            acceptance.set("startTaxAcctgTransId", startTaxAcctgTransId);
             acceptance.set("createdByUserLogin", userLogin == null ? null : userLogin.getString("userLoginId"));
             acceptance.set("createdDate", UtilDateTime.nowTimestamp());
             acceptance.create();
@@ -397,6 +431,7 @@ public final class LeaseAcquisitionServices {
     private static Map<String, Object> acceptanceResult(GenericValue acceptance, boolean created) {
         Map<String, Object> result = ServiceUtil.returnSuccess();
         result.put("acctgTransId", acceptance.getString("startAcctgTransId"));
+        result.put("taxAcctgTransId", acceptance.getString("startTaxAcctgTransId"));
         result.put("scheduleRevisionNumber", acceptance.getLong("scheduleRevisionNumber"));
         result.put("created", created);
         return result;

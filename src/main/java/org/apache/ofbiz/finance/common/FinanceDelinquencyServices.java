@@ -200,7 +200,7 @@ public final class FinanceDelinquencyServices {
             String currencyUomId = contract.getString("currencyUomId");
             DelinquencyComputation computation = adapter.computeDelinquency(delegator, agreement,
                     endOfDay(accrualDate));
-            BigDecimal overdueBalance = computation.getOverdueTotal()
+            BigDecimal overdueBalance = computation.getLateFeeBase()
                     .setScale(FinanceInterestCalculator.resolveScale(currencyUomId, delegator),
                             FinanceInterestCalculator.resolveRoundingMode(currencyUomId, delegator));
             if (overdueBalance.compareTo(BigDecimal.ZERO) <= 0) {
@@ -280,6 +280,8 @@ public final class FinanceDelinquencyServices {
             accrual.set("thruDate", thruDate);
             accrual.set("overduePrincipal", computation.getOverduePrincipal());
             accrual.set("overdueInterest", computation.getOverdueInterest());
+            accrual.set("overdueTax", computation.getOverdueTax());
+            accrual.set("lateFeeBaseAmount", overdueBalance);
             accrual.set("lateFeeAmount", lateFee);
             accrual.set("currencyUomId", currencyUomId);
             accrual.set("acctgTransId", acctgTransId);
@@ -405,6 +407,7 @@ public final class FinanceDelinquencyServices {
         snapshot.set("delinquencyLevelEnumId", levelEnumId);
         snapshot.set("overduePrincipalAmount", computation.getOverduePrincipal());
         snapshot.set("overdueInterestAmount", computation.getOverdueInterest());
+        snapshot.set("overdueTaxAmount", computation.getOverdueTax());
         snapshot.set("lateFeeAccruedAmount", BigDecimal.ZERO);
         snapshot.set("createdDate", UtilDateTime.nowTimestamp());
         snapshot.create();
@@ -428,25 +431,23 @@ public final class FinanceDelinquencyServices {
                 throw new GenericServiceException(ServiceUtil.getErrorMessage(statusResult));
             }
         }
-        // Post write-off GL: expense against principal and interest receivables.
+        // Post write-off GL per component: expense against the receivable the adapter names.
         String agreementId = agreement.getString(adapter.getAgreementIdField());
         String organizationPartyId = adapter.getOrganizationPartyId(delegator, agreement);
         String writeOffGlAccountId = findGlAccountId(delegator, organizationPartyId, "WRITEOFF");
-        String principalReceivable = findGlAccountId(delegator, organizationPartyId, "ACCOUNTS_RECEIVABLE");
-        String interestReceivable = findGlAccountId(delegator, organizationPartyId, "INTRSTINC_RECEIVABLE");
-        if (writeOffGlAccountId != null && principalReceivable != null
-                && computation.getOverduePrincipal().compareTo(BigDecimal.ZERO) > 0) {
-            postGlTransaction(dispatcher, contract,
-                    adapter.getDescriptionPrefix() + " write-off principal " + agreementId,
-                    asOfDate, computation.getOverduePrincipal(), writeOffGlAccountId,
-                    principalReceivable, organizationPartyId, userLogin);
-        }
-        if (writeOffGlAccountId != null && interestReceivable != null
-                && computation.getOverdueInterest().compareTo(BigDecimal.ZERO) > 0) {
-            postGlTransaction(dispatcher, contract,
-                    adapter.getDescriptionPrefix() + " write-off interest " + agreementId,
-                    asOfDate, computation.getOverdueInterest(), writeOffGlAccountId,
-                    interestReceivable, organizationPartyId, userLogin);
+        Object[][] components = {
+            {FinanceContractAdapter.WRITEOFF_PRINCIPAL, computation.getOverduePrincipal(), "principal"},
+            {FinanceContractAdapter.WRITEOFF_INTEREST, computation.getOverdueInterest(), "interest"},
+            {FinanceContractAdapter.WRITEOFF_TAX, computation.getOverdueTax(), "tax"}};
+        for (Object[] component : components) {
+            BigDecimal amount = (BigDecimal) component[1];
+            String receivable = findGlAccountId(delegator, organizationPartyId,
+                    adapter.getWriteOffCreditAccountType((String) component[0]));
+            if (writeOffGlAccountId != null && receivable != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+                postGlTransaction(dispatcher, contract,
+                        adapter.getDescriptionPrefix() + " write-off " + component[2] + " " + agreementId,
+                        asOfDate, amount, writeOffGlAccountId, receivable, organizationPartyId, userLogin);
+            }
         }
         return true;
     }
@@ -560,6 +561,8 @@ public final class FinanceDelinquencyServices {
         result.put("lateFeeAmount", accrual.getBigDecimal("lateFeeAmount"));
         result.put("overduePrincipal", accrual.getBigDecimal("overduePrincipal"));
         result.put("overdueInterest", accrual.getBigDecimal("overdueInterest"));
+        result.put("overdueTax", accrual.getBigDecimal("overdueTax"));
+        result.put("lateFeeBaseAmount", accrual.getBigDecimal("lateFeeBaseAmount"));
         result.put("accrualCreated", created);
         return result;
     }

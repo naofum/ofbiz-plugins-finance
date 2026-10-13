@@ -90,4 +90,31 @@ under the License.
         </view-link>
     </view-entity>
 
+    <!-- ========================================================= -->
+    <!-- STEP L7: work management (core WorkEffort tasks per contract) -->
+    <!-- ========================================================= -->
+    <entity entity-name="FinanceContractWorkEffort" package-name="org.apache.ofbiz.finance.common"
+            title="Finance Contract - work effort (task)">
+        <field name="financeContractId" type="id"></field>
+        <field name="workEffortId" type="id"><description>core WorkEffort (TASK)</description></field>
+        <field name="financeWorkTypeEnumId" type="id"><description>FINANCE_WORK_TYPE (FINWE_*)</description></field>
+        <field name="triggerKey" type="short-varchar"><description>what created the task (e.g. lease end date, asset seq id); one task per contract x work type x trigger</description></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="financeContractId"/>
+        <prim-key field="workEffortId"/>
+        <relation type="one" fk-name="FINCTRWE_CTR" rel-entity-name="FinanceContract">
+            <key-map field-name="financeContractId"/>
+        </relation>
+        <relation type="one" fk-name="FINCTRWE_WE" rel-entity-name="WorkEffort">
+            <key-map field-name="workEffortId"/>
+        </relation>
+        <relation type="one" fk-name="FINCTRWE_TYPE" rel-entity-name="Enumeration">
+            <key-map field-name="financeWorkTypeEnumId" rel-field-name="enumId"/>
+        </relation>
+        <index name="FINCTRWE_TRIGGER_UQ" unique="true">
+            <index-field name="financeContractId"/>
+            <index-field name="financeWorkTypeEnumId"/>
+            <index-field name="triggerKey"/>
+        </index>
+    </entity>
 </entitymodel>

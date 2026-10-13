@@ -20,7 +20,10 @@
 // Screen data for ManageLeaseAgreement (STEP L2): agreement header, asset lines
 // and the current revision of the confirmed lease payment schedule.
 
+import org.apache.ofbiz.accounting.invoice.InvoiceWorker
 import org.apache.ofbiz.entity.GenericValue
+import org.apache.ofbiz.finance.common.FinanceWorkEffortHelper
+import org.apache.ofbiz.finance.lease.LeaseAccountingServices
 
 GenericValue leaseAgreement = from('LeaseAgreement').where('leaseAgreementId', parameters.leaseAgreementId).queryOne()
 context.leaseAgreement = leaseAgreement
@@ -52,3 +55,52 @@ context.scheduleRows = latest == null ? [] : from('LeaseAgreementPaymentSchedule
         .where('leaseAgreementId', leaseAgreement.leaseAgreementId, 'scheduleRevisionNumber', latest.scheduleRevisionNumber)
         .orderBy('installmentNumber').queryList()
 context.canCancel = leaseAgreement.statusId == 'LEASEAGR_CONTRACTED' && !context.assetLines.any { it.invoiceId }
+
+// STEP L4: billing, deferred profit release, payments and the collection status.
+context.isActive = leaseAgreement.statusId == 'LEASEAGR_ACTIVE'
+context.leaseInvoices = from('LeaseInstallmentInvoice').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
+        .orderBy('installmentNumber').queryList().collect { GenericValue link ->
+    Map row = new LinkedHashMap(link.getAllFields())
+    GenericValue invoice = from('Invoice').where('invoiceId', link.invoiceId).queryOne()
+    row.invoiceStatusId = invoice?.statusId
+    row.notApplied = invoice == null ? null : InvoiceWorker.getInvoiceNotApplied(invoice)
+    return row
+}
+context.profitRecognitions = from('LeaseProfitRecognition').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
+        .orderBy('fromDate').queryList()
+context.paymentReceipts = from('LeasePaymentReceipt').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
+        .orderBy('receiptDate').queryList()
+context.leaseBalance = LeaseAccountingServices.computeBalance(delegator, leaseAgreement)
+
+// STEP L6: delinquency records of the common layer (keyed by financeContractId).
+String financeContractId = leaseAgreement.financeContractId
+context.leaseDelinquencies = from('LoanDelinquency').where('financeContractId', financeContractId)
+        .orderBy('-asOfDate').queryList()
+context.leaseLateFeeAccruals = from('LoanLateFeeAccrual').where('financeContractId', financeContractId)
+        .orderBy('fromDate').queryList()
+context.leaseDunningNotices = from('LoanDunningNotice').where('financeContractId', financeContractId)
+        .orderBy('noticeDate').queryList()
+context.leaseDelinquencyActions = from('LoanDelinquencyAction').where('financeContractId', financeContractId)
+        .orderBy('actionDate').queryList()
+
+// STEP L7: expiry (notice, settlements per asset) and the contract tasks (core WorkEffort).
+context.isTransferLease = leaseAgreement.leaseClassEnumId == 'LEASE_CLS_FIN_TRANS'
+context.expiryNotice = from('LeaseExpiryNotice').where('leaseAgreementId', leaseAgreement.leaseAgreementId).queryOne()
+context.settlements = from('LeaseAssetSettlement').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
+        .orderBy('assetSeqId').queryList()
+context.assetLines.each { Map row ->
+    row.canReturn = context.isActive && !context.isTransferLease && row.assetStatusId == 'LSAST_LEASED'
+    row.canDispose = row.assetStatusId == 'LSAST_RETURNED'
+}
+context.returnedAssets = context.assetLines.findAll { it.canDispose }
+context.canTransfer = context.isActive && context.isTransferLease
+context.canIssueNotice = context.isActive && context.expiryNotice == null
+context.contractTasks = FinanceWorkEffortHelper.listTasks(delegator, financeContractId).collect { GenericValue link ->
+    GenericValue task = from('WorkEffort').where('workEffortId', link.workEffortId).queryOne()
+    Map row = new LinkedHashMap(link.getAllFields())
+    row.workEffortName = task?.workEffortName
+    row.currentStatusId = task?.currentStatusId
+    row.estimatedCompletionDate = task?.estimatedCompletionDate
+    row.actualCompletionDate = task?.actualCompletionDate
+    return row
+}
