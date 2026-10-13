@@ -2022,4 +2022,58 @@ under the License.
         <value xml:lang="en">Assignee</value>
         <value xml:lang="ja">担当者</value>
     </property>
+
+    <!-- ============ STEP L8: documents and inquiries ============ -->
+    <property key="FinanceLeaseDocAcceptanceTitle">
+        <value xml:lang="en">Certificate of Acceptance</value>
+        <value xml:lang="ja">物件受領書</value>
+    </property>
+    <property key="FinanceLeaseDocAcceptanceBody">
+        <value xml:lang="en">We hereby certify that we have received the following leased assets in good condition and accepted them on the acceptance date below. The lease term starts on the acceptance date.</value>
+        <value xml:lang="ja">下記のリース物件を正常な状態で受領し、下記の検収日に検収したことを証します。リース期間は検収日から開始します。</value>
+    </property>
+    <property key="FinanceLeaseDocExpiryTitle">
+        <value xml:lang="en">Notice of Lease Expiry</value>
+        <value xml:lang="ja">リース期間満了のお知らせ</value>
+    </property>
+    <property key="FinanceLeaseDocExpiryBodyReturn">
+        <value xml:lang="en">The lease term of the following assets expires on the lease end date below. Please prepare the assets for return; we will contact you about the pickup.</value>
+        <value xml:lang="ja">下記のリース物件は、下記のリース終了日をもってリース期間が満了します。満了後は物件をご返還いただきますので、引取りの日程について別途ご連絡いたします。</value>
+    </property>
+    <property key="FinanceLeaseDocExpiryBodyTransfer">
+        <value xml:lang="en">The lease term of the following assets expires on the lease end date below. After the final payment, the ownership of the assets is transferred to you.</value>
+        <value xml:lang="ja">下記のリース物件は、下記のリース終了日をもってリース期間が満了します。最終回のリース料のお支払いを確認した後、物件の所有権を貴社に移転いたします。</value>
+    </property>
+    <property key="FinanceLeaseDocNotAvailable">
+        <value xml:lang="en">The document is not available for lease ${leaseAgreementId} (not accepted or no expiry notice recorded)</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} の帳票は出力できません（未検収、または満了通知が未記録）</value>
+    </property>
+    <property key="FinanceLeasePrintAcceptance">
+        <value xml:lang="en">Acceptance certificate (PDF)</value>
+        <value xml:lang="ja">物件受領書（PDF）</value>
+    </property>
+    <property key="FinanceLeasePrintExpiryNotice">
+        <value xml:lang="en">Expiry notice (PDF)</value>
+        <value xml:lang="ja">満了通知書（PDF）</value>
+    </property>
+    <property key="FinanceLeaseInquiry">
+        <value xml:lang="en">Lease inquiries</value>
+        <value xml:lang="ja">リース照会</value>
+    </property>
+    <property key="FinanceLeaseInqCollection">
+        <value xml:lang="en">Collection status by agreement</value>
+        <value xml:lang="ja">契約別リース料回収状況</value>
+    </property>
+    <property key="FinanceLeaseInqOutstanding">
+        <value xml:lang="en">Outstanding principal by lessee</value>
+        <value xml:lang="ja">未回収元本残高一覧</value>
+    </property>
+    <property key="FinanceLeaseInqAssets">
+        <value xml:lang="en">Asset register</value>
+        <value xml:lang="ja">物件台帳</value>
+    </property>
+    <property key="FinanceLeaseOwner">
+        <value xml:lang="en">Owner</value>
+        <value xml:lang="ja">所有者</value>
+    </property>
 </resource>

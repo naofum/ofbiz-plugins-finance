@@ -32,7 +32,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L5 | 消費税 | 完了（tests=107 / errors=0 / failures=0） |
 | L6 | 延滞・督促（リース用契約アダプタ。共通層側は `SPEC_COMMON.md`） | 完了（tests=110 / errors=0 / failures=0） |
 | L7 | 期間満了処理（返還・所有権移転）。作業管理（WorkEffort）を共通層に導入（`REQUIREMENTS_LEASE.md` 3.5） | 完了（tests=119 / errors=0 / failures=0） |
-| L8 | 帳票・照会 | 未着手 |
+| L8 | 帳票・照会 | 完了（tests=121 / errors=0 / failures=0） |
 
 前提：STEP L0（共通層の切り出し、`SPEC_COMMON.md`）の完了後に着手する。
 
@@ -587,6 +587,59 @@ seed：`LEASEAGR_ACTIVE → LEASEAGR_COMPLETED`、物件状態 `LSAST_DISPOSED`�
 - **満了バッチの対象**は DB 内の全 ACTIVE 契約。テスト DB には過去のテスト実行の契約が残るため、テスト時間が実行のたびに伸びる（今回は全体で 22.6 分、前回 L6 は 7.4 分。ローンのテストも同様に遅くなっており、L7 固有の処理ではなく DB の肥大が主因と見られる）。運用メモ参照。
 ---
 
+## 9. STEP L8 — 帳票・照会
+
+実装：`LeaseInquiryHelper`（照会・帳票データ。読み取りのみ。受領書の発行日の記録だけ更新する）。
+
+### 9.1 帳票
+
+| 帳票 | 出力 | 内容 |
+|------|------|------|
+| リース見積書・リース契約書 | `PrintLeaseQuote.pdf` / `PrintLeaseAgreement.pdf`（L2） | 変更なし |
+| 物件受領書（検収書） | `PrintLeaseDocument.pdf?documentType=ACCEPTANCE` | 検収済みの契約。検収日・検収者・物件明細（番号・名称・数量・固定資産・取得価額）。初回出力で `LeaseAcceptance.receiptPrintedDate` を記録し、発行日として表示（再出力しても変えない） |
+| 満了通知書 | `PrintLeaseDocument.pdf?documentType=EXPIRY` | 満了通知を記録した契約（L7 の `issueLeaseExpiryNotice`）。開始日・終了日・物件明細。本文は所有権移転外（返還のご案内）／移転（所有権移転のご案内）で切り替える |
+
+- 受領書と満了通知書は 1 つの帳票定義（`LeaseDocument.jrxml`、`PrepareLeaseDocument.groovy`）で共用する。CJK フォントの設定はほかの帳票と同じ。
+- `ManageLeaseAgreement` のボタン欄に、検収後は物件受領書、満了通知の記録後は満了通知書の PDF リンクを表示する。
+
+### 9.2 照会画面（メニュー「リース照会」、タブで切替）
+
+| 画面 | 内容 |
+|------|------|
+| 契約別リース料回収状況（`LeaseCollectionStatus`） | ACTIVE / COMPLETED の契約（借手・状態で絞込）：リース料総額、請求回数、請求額、消込額、未入金額、未請求リース料、未回収元本、延滞日数（ACTIVE のみ） |
+| 未回収元本残高一覧（`LeaseOutstandingPrincipal`） | ACTIVE 契約を借手×通貨で集計：契約数、取得価額、未回収元本、未入金額、未請求リース料、繰延リース利益残高。借手から顧客照会へリンク |
+| 物件台帳（`LeaseAssetRegister`） | 契約物件（状態・借手・物件種別で絞込）：物件名・種別・固定資産・状態・借手・所有者（`FixedAsset.partyId`）・取得価額・開始日・終了日・返還日・譲渡日・処分日 |
+
+金額はすべて L4 の回収状況（`computeBalance`、有効な消込を正本）から都度計算する。
+
+### 9.3 月次バッチのトランザクション分割（L4 の変更）
+
+L8 のテスト中に、DB の肥大で月次バッチが 1 トランザクションの既定タイムアウト（60 秒）を超えた。対策として、`runLeaseMonthlyAccountingBatch` は契約ごとに内部サービス `runLeaseAgreementMonthlyAccounting`（新規トランザクション、タイムアウト 1800 秒）を呼ぶように変えた。1 契約の失敗・長時間処理がほかの契約を巻き戻さない。`runLeaseMonthlyAccountingBatch` / `runLeaseExpiryBatch` のタイムアウトも 1800 秒にした。
+
+### 9.4 テスト（`LeaseInquiryTests`）
+
+| テスト | 内容 |
+|--------|------|
+| `testLeaseInquiries` | 同一借手の 2 契約（1 契約は第 1 回入金済み）：回収状況（請求回数、未回収元本、未入金額、延滞日数）、状態での絞込、借手別の集計（契約数・取得価額・未回収元本の合計）、物件台帳（状態・所有者・固定資産、状態・種別での絞込） |
+| `testLeaseDocuments` | 物件受領書のデータ（表題・契約番号・借手・検収日・物件明細）と **JRXML のコンパイル・PDF 生成**（`%PDF-`）、受領書の発行日の記録（初回のみ）、満了通知の記録前は出力不可、満了通知書のデータ（本文・終了日）と PDF、不正な種別・契約の拒否 |
+
+PDF の生成は jasperreports プラグインのクラスを実行時に読み込んで行う（finance プラグインは JasperReports にコンパイル時依存を持たない方針を維持）。
+
+### 9.5 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | L8 で entity・seed の追加なし |
+| `gradlew "ofbiz --test component=finance"` | tests=121 / errors=0 / failures=0（9.2 分。開発 DB 再構築後） |
+| 画面・PDF のブラウザ表示 | 未確認（PDF はテストで生成を確認） |
+
+### 9.6 制約
+
+- 照会は画面上で全件を計算する（ページ表示 50 件）。契約数が多い場合は集計テーブルやバッチでの事前計算を検討する。
+- 帳票の貸手住所は表示しない（貸手名のみ）。
+---
+
 ## 運用メモ
 
 - **seed の投入**：L1 で `FinanceLeaseTypeData.xml` を追加した。既存環境では `gradlew "ofbiz --load-data readers=seed --load-data component=finance"` を実行してからテスト・画面操作を行う（未投入だとリース商品種別・申込状態がなく失敗する）。
@@ -594,5 +647,5 @@ seed：`LEASEAGR_ACTIVE → LEASEAGR_COMPLETED`、物件状態 `LSAST_DISPOSED`�
 - **L2 の画面確認で作成したデータ**：開発 DB に借手 DEMO_LESSEE1 のリース申込 10030、見積 10010、契約 10010（FinanceContract 10230、CONTRACTED）が残っている。demo の再投入では消えない。不要なら画面から契約を取り消す。
 - **見積・契約の日付**：L2 の期日は開始予定日からの暫定値。リース開始日（検収日）で確定するのは L3。
 - **外貨建てリースの換算（既知の問題・core）**：契約通貨と貸手組織の基準通貨が違う場合（demo の JPY 契約と、基準通貨 USD の `Company`）、finance 側の仕訳は `convertUom`（JPY→USD 0.006666666667）で換算する。一方、core の支払消込仕訳（`createAcctgTransAndEntriesForPaymentApplication`）は換算率を小数 4 桁（0.0067）に丸めるため、1,500,000 JPY が 10,050 USD で計上され、買掛金・未消込買掛金に 50 USD の差が残った（契約 `10010` の取引 `11042`）。各取引の貸借は一致している。契約通貨と基準通貨が同じ本番構成（JPY の貸手）では発生しない。core は変更していない。外貨建てリースを扱う場合は L4 以降で対応を検討する。
-- **L3 の画面確認で検収したデモ契約**：開発 DB のデモ契約 `10010` は検収済み（ACTIVE、開始日 2026-10-12）。demo の再投入では元に戻らない。
+- **開発 DB の再構築（2026-10-13、L8）**：テスト時間の増加（L6 7.4 分 → L7 22.6 分 → L8 48 分）のため `gradlew cleanAll loadAll` で開発 DB を作り直した。L2・L3 の画面確認で作ったデータ（デモ契約 `10010` 等）は消えている。再構築後のテストは 9.2 分。テストを繰り返すと再び遅くなるため、目安として 20 分を超えたら再構築を検討する。
 - **テスト時間の増加（L7 時点）**：テストは既定 DB を共有し、実行のたびに契約・請求・仕訳が残る。L7 のテストは全体で 22.6 分かかった（L6 では 7.4 分）。各サービスの処理時間が全体的に伸びており、DB の肥大が主因と見られる。短縮するには、開発用 DB を作り直す（`gradlew cleanAll loadAll` 等。開発 DB の全データが消えるため、実施前に確認すること）か、テスト専用の DB（別 delegator）を用意する。

@@ -74,4 +74,8 @@ under the License.
         <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseExpiryTests"/>
     </test-case>
 
+    <test-case case-name="lease-inquiry-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseInquiryTests"/>
+    </test-case>
+
 </test-suite>

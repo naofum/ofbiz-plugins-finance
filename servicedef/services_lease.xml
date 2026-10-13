@@ -267,7 +267,7 @@ under the License.
         <attribute name="cumulativeAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="createdCount" type="Long" mode="OUT" optional="true"/>
     </service>
-    <service name="runLeaseMonthlyAccountingBatch" engine="java"
+    <service name="runLeaseMonthlyAccountingBatch" engine="java" transaction-timeout="1800"
             location="org.apache.ofbiz.finance.lease.LeaseAccountingServices" invoke="runLeaseMonthlyAccountingBatch" auth="true">
         <description>For every ACTIVE lease (or the given one): bill the installments due through the processing date in
             due-date order, then release the deferred lease profit through the processing date</description>
@@ -278,7 +278,15 @@ under the License.
         <attribute name="createdInvoiceCount" type="Long" mode="OUT" optional="true"/>
         <attribute name="createdRecognitionCount" type="Long" mode="OUT" optional="true"/>
     </service>
-    <service name="receiveLeasePayment" engine="java"
+    <service name="runLeaseAgreementMonthlyAccounting" engine="java" export="false" require-new-transaction="true" transaction-timeout="1800"
+            location="org.apache.ofbiz.finance.lease.LeaseAccountingServices" invoke="runLeaseAgreementMonthlyAccounting" auth="true">
+        <description>Internal: monthly accounting of one ACTIVE lease in its own transaction (billing due installments,
+            then the deferred profit release through the processing date)</description>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="processingDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="createdInvoiceCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="createdRecognitionCount" type="Long" mode="OUT" optional="true"/>
+    </service>    <service name="receiveLeasePayment" engine="java"
             location="org.apache.ofbiz.finance.lease.LeaseAccountingServices" invoke="receiveLeasePayment" auth="true">
         <description>Receive a customer payment (PMNT_RECEIVED) for an ACTIVE lease and apply it to the given lease invoice,
             or to the open lease invoices oldest due first; the amount may not exceed the open amount</description>
@@ -315,7 +323,7 @@ under the License.
     <!-- ============================================================= -->
     <!-- STEP L7: expiry (tasks, notice, return, disposal, transfer)   -->
     <!-- ============================================================= -->
-    <service name="runLeaseExpiryBatch" engine="java"
+    <service name="runLeaseExpiryBatch" engine="java" transaction-timeout="1800"
             location="org.apache.ofbiz.finance.lease.LeaseExpiryServices" invoke="runLeaseExpiryBatch" auth="true">
         <description>For ACTIVE leases ending within monthsAhead months: expiry notice task; after the lease end, a return
             task per asset (no transfer) or an ownership transfer task once every installment is settled (transfer). Idempotent.</description>

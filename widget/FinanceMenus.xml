@@ -33,6 +33,8 @@ under the License.
         </menu-item>
         <menu-item name="LeaseExpiry" title="${uiLabelMap.FinanceLeaseExpiryList}">
             <link target="FindLeaseExpiry"/>
+        </menu-item>        <menu-item name="LeaseInquiry" title="${uiLabelMap.FinanceLeaseInquiry}">
+            <link target="LeaseCollectionStatus"/>
         </menu-item>
         <menu-item name="LoanAgreements" title="${uiLabelMap.FinanceLoanAgreement}">
             <link target="FindLoanAgreement"/>
@@ -100,4 +102,10 @@ under the License.
         </menu-item>
     </menu>
 
+    <!-- Lease inquiries (STEP L8) -->
+    <menu name="LeaseInquiryTabBar" extends="CommonTabBarMenu" extends-resource="component://common/widget/CommonMenus.xml">
+        <menu-item name="LeaseCollectionStatus" title="${uiLabelMap.FinanceLeaseInqCollection}"><link target="LeaseCollectionStatus"/></menu-item>
+        <menu-item name="LeaseOutstandingPrincipal" title="${uiLabelMap.FinanceLeaseInqOutstanding}"><link target="LeaseOutstandingPrincipal"/></menu-item>
+        <menu-item name="LeaseAssetRegister" title="${uiLabelMap.FinanceLeaseInqAssets}"><link target="LeaseAssetRegister"/></menu-item>
+    </menu>
 </menus>

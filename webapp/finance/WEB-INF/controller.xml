@@ -797,6 +797,24 @@ under the License.
         <event type="service" invoke="runLeaseExpiryBatch"/>
         <response name="success" type="request-redirect" value="FindLeaseExpiry"/>
         <response name="error" type="request-redirect" value="FindLeaseExpiry"/>
+    </request-map>    <!-- STEP L8: lease documents and inquiries -->
+    <request-map uri="PrintLeaseDocument.pdf">
+        <security https="true" auth="true"/>
+        <event type="groovy" path="component://finance/groovyScripts/lease/PrepareLeaseDocument.groovy"/>
+        <response name="success" type="view" value="LeaseDocumentPdf"/>
+        <response name="error" type="view" value="ManageLeaseAgreement"/>
+    </request-map>
+    <request-map uri="LeaseCollectionStatus">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="LeaseCollectionStatus"/>
+    </request-map>
+    <request-map uri="LeaseOutstandingPrincipal">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="LeaseOutstandingPrincipal"/>
+    </request-map>
+    <request-map uri="LeaseAssetRegister">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="LeaseAssetRegister"/>
     </request-map>    <request-map uri="PrintLeaseDunningNotice.pdf">
         <security https="true" auth="true"/>
         <event type="groovy" path="component://finance/groovyScripts/lease/PrepareLeaseDunningNotice.groovy"/>
@@ -840,6 +858,12 @@ under the License.
     <view-map name="FindLeaseAgreement" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#FindLeaseAgreement"/>
     <view-map name="ManageLeaseAgreement" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#ManageLeaseAgreement"/>
     <view-map name="FindLeaseExpiry" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#FindLeaseExpiry"/>
+    <view-map name="LeaseCollectionStatus" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#LeaseCollectionStatus"/>
+    <view-map name="LeaseOutstandingPrincipal" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#LeaseOutstandingPrincipal"/>
+    <view-map name="LeaseAssetRegister" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#LeaseAssetRegister"/>
+    <view-map name="LeaseDocumentPdf" type="jasperreports"
+            page="component://finance/webapp/finance/reports/LeaseDocument.jrxml"
+            content-type="application/pdf"/>
     <!-- Lease quote / agreement PDF (one report, title switched by the event) -->
     <view-map name="LeaseReportPdf" type="jasperreports"
             page="component://finance/webapp/finance/reports/LeaseReport.jrxml"

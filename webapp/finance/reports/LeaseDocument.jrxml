@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+
+    Lease documents (STEP L8): acceptance certificate (物件受領書) and expiry
+    notice (満了通知書). One layout for both; title, body text and the two
+    header lines come from groovyScripts/lease/PrepareLeaseDocument.groovy
+    (request attributes "jrParameters" / "jrDataSource" = asset lines).
+    JasperReports 7.x native JRXML.
+-->
+<jasperReport name="LeaseDocument" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20"
+              topMargin="20" bottomMargin="20" whenNoDataType="AllSectionsNoDetail" uuid="d4e5f6a7-2b3c-4d5e-9f60-3c4d5e6f7081">
+
+    <style name="base" default="true" pdfFontName="HeiseiKakuGo-W5" pdfEncoding="UniJIS-UCS2-H" pdfEmbedded="true"/>
+
+    <parameter name="documentTitle" class="java.lang.String"/>
+    <parameter name="documentNoLabel" class="java.lang.String"/>
+    <parameter name="documentNo" class="java.lang.String"/>
+    <parameter name="documentDate" class="java.sql.Timestamp"/>
+    <parameter name="lessorName" class="java.lang.String"/>
+    <parameter name="lesseeName" class="java.lang.String"/>
+    <parameter name="currencyUomId" class="java.lang.String"/>
+    <parameter name="bodyText" class="java.lang.String"/>
+    <parameter name="line1Label" class="java.lang.String"/>
+    <parameter name="line1Value" class="java.lang.String"/>
+    <parameter name="line2Label" class="java.lang.String"/>
+    <parameter name="line2Value" class="java.lang.String"/>
+    <parameter name="FinanceLeasePdfIssueDate" class="java.lang.String"/>
+    <parameter name="FinanceLeasePdfLessor" class="java.lang.String"/>
+    <parameter name="FinanceLeasePdfLessee" class="java.lang.String"/>
+    <parameter name="FinanceLeaseAssetSeqId" class="java.lang.String"/>
+    <parameter name="FinanceLeaseAssetName" class="java.lang.String"/>
+    <parameter name="FinanceLeaseAssetQuantity" class="java.lang.String"/>
+    <parameter name="FinanceLeaseFixedAssetId" class="java.lang.String"/>
+    <parameter name="FinanceLeaseAcquisitionCost" class="java.lang.String"/>
+    <parameter name="FinanceQuotePdfPage" class="java.lang.String"/>
+
+    <field name="assetSeqId" class="java.lang.String"/>
+    <field name="assetName" class="java.lang.String"/>
+    <field name="quantity" class="java.math.BigDecimal"/>
+    <field name="fixedAssetId" class="java.lang.String"/>
+    <field name="acquisitionCost" class="java.math.BigDecimal"/>
+
+    <title height="250">
+        <element kind="textField" x="0" y="0" width="555" height="40" fontSize="24.0" bold="true" hTextAlign="Center" vTextAlign="Middle">
+            <expression><![CDATA[$P{documentTitle}]]></expression>
+        </element>
+        <element kind="line" x="0" y="46" width="555" height="1"/>
+        <element kind="textField" x="0" y="54" width="90" height="18" fontSize="11.0" bold="true">
+            <expression><![CDATA[$P{documentNoLabel}]]></expression>
+        </element>
+        <element kind="textField" x="95" y="54" width="190" height="18" fontSize="11.0">
+            <expression><![CDATA[$P{documentNo}]]></expression>
+        </element>
+        <element kind="textField" x="300" y="54" width="90" height="18" fontSize="11.0" bold="true">
+            <expression><![CDATA[$P{FinanceLeasePdfIssueDate}]]></expression>
+        </element>
+        <element kind="textField" x="395" y="54" width="160" height="18" fontSize="11.0" pattern="yyyy-MM-dd">
+            <expression><![CDATA[$P{documentDate}]]></expression>
+        </element>
+        <element kind="textField" x="0" y="78" width="90" height="18" fontSize="11.0" bold="true">
+            <expression><![CDATA[$P{FinanceLeasePdfLessee}]]></expression>
+        </element>
+        <element kind="textField" x="95" y="78" width="460" height="18" fontSize="11.0">
+            <expression><![CDATA[$P{lesseeName}]]></expression>
+        </element>
+        <element kind="textField" x="0" y="98" width="90" height="18" fontSize="11.0" bold="true">
+            <expression><![CDATA[$P{FinanceLeasePdfLessor}]]></expression>
+        </element>
+        <element kind="textField" x="95" y="98" width="460" height="18" fontSize="11.0">
+            <expression><![CDATA[$P{lessorName}]]></expression>
+        </element>
+        <element kind="textField" x="0" y="126" width="555" height="60" fontSize="11.0" textAdjust="StretchHeight">
+            <expression><![CDATA[$P{bodyText}]]></expression>
+        </element>
+        <element kind="textField" x="0" y="194" width="130" height="18" fontSize="11.0" bold="true">
+            <expression><![CDATA[$P{line1Label}]]></expression>
+        </element>
+        <element kind="textField" x="135" y="194" width="420" height="18" fontSize="11.0">
+            <expression><![CDATA[$P{line1Value}]]></expression>
+        </element>
+        <element kind="textField" x="0" y="214" width="130" height="18" fontSize="11.0" bold="true">
+            <expression><![CDATA[$P{line2Label}]]></expression>
+        </element>
+        <element kind="textField" x="135" y="214" width="420" height="18" fontSize="11.0">
+            <expression><![CDATA[$P{line2Value}]]></expression>
+        </element>
+    </title>
+
+    <columnHeader height="22">
+        <element kind="textField" x="0" y="2" width="50" height="18" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" mode="Opaque" backcolor="#E6E6E6">
+            <expression><![CDATA[$P{FinanceLeaseAssetSeqId}]]></expression>
+        </element>
+        <element kind="textField" x="50" y="2" width="225" height="18" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" mode="Opaque" backcolor="#E6E6E6">
+            <expression><![CDATA[$P{FinanceLeaseAssetName}]]></expression>
+        </element>
+        <element kind="textField" x="275" y="2" width="60" height="18" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" mode="Opaque" backcolor="#E6E6E6">
+            <expression><![CDATA[$P{FinanceLeaseAssetQuantity}]]></expression>
+        </element>
+        <element kind="textField" x="335" y="2" width="100" height="18" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" mode="Opaque" backcolor="#E6E6E6">
+            <expression><![CDATA[$P{FinanceLeaseFixedAssetId}]]></expression>
+        </element>
+        <element kind="textField" x="435" y="2" width="120" height="18" fontSize="10.0" bold="true" hTextAlign="Center" vTextAlign="Middle" mode="Opaque" backcolor="#E6E6E6">
+            <expression><![CDATA[$P{FinanceLeaseAcquisitionCost}]]></expression>
+        </element>
+    </columnHeader>
+
+    <detail>
+        <band height="18">
+            <element kind="textField" x="0" y="0" width="50" height="16" fontSize="9.0" hTextAlign="Center">
+                <expression><![CDATA[$F{assetSeqId}]]></expression>
+            </element>
+            <element kind="textField" x="50" y="0" width="225" height="16" fontSize="9.0">
+                <expression><![CDATA[$F{assetName}]]></expression>
+            </element>
+            <element kind="textField" x="275" y="0" width="60" height="16" fontSize="9.0" hTextAlign="Right" pattern="#,##0.##">
+                <expression><![CDATA[$F{quantity}]]></expression>
+            </element>
+            <element kind="textField" x="335" y="0" width="100" height="16" fontSize="9.0" hTextAlign="Center">
+                <expression><![CDATA[$F{fixedAssetId}]]></expression>
+            </element>
+            <element kind="textField" x="435" y="0" width="120" height="16" fontSize="9.0" hTextAlign="Right" pattern="#,##0.##">
+                <expression><![CDATA[$F{acquisitionCost}]]></expression>
+            </element>
+            <element kind="line" x="0" y="17" width="555" height="1" forecolor="#CCCCCC"/>
+        </band>
+    </detail>
+
+    <pageFooter height="20">
+        <element kind="textField" x="455" y="0" width="100" height="15" fontSize="9.0" hTextAlign="Right">
+            <expression><![CDATA[$V{PAGE_NUMBER} + " " + $P{FinanceQuotePdfPage}]]></expression>
+        </element>
+    </pageFooter>
+
+</jasperReport>

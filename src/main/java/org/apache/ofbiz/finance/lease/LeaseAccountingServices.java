@@ -416,7 +416,6 @@ public final class LeaseAccountingServices {
         String requestedId = (String) context.get("leaseAgreementId");
         Timestamp processingDate = context.get("processingDate") != null
                 ? (Timestamp) context.get("processingDate") : UtilDateTime.nowTimestamp();
-        Timestamp processingEnd = UtilDateTime.getDayEnd(processingDate);
         long processed = 0;
         long invoices = 0;
         long recognitions = 0;
@@ -436,7 +435,45 @@ public final class LeaseAccountingServices {
                         .orderBy("leaseAgreementId").queryList();
             }
             for (GenericValue agreement : agreements) {
-                String leaseAgreementId = agreement.getString("leaseAgreementId");
+                // Each agreement in its own transaction (internal service, require-new-transaction):
+                // one failing or long agreement neither times out nor rolls back the others.
+                Map<String, Object> one = dctx.getDispatcher().runSync("runLeaseAgreementMonthlyAccounting", UtilMisc.toMap(
+                        "leaseAgreementId", agreement.getString("leaseAgreementId"), "processingDate", processingDate,
+                        "userLogin", userLogin, "locale", locale));
+                if (ServiceUtil.isError(one)) {
+                    return ServiceUtil.returnError(ServiceUtil.getErrorMessage(one));
+                }
+                invoices += (Long) one.get("createdInvoiceCount");
+                recognitions += (Long) one.get("createdRecognitionCount");
+                processed++;
+            }
+            Map<String, Object> result = ServiceUtil.returnSuccess();
+            result.put("processedAgreementCount", processed);
+            result.put("createdInvoiceCount", invoices);
+            result.put("createdRecognitionCount", recognitions);
+            return result;
+        } catch (GenericEntityException | GenericServiceException e) {
+            Debug.logError(e, MODULE);
+            return ServiceUtil.returnError(e.getMessage());
+        }
+    }
+
+    /**
+     * Monthly accounting of one ACTIVE agreement (internal service of the batch):
+     * bill every installment due through the processing date in due-date order, then
+     * recognize the deferred lease profit through the processing date.
+     */
+    public static Map<String, Object> runLeaseAgreementMonthlyAccounting(DispatchContext dctx, Map<String, Object> context) {
+        Delegator delegator = dctx.getDelegator();
+        GenericValue userLogin = (GenericValue) context.get("userLogin");
+        Locale locale = (Locale) context.get("locale");
+        String leaseAgreementId = (String) context.get("leaseAgreementId");
+        Timestamp processingDate = context.get("processingDate") != null
+                ? (Timestamp) context.get("processingDate") : UtilDateTime.nowTimestamp();
+        Timestamp processingEnd = UtilDateTime.getDayEnd(processingDate);
+        long invoices = 0;
+        try {
+            {
                 List<GenericValue> rows = EntityQuery.use(delegator).from("LeaseAgreementPaymentSchedule")
                         .where("leaseAgreementId", leaseAgreementId,
                                 "scheduleRevisionNumber", currentScheduleRevision(delegator, leaseAgreementId))
@@ -461,14 +498,11 @@ public final class LeaseAccountingServices {
                 if (ServiceUtil.isError(rec)) {
                     return batchError(leaseAgreementId, ServiceUtil.getErrorMessage(rec), locale);
                 }
-                recognitions += (Long) rec.get("createdCount");
-                processed++;
+                Map<String, Object> result = ServiceUtil.returnSuccess();
+                result.put("createdInvoiceCount", invoices);
+                result.put("createdRecognitionCount", rec.get("createdCount"));
+                return result;
             }
-            Map<String, Object> result = ServiceUtil.returnSuccess();
-            result.put("processedAgreementCount", processed);
-            result.put("createdInvoiceCount", invoices);
-            result.put("createdRecognitionCount", recognitions);
-            return result;
         } catch (GenericEntityException e) {
             Debug.logError(e, MODULE);
             return ServiceUtil.returnError(e.getMessage());

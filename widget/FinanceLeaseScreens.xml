@@ -279,6 +279,25 @@ under the License.
                                     <link target="PrintLeaseAgreement.pdf" text="${uiLabelMap.FinanceLeasePrintAgreementPdf}" style="buttontext" target-window="_blank">
                                         <parameter param-name="leaseAgreementId" from-field="leaseAgreement.leaseAgreementId"/>
                                     </link>
+                                    <!-- STEP L8: acceptance certificate / expiry notice -->
+                                    <section>
+                                        <condition><not><if-empty field="leaseAcceptance"/></not></condition>
+                                        <widgets>
+                                            <link target="PrintLeaseDocument.pdf" text="${uiLabelMap.FinanceLeasePrintAcceptance}" style="buttontext" target-window="_blank">
+                                                <parameter param-name="leaseAgreementId" from-field="leaseAgreement.leaseAgreementId"/>
+                                                <parameter param-name="documentType" value="ACCEPTANCE"/>
+                                            </link>
+                                        </widgets>
+                                    </section>
+                                    <section>
+                                        <condition><not><if-empty field="expiryNotice"/></not></condition>
+                                        <widgets>
+                                            <link target="PrintLeaseDocument.pdf" text="${uiLabelMap.FinanceLeasePrintExpiryNotice}" style="buttontext" target-window="_blank">
+                                                <parameter param-name="leaseAgreementId" from-field="leaseAgreement.leaseAgreementId"/>
+                                                <parameter param-name="documentType" value="EXPIRY"/>
+                                            </link>
+                                        </widgets>
+                                    </section>
                                     <link target="FinanceCustomerSummary" text="${uiLabelMap.FinanceCustomerSummary}" style="buttontext">
                                         <parameter param-name="customerPartyId" from-field="leaseAgreement.lesseePartyId"/>
                                     </link>
@@ -432,6 +451,76 @@ under the License.
                         <screenlet title="${uiLabelMap.FinanceLeaseExpiryList}">
                             <include-form name="FilterLeaseExpiry" location="component://finance/widget/FinanceLeaseForms.xml"/>
                             <include-grid name="ListLeaseExpiry" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        </screenlet>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+    <!-- Lease inquiries (STEP L8) -->
+    <screen name="LeaseCollectionStatus">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceLeaseInqCollection"/>
+                <set field="headerItem" value="LeaseInquiry"/>
+                <set field="inquiry" value="collection"/>
+                <set field="viewIndex" from-field="parameters.VIEW_INDEX" type="Integer" default-value="0"/>
+                <set field="viewSize" from-field="parameters.VIEW_SIZE" type="Integer" default-value="50"/>
+                <script location="component://finance/groovyScripts/lease/PrepareLeaseInquiry.groovy"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <include-menu name="LeaseInquiryTabBar" location="component://finance/widget/FinanceMenus.xml"/>
+                        <screenlet title="${uiLabelMap.FinanceLeaseInqCollection}">
+                            <include-form name="FilterLeaseCollection" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                            <include-grid name="ListLeaseCollectionStatus" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        </screenlet>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+    <screen name="LeaseOutstandingPrincipal">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceLeaseInqOutstanding"/>
+                <set field="headerItem" value="LeaseInquiry"/>
+                <set field="inquiry" value="outstanding"/>
+                <set field="viewIndex" from-field="parameters.VIEW_INDEX" type="Integer" default-value="0"/>
+                <set field="viewSize" from-field="parameters.VIEW_SIZE" type="Integer" default-value="50"/>
+                <script location="component://finance/groovyScripts/lease/PrepareLeaseInquiry.groovy"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <include-menu name="LeaseInquiryTabBar" location="component://finance/widget/FinanceMenus.xml"/>
+                        <screenlet title="${uiLabelMap.FinanceLeaseInqOutstanding}">
+                            <include-form name="FilterLeaseOutstanding" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                            <include-grid name="ListLeaseOutstanding" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        </screenlet>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
+    <screen name="LeaseAssetRegister">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceLeaseInqAssets"/>
+                <set field="headerItem" value="LeaseInquiry"/>
+                <set field="inquiry" value="assets"/>
+                <set field="viewIndex" from-field="parameters.VIEW_INDEX" type="Integer" default-value="0"/>
+                <set field="viewSize" from-field="parameters.VIEW_SIZE" type="Integer" default-value="50"/>
+                <script location="component://finance/groovyScripts/lease/PrepareLeaseInquiry.groovy"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <include-menu name="LeaseInquiryTabBar" location="component://finance/widget/FinanceMenus.xml"/>
+                        <screenlet title="${uiLabelMap.FinanceLeaseInqAssets}">
+                            <include-form name="FilterLeaseAssets" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                            <include-grid name="ListLeaseAssets" location="component://finance/widget/FinanceLeaseForms.xml"/>
                         </screenlet>
                     </decorator-section>
                 </decorator-screen>
