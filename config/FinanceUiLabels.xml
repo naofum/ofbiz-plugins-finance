@@ -56,7 +56,7 @@ under the License.
     </property>
     <property key="FinanceProductId">
         <value xml:lang="en">Financial Product</value>
-        <value xml:lang="ja">ローン商品</value>
+        <value xml:lang="ja">金融商品</value>
     </property>
     <property key="FinanceApplicantPartyId">
         <value xml:lang="en">Applicant</value>
@@ -1014,6 +1014,10 @@ under the License.
         <value xml:lang="en">Financial Product</value>
         <value xml:lang="ja">金融商品</value>
     </property>
+    <property key="FinanceLeaseApplications">
+        <value xml:lang="en">Lease Applications</value>
+        <value xml:lang="ja">リース申込一覧</value>
+    </property>
     <property key="FinanceEditLeaseApplication">
         <value xml:lang="en">Lease Application</value>
         <value xml:lang="ja">リース申込</value>
@@ -1061,10 +1065,6 @@ under the License.
     <property key="FinanceLeaseApplicationNotFound">
         <value xml:lang="en">Lease application not found: ${leaseApplicationId}</value>
         <value xml:lang="ja">リース申込が見つかりません: ${leaseApplicationId}</value>
-    </property>
-    <property key="FinanceLeaseApplications">
-        <value xml:lang="en">Lease Applications</value>
-        <value xml:lang="ja">リース申込</value>
     </property>
     <property key="FinanceLeaseApprovedAcquisitionCost">
         <value xml:lang="en">Approved acquisition cost</value>
@@ -1355,6 +1355,38 @@ under the License.
     <property key="FinanceLeaseCalcInvalid">
         <value xml:lang="en">The lease payment cannot be calculated: ${reason}</value>
         <value xml:lang="ja">リース料を計算できません: ${reason}</value>
+    </property>
+    <property key="FinanceLeaseComponentInvalid">
+        <value xml:lang="en">The lease payment component is invalid: ${reason}</value>
+        <value xml:lang="ja">リース料の構成要素が不正です: ${reason}</value>
+    </property>
+    <property key="FinanceLeaseComponents">
+        <value xml:lang="en">Payment components</value>
+        <value xml:lang="ja">リース料の構成要素</value>
+    </property>
+    <property key="FinanceLeaseComponentType">
+        <value xml:lang="en">Component type</value>
+        <value xml:lang="ja">構成要素の種別</value>
+    </property>
+    <property key="FinanceLeaseComponentTaxClass">
+        <value xml:lang="en">Tax classification</value>
+        <value xml:lang="ja">消費税区分</value>
+    </property>
+    <property key="FinanceLeaseComponentRevenue">
+        <value xml:lang="en">Revenue treatment</value>
+        <value xml:lang="ja">収益計上</value>
+    </property>
+    <property key="FinanceLeaseComponentMonthly">
+        <value xml:lang="en">Monthly amount</value>
+        <value xml:lang="ja">月額</value>
+    </property>
+    <property key="FinanceLeaseComponentTotal">
+        <value xml:lang="en">Component total (tax excluded)</value>
+        <value xml:lang="ja">構成要素合計（税抜）</value>
+    </property>
+    <property key="FinanceLeaseComponentTaxTotal">
+        <value xml:lang="en">Component consumption tax total</value>
+        <value xml:lang="ja">構成要素の消費税合計</value>
     </property>
     <property key="FinanceLeaseCalcMethod">
         <value xml:lang="en">Calculation method</value>

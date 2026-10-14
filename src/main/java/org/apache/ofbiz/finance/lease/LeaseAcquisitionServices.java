@@ -375,6 +375,37 @@ public final class LeaseAcquisitionServices {
                 line.create();
             }
 
+            // STEP L9: re-snapshot the payment components to the new revision; the component
+            // consumption tax of taxable (課税) components is re-fixed at the lease start rate.
+            int componentScale = FinanceInterestCalculator.resolveScale(currency, delegator);
+            java.math.RoundingMode componentMode = FinanceInterestCalculator.resolveRoundingMode(currency, delegator);
+            for (GenericValue comp : EntityQuery.use(delegator).from("LeaseAgrPaySchedComp")
+                    .where("leaseAgreementId", leaseAgreementId, "scheduleRevisionNumber", baseRevision)
+                    .orderBy("installmentNumber", "componentSeqId").queryList()) {
+                GenericValue compLine = delegator.makeValue("LeaseAgrPaySchedComp", comp.getAllFields());
+                compLine.set("scheduleRevisionNumber", newRevision);
+                BigDecimal amount = comp.getBigDecimal("amount");
+                BigDecimal compTax = LeaseComponentCalculator.isTaxable(comp.getString("taxClassEnumId"))
+                        ? (amount == null ? BigDecimal.ZERO : amount).multiply(taxRate.getRate())
+                                .setScale(componentScale, componentMode)
+                        : BigDecimal.ZERO;
+                compLine.set("taxAmount", compTax);
+                compLine.create();
+            }
+            // Re-fix the component definition totals at the lease start rate.
+            for (GenericValue def : EntityQuery.use(delegator).from("LeaseAgreementComponent")
+                    .where("leaseAgreementId", leaseAgreementId).queryList()) {
+                BigDecimal totalCompTax = BigDecimal.ZERO;
+                for (GenericValue cl : EntityQuery.use(delegator).from("LeaseAgrPaySchedComp")
+                        .where("leaseAgreementId", leaseAgreementId, "scheduleRevisionNumber", newRevision,
+                                "componentSeqId", def.getString("componentSeqId")).queryList()) {
+                    totalCompTax = totalCompTax.add(cl.getBigDecimal("taxAmount") == null
+                            ? BigDecimal.ZERO : cl.getBigDecimal("taxAmount"));
+                }
+                def.set("totalTaxAmount", totalCompTax);
+                def.store();
+            }
+
             int term = agreement.getLong("termMonths").intValue();
             agreement.set("leaseStartDate", start);
             agreement.set("leaseEndDate", minusOneDay(addMonths(start, term)));

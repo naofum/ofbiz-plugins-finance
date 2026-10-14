@@ -54,6 +54,9 @@ context.scheduleRevisionNumber = latest?.scheduleRevisionNumber
 context.scheduleRows = latest == null ? [] : from('LeaseAgreementPaymentSchedule')
         .where('leaseAgreementId', leaseAgreement.leaseAgreementId, 'scheduleRevisionNumber', latest.scheduleRevisionNumber)
         .orderBy('installmentNumber').queryList()
+// STEP L9: lease payment components (definition list)
+context.componentLines = from('LeaseAgreementComponent').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
+        .orderBy('componentSeqId').queryList()
 context.canCancel = leaseAgreement.statusId == 'LEASEAGR_CONTRACTED' && !context.assetLines.any { it.invoiceId }
 
 // STEP L4: billing, deferred profit release, payments and the collection status.

@@ -392,6 +392,44 @@ under the License.
         <field name="remainingPrincipal" title="${uiLabelMap.FinanceLeaseRemainingPrincipal}"><display type="currency" currency="${currencyUomId}"/></field>
     </grid>
 
+    <!-- STEP L9: lease payment components (read-only definition list) -->
+    <grid name="ListLeaseQuoteComponents" list-name="componentLines" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="componentSeqId" title="${uiLabelMap.FinanceLeaseAssetSeqId}"><display/></field>
+        <field name="componentTypeEnumId" title="${uiLabelMap.FinanceLeaseComponentType}">
+            <display-entity entity-name="Enumeration" key-field-name="enumId" description="${description}"/>
+        </field>
+        <field name="description" title="${uiLabelMap.FinanceComments}"><display/></field>
+        <field name="monthlyAmount" title="${uiLabelMap.FinanceLeaseComponentMonthly}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="taxClassEnumId" title="${uiLabelMap.FinanceLeaseComponentTaxClass}">
+            <display-entity entity-name="Enumeration" key-field-name="enumId" description="${description}"/>
+        </field>
+        <field name="revenueTreatmentEnumId" title="${uiLabelMap.FinanceLeaseComponentRevenue}">
+            <display-entity entity-name="Enumeration" key-field-name="enumId" description="${description}"/>
+        </field>
+        <field name="totalAmount" title="${uiLabelMap.FinanceLeaseComponentTotal}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="totalTaxAmount" title="${uiLabelMap.FinanceLeaseComponentTaxTotal}"><display type="currency" currency="${currencyUomId}"/></field>
+    </grid>
+
+    <!-- STEP L9: lease agreement payment components (read-only definition list) -->
+    <grid name="ListLeaseAgreementComponents" list-name="componentLines" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="componentSeqId" title="${uiLabelMap.FinanceLeaseAssetSeqId}"><display/></field>
+        <field name="componentTypeEnumId" title="${uiLabelMap.FinanceLeaseComponentType}">
+            <display-entity entity-name="Enumeration" key-field-name="enumId" description="${description}"/>
+        </field>
+        <field name="description" title="${uiLabelMap.FinanceComments}"><display/></field>
+        <field name="monthlyAmount" title="${uiLabelMap.FinanceLeaseComponentMonthly}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="taxClassEnumId" title="${uiLabelMap.FinanceLeaseComponentTaxClass}">
+            <display-entity entity-name="Enumeration" key-field-name="enumId" description="${description}"/>
+        </field>
+        <field name="revenueTreatmentEnumId" title="${uiLabelMap.FinanceLeaseComponentRevenue}">
+            <display-entity entity-name="Enumeration" key-field-name="enumId" description="${description}"/>
+        </field>
+        <field name="totalAmount" title="${uiLabelMap.FinanceLeaseComponentTotal}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="totalTaxAmount" title="${uiLabelMap.FinanceLeaseComponentTaxTotal}"><display type="currency" currency="${currencyUomId}"/></field>
+    </grid>
+
     <!-- ============================================================= -->
     <!-- STEP L2: lease agreements                                     -->
     <!-- ============================================================= -->

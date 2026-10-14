@@ -30,3 +30,6 @@ context.currencyUomId = leaseQuote.currencyUomId
 context.assetLines = from('LeaseQuoteAsset').where('leaseQuoteId', leaseQuote.leaseQuoteId).orderBy('assetSeqId').queryList()
 context.scheduleRows = from('LeasePaymentSchedule').where('leaseQuoteId', leaseQuote.leaseQuoteId)
         .orderBy('installmentNumber').queryList()
+// STEP L9: lease payment components (definition list)
+context.componentLines = from('LeaseQuoteComponent').where('leaseQuoteId', leaseQuote.leaseQuoteId)
+        .orderBy('componentSeqId').queryList()

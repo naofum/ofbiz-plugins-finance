@@ -78,4 +78,8 @@ under the License.
         <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseInquiryTests"/>
     </test-case>
 
+    <test-case case-name="lease-component-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseComponentTests"/>
+    </test-case>
+
 </test-suite>

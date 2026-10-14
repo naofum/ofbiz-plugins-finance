@@ -225,6 +225,14 @@ under the License.
                                 <screenlet title="${uiLabelMap.FinanceLeasePaymentSchedule}">
                                     <include-grid name="ListLeasePaymentSchedule" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                 </screenlet>
+                                <section>
+                                    <condition><not><if-empty field="componentLines"/></not></condition>
+                                    <widgets>
+                                        <screenlet title="${uiLabelMap.FinanceLeaseComponents}">
+                                            <include-grid name="ListLeaseQuoteComponents" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                    </widgets>
+                                </section>
                             </widgets>
                             <fail-widgets>
                                 <label text="${uiLabelMap.FinanceRecordNotFound}"/>
@@ -339,6 +347,14 @@ under the License.
                                 <screenlet title="${uiLabelMap.FinanceLeaseConfirmedSchedule} (${uiLabelMap.FinanceScheduleRevision} ${scheduleRevisionNumber})">
                                     <include-grid name="ListLeasePaymentSchedule" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                 </screenlet>
+                                <section>
+                                    <condition><not><if-empty field="componentLines"/></not></condition>
+                                    <widgets>
+                                        <screenlet title="${uiLabelMap.FinanceLeaseComponents}">
+                                            <include-grid name="ListLeaseAgreementComponents" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
+                                    </widgets>
+                                </section>
                                 <!-- STEP L4: billing, deferred profit release, payments -->
                                 <section>
                                     <condition><not><if-empty field="leaseAcceptance"/></not></condition>

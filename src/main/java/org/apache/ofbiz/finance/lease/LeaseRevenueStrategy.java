@@ -46,6 +46,7 @@ public interface LeaseRevenueStrategy {
     String GL_PROFIT_RELEASE = "LEASE_PROFIT_RELEASE";
     String GL_TAX_PAYABLE = "LEASE_TAX_PAYABLE";
     String GL_TAX_RECEIVABLE = "LEASE_TAX_RECEIVABLE";
+    String GL_COMPONENT_REVENUE = "LEASE_COMP_REVENUE";
 
     /** GL lines booked at the lease start (acceptance date). */
     List<FinanceGlHelper.Line> startEntries(GenericValue agreement);

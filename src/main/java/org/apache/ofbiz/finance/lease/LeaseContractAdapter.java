@@ -134,6 +134,8 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
             BigDecimal principal = nz(row.getBigDecimal("principalPortion"));
             BigDecimal interest = nz(row.getBigDecimal("interestPortion"));
             BigDecimal tax = nz(row.getBigDecimal("taxAmount"));
+            BigDecimal component = BigDecimal.ZERO;
+            BigDecimal componentTax = BigDecimal.ZERO;
             BigDecimal unpaid = nz(row.getBigDecimal("leaseAmount")).add(tax);
             GenericValue link = EntityQuery.use(delegator).from("LeaseInstallmentInvoice")
                     .where("leaseAgreementId", leaseAgreementId, "installmentNumber", row.getLong("installmentNumber"))
@@ -144,6 +146,8 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
                 principal = nz(link.getBigDecimal("principalPortion"));
                 interest = nz(link.getBigDecimal("interestPortion"));
                 tax = nz(link.getBigDecimal("taxAmount"));
+                component = nz(link.getBigDecimal("componentAmount"));
+                componentTax = nz(link.getBigDecimal("componentTaxAmount"));
                 invoiceId = link.getString("invoiceId");
                 GenericValue invoice = EntityQuery.use(delegator).from("Invoice").where("invoiceId", invoiceId)
                         .cache(false).queryOne();
@@ -151,16 +155,32 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
                     continue;
                 }
                 unpaid = nz(InvoiceWorker.getInvoiceNotApplied(invoice));
+            } else {
+                // Not billed yet: include the scheduled component amounts of the installment.
+                for (GenericValue comp : EntityQuery.use(delegator).from("LeaseAgrPaySchedComp")
+                        .where("leaseAgreementId", leaseAgreementId,
+                                "scheduleRevisionNumber", LeaseAccountingServices.currentScheduleRevision(delegator, leaseAgreementId),
+                                "installmentNumber", row.getLong("installmentNumber")).queryList()) {
+                    component = component.add(nz(comp.getBigDecimal("amount")));
+                    componentTax = componentTax.add(nz(comp.getBigDecimal("taxAmount")));
+                }
+                unpaid = unpaid.add(component).add(componentTax);
             }
             if (unpaid.signum() <= 0) {
                 continue;
             }
+            // Unpaid remains in the order principal, interest, component, tax (component tax
+            // merged with the consumption tax). The late fee base uses the lease payment
+            // (principal + interest), optionally including the tax; components stay separate.
             BigDecimal unpaidPrincipal = unpaid.min(principal).max(BigDecimal.ZERO);
-            BigDecimal unpaidInterest = unpaid.subtract(unpaidPrincipal).min(interest).max(BigDecimal.ZERO);
-            BigDecimal unpaidTax = unpaid.subtract(unpaidPrincipal).subtract(unpaidInterest).max(BigDecimal.ZERO);
+            BigDecimal afterPrincipal = unpaid.subtract(unpaidPrincipal);
+            BigDecimal unpaidInterest = afterPrincipal.min(interest).max(BigDecimal.ZERO);
+            BigDecimal afterInterest = afterPrincipal.subtract(unpaidInterest);
+            BigDecimal unpaidComponent = afterInterest.min(component).max(BigDecimal.ZERO);
+            BigDecimal unpaidTax = afterInterest.subtract(unpaidComponent).max(BigDecimal.ZERO);
             rows.add(UtilMisc.toMap("installmentNumber", row.getLong("installmentNumber"), "dueDate", dueDate,
                     "invoiceId", invoiceId, "unpaidAmount", unpaid, "principalAmount", unpaidPrincipal,
-                    "interestAmount", unpaidInterest, "taxAmount", unpaidTax,
+                    "interestAmount", unpaidInterest, "componentAmount", unpaidComponent, "taxAmount", unpaidTax,
                     "leaseAmount", unpaidPrincipal.add(unpaidInterest)));
         }
         return rows;
@@ -172,11 +192,17 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
         BigDecimal principal = BigDecimal.ZERO;
         BigDecimal interest = BigDecimal.ZERO;
         BigDecimal tax = BigDecimal.ZERO;
+        BigDecimal lateFeeTax = BigDecimal.ZERO;
         Timestamp oldest = null;
         for (Map<String, Object> row : overdueInstallments(delegator, agreement, asOfDate)) {
             principal = principal.add((BigDecimal) row.get("principalAmount"));
             interest = interest.add((BigDecimal) row.get("interestAmount"));
-            tax = tax.add((BigDecimal) row.get("taxAmount"));
+            lateFeeTax = lateFeeTax.add((BigDecimal) row.get("taxAmount"));
+            // The component charge is overdue too; it is grouped with the tax bucket
+            // (both are credited to accounts receivable on write-off) so the total
+            // delinquency covers the whole unpaid invoice. It does not inflate the
+            // late fee base (the base is the lease payment, optionally with its tax).
+            tax = tax.add((BigDecimal) row.get("taxAmount")).add((BigDecimal) row.get("componentAmount"));
             if (oldest == null) {
                 oldest = (Timestamp) row.get("dueDate");
             }
@@ -187,7 +213,7 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
             LocalDate asOf = asOfDate.toLocalDateTime().toLocalDate();
             daysPastDue = Math.max(ChronoUnit.DAYS.between(due, asOf), 0L);
         }
-        BigDecimal base = lateFeeIncludesTax(delegator) ? principal.add(interest).add(tax) : principal.add(interest);
+        BigDecimal base = lateFeeIncludesTax(delegator) ? principal.add(interest).add(lateFeeTax) : principal.add(interest);
         return new DelinquencyComputation(daysPastDue, principal, interest, tax, base);
     }
 

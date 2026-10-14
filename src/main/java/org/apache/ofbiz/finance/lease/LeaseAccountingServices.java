@@ -74,6 +74,8 @@ public final class LeaseAccountingServices {
     public static final String ITEM_LEASE_PAYMENT = "LEASE_PAYMENT";
     public static final String ITEM_CONS_TAX = "LEASE_CONS_TAX";
     public static final String ITEM_CORE_SALES_TAX = "ITM_SALES_TAX";
+    public static final String ITEM_COMPONENT = "LEASE_COMPONENT";
+    public static final String ITEM_COMPONENT_TAX = "LEASE_COMP_TAX";
 
     private LeaseAccountingServices() {
     }
@@ -265,6 +267,62 @@ public final class LeaseAccountingServices {
             }
             BigDecimal billed = leaseAmount.add(taxAmount);
 
+            // STEP L9: payment components. Separate (区分) components credit the lease
+            // component revenue account (revenue recognized at billing); their taxable
+            // (課税) consumption tax credits the tax received account (or the core tax
+            // authority when the contract has one, per installment). Included (含める)
+            // components are folded into the lease payment item (credit the asset account,
+            // no new sales), as they were part of the method-1 sales at the start.
+            BigDecimal componentAmount = BigDecimal.ZERO;
+            BigDecimal componentTax = BigDecimal.ZERO;
+            BigDecimal separateAmount = BigDecimal.ZERO;
+            BigDecimal includedAmount = BigDecimal.ZERO;
+            BigDecimal separateTax = BigDecimal.ZERO;
+            for (GenericValue comp : EntityQuery.use(delegator).from("LeaseAgrPaySchedComp")
+                    .where("leaseAgreementId", leaseAgreementId, "scheduleRevisionNumber", revision,
+                            "installmentNumber", installmentNumber).orderBy("componentSeqId").queryList()) {
+                BigDecimal amount = nz(comp.getBigDecimal("amount"));
+                BigDecimal tax = nz(comp.getBigDecimal("taxAmount"));
+                componentAmount = componentAmount.add(amount);
+                componentTax = componentTax.add(tax);
+                boolean separate = !LeaseComponentCalculator.REV_INCLUDED.equals(comp.getString("revenueTreatmentEnumId"));
+                if (separate) {
+                    separateAmount = separateAmount.add(amount);
+                    separateTax = separateTax.add(tax);
+                } else {
+                    includedAmount = includedAmount.add(amount);
+                }
+            }
+            if (separateAmount.signum() > 0) {
+                createItem(dispatcher, invoiceId, ITEM_COMPONENT, separateAmount,
+                        glAccount(delegator, organizationPartyId, LeaseRevenueStrategy.GL_COMPONENT_REVENUE),
+                        "Lease components #" + installmentNumber, userLogin);
+            }
+            if (includedAmount.signum() > 0) {
+                createItem(dispatcher, invoiceId, ITEM_COMPONENT, includedAmount, leaseGl,
+                        "Lease components (included) #" + installmentNumber, userLogin);
+            }
+            if (separateTax.signum() > 0) {
+                if (coreTax) {
+                    Map<String, Object> compTaxItem = new HashMap<>();
+                    compTaxItem.put("invoiceId", invoiceId);
+                    compTaxItem.put("invoiceItemTypeId", ITEM_CORE_SALES_TAX);
+                    compTaxItem.put("quantity", BigDecimal.ONE);
+                    compTaxItem.put("amount", separateTax);
+                    compTaxItem.put("description", "Component consumption tax #" + installmentNumber);
+                    compTaxItem.put("taxAuthPartyId", agreement.getString("taxAuthPartyId"));
+                    compTaxItem.put("taxAuthGeoId", agreement.getString("taxAuthGeoId"));
+                    compTaxItem.put("taxAuthorityRateSeqId", agreement.getString("taxAuthorityRateSeqId"));
+                    compTaxItem.put("userLogin", userLogin);
+                    check(dispatcher.runSync("createInvoiceItem", compTaxItem));
+                } else {
+                    createItem(dispatcher, invoiceId, ITEM_COMPONENT_TAX, separateTax,
+                            glAccount(delegator, organizationPartyId, LeaseRevenueStrategy.GL_TAX_PAYABLE),
+                            "Component consumption tax #" + installmentNumber, userLogin);
+                }
+            }
+            billed = billed.add(componentAmount).add(componentTax);
+
             GenericValue link = delegator.makeValue("LeaseInstallmentInvoice");
             link.set("leaseAgreementId", leaseAgreementId);
             link.set("installmentNumber", installmentNumber);
@@ -275,6 +333,8 @@ public final class LeaseAccountingServices {
             link.set("principalPortion", row.getBigDecimal("principalPortion"));
             link.set("interestPortion", row.getBigDecimal("interestPortion"));
             link.set("taxAmount", taxAmount);
+            link.set("componentAmount", componentAmount);
+            link.set("componentTaxAmount", componentTax);
             link.set("billedAmount", billed);
             link.set("createdDate", UtilDateTime.nowTimestamp());
             link.create();
@@ -648,8 +708,11 @@ public final class LeaseAccountingServices {
         String leaseAgreementId = agreement.getString("leaseAgreementId");
         BigDecimal billedLease = BigDecimal.ZERO;
         BigDecimal billedTax = BigDecimal.ZERO;
+        BigDecimal billedComponent = BigDecimal.ZERO;
+        BigDecimal billedComponentTax = BigDecimal.ZERO;
         BigDecimal applied = BigDecimal.ZERO;
         BigDecimal collectedTax = BigDecimal.ZERO;
+        BigDecimal collectedComponent = BigDecimal.ZERO;
         BigDecimal collectedInterest = BigDecimal.ZERO;
         BigDecimal collectedPrincipal = BigDecimal.ZERO;
         long billedCount = 0;
@@ -659,8 +722,12 @@ public final class LeaseAccountingServices {
             BigDecimal tax = nz(link.getBigDecimal("taxAmount"));
             BigDecimal interest = nz(link.getBigDecimal("interestPortion"));
             BigDecimal principal = nz(link.getBigDecimal("principalPortion"));
+            BigDecimal component = nz(link.getBigDecimal("componentAmount"));
+            BigDecimal componentTax = nz(link.getBigDecimal("componentTaxAmount"));
             billedLease = billedLease.add(nz(link.getBigDecimal("leaseAmount")));
             billedTax = billedTax.add(tax);
+            billedComponent = billedComponent.add(component);
+            billedComponentTax = billedComponentTax.add(componentTax);
             BigDecimal invoiceApplied = BigDecimal.ZERO;
             for (GenericValue app : EntityQuery.use(delegator).from("PaymentApplication")
                     .where("invoiceId", link.getString("invoiceId")).cache(false).queryList()) {
@@ -671,11 +738,17 @@ public final class LeaseAccountingServices {
                 }
             }
             applied = applied.add(invoiceApplied);
-            BigDecimal toTax = invoiceApplied.min(tax);
+            // Allocation order: consumption taxes, then components (separate revenue),
+            // then the interest equivalent, then principal recovery.
+            BigDecimal allTax = tax.add(componentTax);
+            BigDecimal toTax = invoiceApplied.min(allTax).max(BigDecimal.ZERO);
             BigDecimal rest = invoiceApplied.subtract(toTax);
+            BigDecimal toComponent = rest.min(component).max(BigDecimal.ZERO);
+            rest = rest.subtract(toComponent);
             BigDecimal toInterest = rest.min(interest).max(BigDecimal.ZERO);
             BigDecimal toPrincipal = rest.subtract(toInterest).min(principal).max(BigDecimal.ZERO);
             collectedTax = collectedTax.add(toTax);
+            collectedComponent = collectedComponent.add(toComponent);
             collectedInterest = collectedInterest.add(toInterest);
             collectedPrincipal = collectedPrincipal.add(toPrincipal);
         }
@@ -684,15 +757,18 @@ public final class LeaseAccountingServices {
                 .where("leaseAgreementId", leaseAgreementId).queryList()) {
             recognized = recognized.add(nz(rec.getBigDecimal("amount")));
         }
-        BigDecimal billed = billedLease.add(billedTax);
+        BigDecimal billed = billedLease.add(billedTax).add(billedComponent).add(billedComponentTax);
         Map<String, Object> balance = new HashMap<>();
         balance.put("billedCount", billedCount);
         balance.put("billedLeaseAmount", billedLease);
         balance.put("billedTaxAmount", billedTax);
+        balance.put("billedComponentAmount", billedComponent);
+        balance.put("billedComponentTaxAmount", billedComponentTax);
         balance.put("billedAmount", billed);
         balance.put("appliedAmount", applied);
         balance.put("unpaidBilledAmount", billed.subtract(applied));
         balance.put("collectedTaxAmount", collectedTax);
+        balance.put("collectedComponentAmount", collectedComponent);
         balance.put("collectedInterestAmount", collectedInterest);
         balance.put("collectedPrincipalAmount", collectedPrincipal);
         balance.put("outstandingPrincipal", nz(agreement.getBigDecimal("acquisitionCost")).subtract(collectedPrincipal));

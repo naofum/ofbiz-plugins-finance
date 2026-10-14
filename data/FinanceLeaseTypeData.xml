@@ -145,4 +145,32 @@ under the License.
     <GlAccount glAccountId="128900" accountCode="128900" glAccountClassId="CURRENT_ASSET" glAccountTypeId="LEASE_DISPOSAL_RECV" glResourceTypeId="MONEY" accountName="RECEIVABLE ON LEASED ASSET DISPOSAL"/>
     <GlAccount glAccountId="403700" accountCode="403700" glAccountClassId="REVENUE" glAccountTypeId="LEASE_DISPOSAL_GAIN" glResourceTypeId="MONEY" accountName="GAIN ON DISPOSAL OF LEASED ASSETS"/>
     <GlAccount glAccountId="503700" accountCode="503700" glAccountClassId="COGS_EXPENSE" glAccountTypeId="LEASE_DISPOSAL_LOSS" glResourceTypeId="MONEY" accountName="LOSS ON DISPOSAL OF LEASED ASSETS"/>
+
+    <!-- ============ STEP L9: lease payment components (維持管理費用相当額) ============ -->
+    <!-- Component type: cost parts of the lease payment other than principal and the interest equivalent. -->
+    <EnumerationType description="Lease Payment Component Type" enumTypeId="LEASE_COMPONENT_TYPE" hasTable="N"/>
+    <Enumeration description="Property tax equivalent (固定資産税相当額)" enumCode="PROPERTY_TAX" enumId="LSCMP_PROP_TAX" sequenceId="01" enumTypeId="LEASE_COMPONENT_TYPE"/>
+    <Enumeration description="Insurance (保険料)" enumCode="INSURANCE" enumId="LSCMP_INSURANCE" sequenceId="02" enumTypeId="LEASE_COMPONENT_TYPE"/>
+    <Enumeration description="Maintenance (保守料)" enumCode="MAINTENANCE" enumId="LSCMP_MAINTENANCE" sequenceId="03" enumTypeId="LEASE_COMPONENT_TYPE"/>
+    <Enumeration description="Other (その他)" enumCode="OTHER" enumId="LSCMP_OTHER" sequenceId="04" enumTypeId="LEASE_COMPONENT_TYPE"/>
+
+    <!-- Consumption tax classification: 4 kinds (課税 / 非課税 / 不課税 / 免税). -->
+    <EnumerationType description="Lease Consumption Tax Classification" enumTypeId="LEASE_TAX_CLASS" hasTable="N"/>
+    <Enumeration description="Taxable (課税)" enumCode="TAXABLE" enumId="LSTAX_TAXABLE" sequenceId="01" enumTypeId="LEASE_TAX_CLASS"/>
+    <Enumeration description="Exempt (非課税)" enumCode="EXEMPT" enumId="LSTAX_EXEMPT" sequenceId="02" enumTypeId="LEASE_TAX_CLASS"/>
+    <Enumeration description="Non-taxable / out of scope (不課税)" enumCode="NON_TAXABLE" enumId="LSTAX_NONTAX" sequenceId="03" enumTypeId="LEASE_TAX_CLASS"/>
+    <Enumeration description="Zero-rated / export exempt (免税)" enumCode="ZERO_RATED" enumId="LSTAX_ZERO" sequenceId="04" enumTypeId="LEASE_TAX_CLASS"/>
+
+    <!-- Revenue treatment of a component under method 1 (第1法). -->
+    <EnumerationType description="Lease Component Revenue Treatment" enumTypeId="LEASE_CMP_REVENUE" hasTable="N"/>
+    <Enumeration description="Separate revenue (区分して別に計上)" enumCode="SEPARATE" enumId="LSCMP_REV_SEPARATE" sequenceId="01" enumTypeId="LEASE_CMP_REVENUE"/>
+    <Enumeration description="Included in method-1 sales (売上高に含める)" enumCode="INCLUDED" enumId="LSCMP_REV_INCLUDED" sequenceId="02" enumTypeId="LEASE_CMP_REVENUE"/>
+
+    <!-- Separate component revenue: billed as its own invoice item and recognized at billing. -->
+    <InvoiceItemType description="Lease payment component (維持管理費用相当額)" hasTable="N" invoiceItemTypeId="LEASE_COMPONENT"/>
+    <InvoiceItemType description="Consumption tax on lease payment component" hasTable="N" invoiceItemTypeId="LEASE_COMP_TAX"/>
+    <InvoiceItemTypeMap invoiceTypeId="SALES_INVOICE" invoiceItemMapKey="LEASE_COMPONENT" invoiceItemTypeId="LEASE_COMPONENT"/>
+    <InvoiceItemTypeMap invoiceTypeId="SALES_INVOICE" invoiceItemMapKey="LEASE_COMP_TAX" invoiceItemTypeId="LEASE_COMP_TAX"/>
+    <GlAccountType description="Lease component revenue (separate from method-1 sales)" glAccountTypeId="LEASE_COMP_REVENUE" hasTable="N" parentTypeId="SALES_ACCOUNT"/>
+    <GlAccount glAccountId="403800" accountCode="403800" glAccountClassId="REVENUE" glAccountTypeId="LEASE_COMP_REVENUE" glResourceTypeId="MONEY" accountName="LEASE COMPONENT REVENUE"/>
 </entity-engine-xml>

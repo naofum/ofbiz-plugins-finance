@@ -33,6 +33,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L6 | 延滞・督促（リース用契約アダプタ。共通層側は `SPEC_COMMON.md`） | 完了（tests=110 / errors=0 / failures=0） |
 | L7 | 期間満了処理（返還・所有権移転）。作業管理（WorkEffort）を共通層に導入（`REQUIREMENTS_LEASE.md` 3.5） | 完了（tests=119 / errors=0 / failures=0） |
 | L8 | 帳票・照会 | 完了（tests=121 / errors=0 / failures=0） |
+| L9 | リース料の構成要素（維持管理費用相当額） | 完了（tests=126 / errors=0 / failures=0） |
 
 前提：STEP L0（共通層の切り出し、`SPEC_COMMON.md`）の完了後に着手する。
 
@@ -42,7 +43,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 
 | 種別 | 配置 |
 |------|------|
-| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`） |
+| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`） |
 | Groovy | `groovyScripts/lease/`（`LeaseProductServices` / `LeaseApplicationServices` / `PrepareLeaseApplication`） |
 | entitydef | `entitymodel_lease.xml` |
 | servicedef | `services_lease.xml` |
@@ -638,6 +639,112 @@ PDF の生成は jasperreports プラグインのクラスを実行時に読み�
 
 - 照会は画面上で全件を計算する（ページ表示 50 件）。契約数が多い場合は集計テーブルやバッチでの事前計算を検討する。
 - 帳票の貸手住所は表示しない（貸手名のみ）。
+---
+
+## 10. STEP L9 — リース料の構成要素（維持管理費用相当額）
+
+元本・利息相当額とは別の費用部分（固定資産税相当額・保険料・保守料 等）を、リース料計算・見積／確定リース料表に持たせる。
+構成要素ごとに消費税区分（4 種）と収益計上の扱い（第1法の売上高に含める／区分して別に計上する）を選べる。
+**元本・利息相当額の計算（`LeaseCalculator`）は変更しない**。構成要素は加算的・独立で、既定では区分して別に計上する。
+既存の見積・契約は不変（構成要素のない従来どおりの挙動）で、新しい見積から適用する。
+
+実装：`LeaseComponentCalculator`（構成要素の配分、エンティティ非依存）。見積（`LeaseQuoteServices.groovy`）・検収（`LeaseAcquisitionServices`）・
+請求／回収状況（`LeaseAccountingServices`）・延滞（`LeaseContractAdapter`）に構成要素を追加した。
+
+### 10.1 スコープと決定事項
+
+- **収益計上の扱い**：要件表は固定資産税相当額を「区分する」で確定、要件本文は「含める／区分」を選択式。
+  **既定＝区分（`LSCMP_REV_SEPARATE`）、構成要素ごとに `含める（LSCMP_REV_INCLUDED）` を選べる形**とした（保守料 L11 の「区分して別に計上」に備える）。
+- **消費税区分 4 種**（`LEASE_TAX_CLASS`）：課税（`LSTAX_TAXABLE`）・非課税（`LSTAX_EXEMPT`）・不課税（`LSTAX_NONTAX`）・免税（`LSTAX_ZERO`）。
+  消費税を課すのは**課税のみ**（金額 × 契約の固定税率）。非課税・不課税・免税は税額 0（免税は税率 0% の課税として税額 0 とする）。
+  固定資産税相当額は**課税**（要件の決定）。
+- **構成要素の金額**：当面は**月額均等**（毎回同額）とした。回ごとの減額・調整（定期傭船の休航 等、L18）は後続で追加する。
+- **土台（契約×取引先×役割×持分率）は本 STEP では実装しない**（下記 10.6 に記録）。
+
+### 10.2 データモデル（`entitymodel_lease.xml` に追加）
+
+| エンティティ | 主キー | 内容 |
+|--------------|--------|------|
+| `LeaseQuoteComponent` | leaseQuoteId + componentSeqId | 見積の構成要素定義：種別（`LEASE_COMPONENT_TYPE`）、説明、月額、消費税区分、収益計上の扱い、合計額・消費税合計（月額 × 期間） |
+| `LeasePaymentScheduleComp` | leaseQuoteId + installmentNumber + componentSeqId | 見積リース料表の回ごとの構成要素額・消費税（種別・区分・収益計上の扱いの写し） |
+| `LeaseAgreementComponent` | leaseAgreementId + componentSeqId | 契約の構成要素定義（見積のスナップショット） |
+| `LeaseAgrPaySchedComp` | leaseAgreementId + scheduleRevisionNumber + installmentNumber + componentSeqId | 確定リース料表の回ごとの構成要素額・消費税 |
+| `LeaseInstallmentInvoice`（追加列） | — | `componentAmount`（請求した構成要素合計・税抜）、`componentTaxAmount`（構成要素の消費税合計）。`billedAmount` ＝ リース料＋消費税＋構成要素＋構成要素消費税 |
+
+### 10.3 seed（`FinanceLeaseTypeData.xml` に追加）
+
+| 種類 | 値 |
+|------|----|
+| `LEASE_COMPONENT_TYPE` | `LSCMP_PROP_TAX`（固定資産税相当額）/ `LSCMP_INSURANCE`（保険料）/ `LSCMP_MAINTENANCE`（保守料）/ `LSCMP_OTHER`（その他） |
+| `LEASE_TAX_CLASS` | `LSTAX_TAXABLE`（課税）/ `LSTAX_EXEMPT`（非課税）/ `LSTAX_NONTAX`（不課税）/ `LSTAX_ZERO`（免税） |
+| `LEASE_CMP_REVENUE` | `LSCMP_REV_SEPARATE`（区分、既定）/ `LSCMP_REV_INCLUDED`（含める） |
+| 請求明細種別 | `LEASE_COMPONENT`（構成要素）/ `LEASE_COMP_TAX`（構成要素の消費税）と `SALES_INVOICE` への `InvoiceItemTypeMap` |
+| GL 科目タイプ | `LEASE_COMP_REVENUE`（403800 リース構成要素収益、収益・`SALES_ACCOUNT` 配下） |
+
+Company への科目割当（403800）は demo・テストデータに追加した。
+
+### 10.4 計算・保存・請求
+
+- **計算（`LeaseComponentCalculator`）**：構成要素ごとに月額均等で配分する。各回の消費税＝課税のとき 金額 × 税率（通貨別丸め）、それ以外は 0。合計額・消費税合計を返す。月額が負・期間が 0 以下は拒否。
+- **見積（`createLeaseQuote`、`components` 引数）**：構成要素の列挙値（種別・税区分・収益計上の扱い）と月額（0 以上）を検証し、`LeaseQuoteComponent` と回ごとの `LeasePaymentScheduleComp` を作る。見積の税率は L5 と同じく開始予定日で解決する。**リース料・利息相当額は構成要素の有無で変わらない**。
+- **契約（`createLeaseAgreement`）**：構成要素の定義と回ごとの行を revision 1 にスナップショットする。
+- **検収（`acceptLeaseAgreement`）**：確定リース料表の新 revision を作り直すとき、構成要素も新 revision に作り直し、**課税の構成要素の消費税を開始日の固定税率で付け直す**（リース料の消費税の固定と同じ扱い。L5）。定義の消費税合計も再計算する。
+- **請求（`createLeaseInstallmentInvoice`）**：回の構成要素を請求明細に追加する。
+  - **区分（`LSCMP_REV_SEPARATE`）**：明細 `LEASE_COMPONENT`（`overrideGlAccountId` ＝ `LEASE_COMP_REVENUE` 403800）で**請求時に収益計上**する。課税分は `LEASE_COMP_TAX`（税務当局があれば core `ITM_SALES_TAX`、なければ仮受消費税 224500）。
+  - **含める（`LSCMP_REV_INCLUDED`）**：明細 `LEASE_COMPONENT` を**リース料と同じ貸方科目（リース投資資産／リース債権）**に計上する（開始時に第1法の売上高へ含めた前提。新たな売上は立てない）。
+  - `LeaseInstallmentInvoice` に `componentAmount` / `componentTaxAmount` を記録する。貸借は core の売上請求仕訳で自動的に一致する（借 売掛金＝請求総額）。
+
+| 借方 | 貸方 | 金額 |
+|------|------|------|
+| 売掛金（core） | リース投資資産／リース債権 | リース料（＋含める構成要素） |
+| 売掛金（core） | リース構成要素収益（403800） | 区分の構成要素 |
+| 売掛金（core） | 仮受消費税（224500）／ core 税当局科目 | リース料の消費税 ＋ 課税の区分構成要素の消費税 |
+
+### 10.5 回収状況・延滞
+
+- **回収状況（`computeBalance`）**：請求額・消込額に構成要素を含める（`billedComponentAmount` / `billedComponentTaxAmount` / `collectedComponentAmount` を追加）。1 請求書の消込は **消費税（リース＋構成要素）→ 構成要素 → 利息相当額 → 元本回収額** の順に充当する。**未回収元本は構成要素の影響を受けない**（請求しただけでも減らない点は L4 と同じ）。
+- **延滞（`LeaseContractAdapter`）**：未払額は **元本 → 利息相当額 → 構成要素 → 消費税** の順に残す。構成要素の未払は延滞額の消費税バケットにまとめる（償却時はすべて売掛金の貸方。アダプタの `getWriteOffCreditAccountType`）。**遅延損害金の計算基礎には構成要素を含めない**（基礎はリース料＝元本＋利息相当額、`lease.latefee.base` で消費税の算入を切替。構成要素は常に基礎外）。未請求の回は確定リース料表の構成要素額を見込みに含める。
+
+### 10.6 土台（契約×取引先×役割、契約の親子）の見送り（記録）
+
+要件「後続 STEP の設計上の考慮事項 1.（土台）」で、L9 の前提作業として共通層に **`FinanceContractParty`（契約×取引先×役割×持分率）** と
+**`FinanceContract` の親子関係** を置くことが挙げられている（L16〜L20：協調・転貸・フリート・ベンダープログラムで作り直しが起きないため。遅くとも L10 の前）。
+
+- **本 STEP（L9）では実装しない**。L9 の費用構成要素は 1 契約＝1 借手・1 貸手の現行モデルの上で完結し、土台がなくても業務の挙動は変わらないため。
+- 要件の記述どおり「遅くとも L10 の前」に別途着手する。着手時は、既存契約を「借手 100%・貸手（自社）100%」として登録し、借手への請求スケジュールは 1 本のまま、取引先・持分に応じた分配・支払側を**追加**する形（L1〜L8 の請求・入金を作り直さない）とする。ローンの保証人も将来この形へ寄せる。
+- 影響範囲（移行時に見直す箇所）：`LeaseAgreement.lesseePartyId` / `organizationPartyId`、`FinanceContract.customerPartyId`、請求書の相手、`FixedAsset.partyId`。
+
+### 10.7 画面
+
+- `ViewLeaseQuote`：構成要素があるとき「リース料の構成要素」グリッド（`ListLeaseQuoteComponents`、読み取り専用）を表示する。
+- `ManageLeaseAgreement`：確定リース料表の下に「リース料の構成要素」グリッド（`ListLeaseAgreementComponents`、読み取り専用）を表示する。
+- 構成要素の入力は当面サービス API（`createLeaseQuote` の `components`）で行う。見積作成フォームでの構成要素入力 UI は後続で追加する。
+
+### 10.8 テスト（`LeaseComponentTests`。USD 商品 `TEST_LEASEPROD_USD`、テストごとに新しい借手）
+
+| テスト | 内容 |
+|--------|------|
+| `testComponentCalculator` | 月額均等の配分、課税＝金額 × 税率、非課税・不課税・免税＝税額 0、合計、負の月額の拒否 |
+| `testQuoteAndAgreementComponents` | 構成要素つき見積でリース料・利息相当額が不変、定義（合計・消費税合計）と回ごとの行の保存（2 要素 × 60 回）、契約へのスナップショット、検収で新 revision へ作り直し課税分の消費税を固定税率で付け直し（revision 2）、不正な列挙値の拒否 |
+| `testBillingSeparateAndIncludedComponents` | 区分（固定資産税相当額）＝403800 収益＋224500 消費税、含める（保守料・非課税）＝128500 に加算、貸借一致・売上（403500）なし、`componentAmount` / `componentTaxAmount` の記録、全額入金で構成要素・消費税を充当し**元本は構成要素の影響を受けない** |
+
+### 10.9 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 新規 4 テーブル（`LEASE_QUOTE_COMPONENT` / `LEASE_PAYMENT_SCHEDULE_COMP` / `LEASE_AGREEMENT_COMPONENT` / `LEASE_AGR_PAY_SCHED_COMP`）、`LEASE_INSTALLMENT_INVOICE` に 2 列追加、構成要素・税区分・収益計上の列挙と GL 403800 |
+| `gradlew "ofbiz --test component=finance"` | `runtime/logs/test-results/financetests.xml`：tests=126 / errors=0 / failures=0（L9 の 3 件を含む） |
+| demo 投入 | 403800 の Company 割当を追加（demo・テストデータ） |
+| 画面 | 未確認（グリッドの定義のみ。OFBiz を起動しての確認は行っていない） |
+
+### 10.10 要確認・制約
+
+- **消費税区分の最終確認**：課税・非課税・不課税・免税の判断（固定資産税相当額＝課税 等）は税理士の最終確認を得る（要件の残課題）。L19 の自賠責・重量税等の法定費用の立替（不課税）扱いは L19 で判断する。
+- **「含める」の開始仕訳**：区分（既定）は開始仕訳に影響しない。「含める」を使う場合、第1法の開始時の売上高・リース投資資産に構成要素相当を含める必要があるが、本 STEP の開始仕訳（`LeaseRevenueStrategy.AtStart`）は従来どおり取得価額ベースのままで、含める構成要素は請求時にリース投資資産の貸方へ回収する簡易な扱いとした。含める運用を本格的に使う場合は開始仕訳の見直しが必要（要確認）。
+- **月額均等のみ**：回ごとの減額・調整、年次で変動する固定資産税相当額（L10 が供給）の反映は後続で追加する。L10 は本 STEP の構成要素（固定資産税相当額）に見込み額を供給する。
+- **延滞の構成要素**：延滞額には構成要素を含める（消費税バケットに合算）が、遅延損害金の計算基礎には含めない。構成要素だけが延滞した場合の督促文言は未調整（既存のリース料督促の文言を流用）。
+
 ---
 
 ## 運用メモ

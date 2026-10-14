@@ -91,6 +91,9 @@ under the License.
     <GlAccountOrganization glAccountId="403700" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_DISPOSAL_LOSS" glAccountId="503700"/>
     <GlAccountOrganization glAccountId="503700" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <!-- STEP L9: separate component revenue -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_COMP_REVENUE" glAccountId="403800"/>
+    <GlAccountOrganization glAccountId="403800" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <Party partyId="DEMO_TAXAUTH_JP" partyTypeId="PARTY_GROUP"/>
     <PartyGroup partyId="DEMO_TAXAUTH_JP" groupName="消費税（デモ税務当局）"/>
     <PartyRole partyId="DEMO_TAXAUTH_JP" roleTypeId="TAX_AUTHORITY"/>

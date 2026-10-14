@@ -441,7 +441,9 @@ under the License.
         <field name="principalPortion" type="currency-amount"></field>
         <field name="interestPortion" type="currency-amount"></field>
         <field name="taxAmount" type="currency-amount"></field>
-        <field name="billedAmount" type="currency-amount"><description>lease amount + tax</description></field>
+        <field name="componentAmount" type="currency-amount"><description>STEP L9: total of the billed payment components (tax excluded)</description></field>
+        <field name="componentTaxAmount" type="currency-amount"><description>STEP L9: total consumption tax of the billed payment components</description></field>
+        <field name="billedAmount" type="currency-amount"><description>lease amount + tax + components + component tax</description></field>
         <field name="createdDate" type="date-time"></field>
         <prim-key field="leaseAgreementId"/>
         <prim-key field="installmentNumber"/>
@@ -555,6 +557,122 @@ under the License.
         </relation>
         <relation type="one" fk-name="LEASESTL_TRANS" rel-entity-name="AcctgTrans">
             <key-map field-name="acctgTransId"/>
+        </relation>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- STEP L9: lease payment components (維持管理費用相当額)       -->
+    <!-- Cost parts of the lease payment other than principal and  -->
+    <!-- the interest equivalent: property tax equivalent,         -->
+    <!-- insurance, maintenance. A component has a level monthly    -->
+    <!-- amount, a consumption-tax classification (4 kinds) and a   -->
+    <!-- revenue treatment (separate / included in method 1 sales). -->
+    <!-- ========================================================= -->
+
+    <!-- Component definition on a quote (one row per component) -->
+    <entity entity-name="LeaseQuoteComponent" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease Quote - payment component definition">
+        <field name="leaseQuoteId" type="id"></field>
+        <field name="componentSeqId" type="id"><description>line number within the quote (00001, 00002, ...)</description></field>
+        <field name="componentTypeEnumId" type="id"><description>LEASE_COMPONENT_TYPE: property tax / insurance / maintenance / other</description></field>
+        <field name="description" type="description"></field>
+        <field name="monthlyAmount" type="currency-amount"><description>level monthly component amount (tax excluded)</description></field>
+        <field name="taxClassEnumId" type="id"><description>LEASE_TAX_CLASS: taxable / exempt / non-taxable / zero-rated (免税)</description></field>
+        <field name="revenueTreatmentEnumId" type="id"><description>LEASE_CMP_REVENUE: separate revenue (区分, default) or included in the method-1 sales (含める)</description></field>
+        <field name="totalAmount" type="currency-amount"><description>monthly amount x term (tax excluded)</description></field>
+        <field name="totalTaxAmount" type="currency-amount"></field>
+        <prim-key field="leaseQuoteId"/>
+        <prim-key field="componentSeqId"/>
+        <relation type="one" fk-name="LEASEQTCMP_QT" rel-entity-name="LeaseQuote">
+            <key-map field-name="leaseQuoteId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEQTCMP_TYPE" title="ComponentType" rel-entity-name="Enumeration">
+            <key-map field-name="componentTypeEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEQTCMP_TAXCL" title="TaxClass" rel-entity-name="Enumeration">
+            <key-map field-name="taxClassEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEQTCMP_REV" title="RevenueTreatment" rel-entity-name="Enumeration">
+            <key-map field-name="revenueTreatmentEnumId" rel-field-name="enumId"/>
+        </relation>
+    </entity>
+
+    <!-- Per-installment component amount of a quote schedule row -->
+    <entity entity-name="LeasePaymentScheduleComp" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease Quote - payment schedule component amount">
+        <field name="leaseQuoteId" type="id"></field>
+        <field name="installmentNumber" type="numeric"></field>
+        <field name="componentSeqId" type="id"></field>
+        <field name="componentTypeEnumId" type="id"></field>
+        <field name="amount" type="currency-amount"><description>component amount of the installment (tax excluded)</description></field>
+        <field name="taxAmount" type="currency-amount"></field>
+        <field name="taxClassEnumId" type="id"></field>
+        <field name="revenueTreatmentEnumId" type="id"></field>
+        <prim-key field="leaseQuoteId"/>
+        <prim-key field="installmentNumber"/>
+        <prim-key field="componentSeqId"/>
+        <relation type="one" fk-name="LEASEPSCMP_PS" rel-entity-name="LeasePaymentSchedule">
+            <key-map field-name="leaseQuoteId"/>
+            <key-map field-name="installmentNumber"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPSCMP_CMP" rel-entity-name="LeaseQuoteComponent">
+            <key-map field-name="leaseQuoteId"/>
+            <key-map field-name="componentSeqId"/>
+        </relation>
+    </entity>
+
+    <!-- Component definition on an agreement (snapshot of the quote) -->
+    <entity entity-name="LeaseAgreementComponent" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease Agreement - payment component definition">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="componentSeqId" type="id"></field>
+        <field name="componentTypeEnumId" type="id"></field>
+        <field name="description" type="description"></field>
+        <field name="monthlyAmount" type="currency-amount"></field>
+        <field name="taxClassEnumId" type="id"></field>
+        <field name="revenueTreatmentEnumId" type="id"></field>
+        <field name="totalAmount" type="currency-amount"></field>
+        <field name="totalTaxAmount" type="currency-amount"></field>
+        <prim-key field="leaseAgreementId"/>
+        <prim-key field="componentSeqId"/>
+        <relation type="one" fk-name="LEASEAGRCMP_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAGRCMP_TYPE" title="ComponentType" rel-entity-name="Enumeration">
+            <key-map field-name="componentTypeEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAGRCMP_TAXCL" title="TaxClass" rel-entity-name="Enumeration">
+            <key-map field-name="taxClassEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAGRCMP_REV" title="RevenueTreatment" rel-entity-name="Enumeration">
+            <key-map field-name="revenueTreatmentEnumId" rel-field-name="enumId"/>
+        </relation>
+    </entity>
+
+    <!-- Per-installment component amount of a confirmed schedule row -->
+    <entity entity-name="LeaseAgrPaySchedComp" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease Agreement - confirmed payment schedule component amount">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="scheduleRevisionNumber" type="numeric"></field>
+        <field name="installmentNumber" type="numeric"></field>
+        <field name="componentSeqId" type="id"></field>
+        <field name="componentTypeEnumId" type="id"></field>
+        <field name="amount" type="currency-amount"></field>
+        <field name="taxAmount" type="currency-amount"></field>
+        <field name="taxClassEnumId" type="id"></field>
+        <field name="revenueTreatmentEnumId" type="id"></field>
+        <prim-key field="leaseAgreementId"/>
+        <prim-key field="scheduleRevisionNumber"/>
+        <prim-key field="installmentNumber"/>
+        <prim-key field="componentSeqId"/>
+        <relation type="one" fk-name="LEASEAPSCMP_PS" rel-entity-name="LeaseAgreementPaymentSchedule">
+            <key-map field-name="leaseAgreementId"/>
+            <key-map field-name="scheduleRevisionNumber"/>
+            <key-map field-name="installmentNumber"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAPSCMP_CMP" rel-entity-name="LeaseAgreementComponent">
+            <key-map field-name="leaseAgreementId"/>
+            <key-map field-name="componentSeqId"/>
         </relation>
     </entity>
 </entitymodel>

@@ -162,6 +162,7 @@ under the License.
         <attribute name="residualValue" type="BigDecimal" mode="IN" optional="true"><description>defaults to acquisition cost x product residual value rate</description></attribute>
         <attribute name="paymentTimingEnumId" type="String" mode="IN" optional="true"><description>defaults to the product payment timing</description></attribute>
         <attribute name="leaseStartDate" type="Timestamp" mode="IN" optional="true"><description>expected lease start; defaults to today</description></attribute>
+        <attribute name="components" type="List" mode="IN" optional="true"><description>STEP L9: lease payment components. Each entry is a Map with componentTypeEnumId, monthlyAmount, taxClassEnumId (LEASE_TAX_CLASS, default taxable), revenueTreatmentEnumId (LEASE_CMP_REVENUE, default separate) and an optional description.</description></attribute>
         <attribute name="leaseQuoteId" type="String" mode="OUT" optional="false"/>
     </service>
     <service name="setLeaseQuoteStatus" engine="groovy"
@@ -309,10 +310,13 @@ under the License.
         <attribute name="billedCount" type="Long" mode="OUT" optional="true"/>
         <attribute name="billedLeaseAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="billedTaxAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="billedComponentAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="billedComponentTaxAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="billedAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="appliedAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="unpaidBilledAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="collectedTaxAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="collectedComponentAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="collectedInterestAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="collectedPrincipalAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="outstandingPrincipal" type="BigDecimal" mode="OUT" optional="true"/>

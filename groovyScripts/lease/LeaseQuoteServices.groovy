@@ -29,6 +29,7 @@ import org.apache.ofbiz.finance.common.BusinessDayCalculator
 import org.apache.ofbiz.finance.common.FinanceContractHelper
 import org.apache.ofbiz.finance.common.FinanceInterestCalculator
 import org.apache.ofbiz.finance.lease.LeaseCalculator
+import org.apache.ofbiz.finance.lease.LeaseComponentCalculator
 import org.apache.ofbiz.finance.lease.LeaseProductHelper
 import org.apache.ofbiz.finance.lease.LeaseTaxHelper
 import org.apache.ofbiz.service.ServiceUtil
@@ -202,6 +203,70 @@ Map createLeaseQuote() {
                 taxAmount         : row.taxAmount,
                 remainingPrincipal: row.remainingPrincipal]).create()
     }
+
+    // STEP L9: lease payment components (維持管理費用相当額). Level monthly amounts
+    // added on top of the lease payment, with a 4-kind consumption-tax classification
+    // and a revenue treatment (separate / included). Components do not change the
+    // principal / interest math; new quotes only (existing quotes stay unchanged).
+    List components = (parameters.components instanceof List) ? (List) parameters.components : []
+    int seq = 0
+    for (Object entry : components) {
+        if (!(entry instanceof Map)) {
+            return error(label('FinanceLeaseComponentInvalid', [reason: 'not a map']))
+        }
+        Map c = (Map) entry
+        String componentTypeEnumId = c.get('componentTypeEnumId')
+        GenericValue typeEnum = componentTypeEnumId == null ? null
+                : from('Enumeration').where('enumId', componentTypeEnumId).cache().queryOne()
+        if (typeEnum == null || typeEnum.enumTypeId != 'LEASE_COMPONENT_TYPE') {
+            return error(label('FinanceLeaseEnumInvalid', [field: 'componentTypeEnumId', value: componentTypeEnumId]))
+        }
+        String taxClassEnumId = c.get('taxClassEnumId') ?: LeaseComponentCalculator.TAX_TAXABLE
+        GenericValue taxClassEnum = from('Enumeration').where('enumId', taxClassEnumId).cache().queryOne()
+        if (taxClassEnum == null || taxClassEnum.enumTypeId != 'LEASE_TAX_CLASS') {
+            return error(label('FinanceLeaseEnumInvalid', [field: 'taxClassEnumId', value: taxClassEnumId]))
+        }
+        String revenueTreatmentEnumId = c.get('revenueTreatmentEnumId') ?: LeaseComponentCalculator.REV_SEPARATE
+        GenericValue revEnum = from('Enumeration').where('enumId', revenueTreatmentEnumId).cache().queryOne()
+        if (revEnum == null || revEnum.enumTypeId != 'LEASE_CMP_REVENUE') {
+            return error(label('FinanceLeaseEnumInvalid', [field: 'revenueTreatmentEnumId', value: revenueTreatmentEnumId]))
+        }
+        BigDecimal monthlyAmount = (c.get('monthlyAmount') as BigDecimal)
+        if (monthlyAmount == null || monthlyAmount.signum() < 0) {
+            return error(label('FinanceLeaseComponentInvalid', [reason: "monthlyAmount ${monthlyAmount}"]))
+        }
+        LeaseComponentCalculator.Result alloc
+        try {
+            alloc = LeaseComponentCalculator.allocate(new LeaseComponentCalculator.Component(
+                    componentTypeEnumId, monthlyAmount, taxClassEnumId, revenueTreatmentEnumId),
+                    term as int, taxRate, scale, mode)
+        } catch (IllegalArgumentException e) {
+            return error(label('FinanceLeaseComponentInvalid', [reason: e.getMessage()]))
+        }
+        seq++
+        String componentSeqId = String.format('%05d', seq)
+        makeValue('LeaseQuoteComponent', [
+                leaseQuoteId          : leaseQuoteId,
+                componentSeqId        : componentSeqId,
+                componentTypeEnumId   : componentTypeEnumId,
+                description           : c.get('description'),
+                monthlyAmount         : monthlyAmount.setScale(scale, mode),
+                taxClassEnumId        : taxClassEnumId,
+                revenueTreatmentEnumId: revenueTreatmentEnumId,
+                totalAmount           : alloc.totalAmount,
+                totalTaxAmount        : alloc.totalTaxAmount]).create()
+        alloc.rows.each { LeaseComponentCalculator.Row r ->
+            makeValue('LeasePaymentScheduleComp', [
+                    leaseQuoteId          : leaseQuoteId,
+                    installmentNumber     : (long) r.installmentNumber,
+                    componentSeqId        : componentSeqId,
+                    componentTypeEnumId   : componentTypeEnumId,
+                    amount                : r.amount,
+                    taxAmount             : r.taxAmount,
+                    taxClassEnumId        : taxClassEnumId,
+                    revenueTreatmentEnumId: revenueTreatmentEnumId]).create()
+        }
+    }
     return success(leaseQuoteId: leaseQuoteId)
 }
 
@@ -337,6 +402,24 @@ Map createLeaseAgreement() {
                 acquisitionCost : a.acquisitionCost,
                 supplierPartyId : a.supplierPartyId,
                 assetStatusId   : 'LSAST_PENDING']).create()
+    }
+
+    // STEP L9: snapshot the payment components and their per-installment amounts (revision 1).
+    from('LeaseQuoteComponent').where('leaseQuoteId', leaseQuoteId).orderBy('componentSeqId').queryList()
+            .each { GenericValue qc ->
+        GenericValue ac = makeValue('LeaseAgreementComponent', [leaseAgreementId: leaseAgreementId])
+        ['componentSeqId', 'componentTypeEnumId', 'description', 'monthlyAmount', 'taxClassEnumId',
+         'revenueTreatmentEnumId', 'totalAmount', 'totalTaxAmount'].each { String f -> ac.set(f, qc.get(f)) }
+        ac.create()
+    }
+    from('LeasePaymentScheduleComp').where('leaseQuoteId', leaseQuoteId)
+            .orderBy('installmentNumber', 'componentSeqId').queryList().each { GenericValue qsc ->
+        GenericValue asc = makeValue('LeaseAgrPaySchedComp', [
+                leaseAgreementId      : leaseAgreementId,
+                scheduleRevisionNumber: 1L])
+        ['installmentNumber', 'componentSeqId', 'componentTypeEnumId', 'amount', 'taxAmount', 'taxClassEnumId',
+         'revenueTreatmentEnumId'].each { String f -> asc.set(f, qsc.get(f)) }
+        asc.create()
     }
 
     Map contracted = dispatcher.runSync('setLeaseApplicationStatus', [
