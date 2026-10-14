@@ -437,6 +437,31 @@ under the License.
                                             </section>
                                             <include-grid name="ListLeaseAssetSettlements" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                         </screenlet>
+                                        <!-- STEP L11: maintenance -->
+                                        <screenlet title="${uiLabelMap.FinanceLeaseMaintenance}">
+                                            <include-form name="ViewLeaseMaintSummary" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                            <section>
+                                                <condition><if-compare field="canAddMaintPlan" operator="equals" value="true" type="Boolean"/></condition>
+                                                <widgets>
+                                                    <include-form name="CreateLeaseMaintPlan" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </widgets>
+                                            </section>
+                                            <include-grid name="ListLeaseMaintPlans" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                            <section>
+                                                <condition><if-compare field="isActive" operator="equals" value="true" type="Boolean"/></condition>
+                                                <widgets>
+                                                    <include-form name="RunLeaseMaintScheduleBatch" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                    <include-form name="CreateLeaseMaintenance" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </widgets>
+                                            </section>
+                                            <include-grid name="ListLeaseMaintRecords" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                            <section>
+                                                <condition><not><if-empty field="scheduledMaintRecords"/></not></condition>
+                                                <widgets>
+                                                    <include-form name="CompleteLeaseMaintenance" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </widgets>
+                                            </section>
+                                        </screenlet>
                                         <screenlet title="${uiLabelMap.FinanceContractTasks}">
                                             <include-grid name="ListFinanceContractTasks" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                         </screenlet>

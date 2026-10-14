@@ -822,6 +822,67 @@ under the License.
         <response name="success" type="request-redirect" value="FindLeaseExpiry"/>
         <response name="error" type="request-redirect" value="FindLeaseExpiry"/>
     </request-map>
+    <!-- STEP L11: maintenance lease -->
+    <request-map uri="createLeaseMaintPlan">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createLeaseMaintPlan"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="endLeaseMaintPlan">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="endLeaseMaintPlan"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="runLeaseMaintScheduleBatch">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="runLeaseMaintScheduleBatch"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="createLeaseMaintenance">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createLeaseMaintenance"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="completeLeaseMaintenance">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="completeLeaseMaintenance"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="cancelLeaseMaintenance">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="cancelLeaseMaintenance"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
     <!-- STEP L10 / L10b: public charges (公租公課) -->
     <request-map uri="FindLeasePublicCharge">
         <security https="true" auth="true"/>

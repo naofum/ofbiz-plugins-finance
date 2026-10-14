@@ -1004,4 +1004,108 @@ under the License.
             <key-map field-name="acctgTransId"/>
         </relation>
     </entity>
+
+    <!-- ========================================================= -->
+    <!-- STEP L11: maintenance lease (メンテナンスリース). The        -->
+    <!-- maintenance fee is an L9 component billed as its own        -->
+    <!-- revenue; maintenance plans of the agreement assets generate -->
+    <!-- scheduled maintenance (core FixedAssetMaint + WorkEffort    -->
+    <!-- task); performed maintenance books the provider's cost      -->
+    <!-- through a core purchase invoice.                            -->
+    <!-- ========================================================= -->
+
+    <!-- Revenue account of a separate component type (seed). -->
+    <entity entity-name="LeaseComponentRevenueAccount" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease component type - revenue account">
+        <field name="componentTypeEnumId" type="id"><description>LEASE_COMPONENT_TYPE</description></field>
+        <field name="glAccountTypeId" type="id"><description>GL account type credited when the component is separate (区分)</description></field>
+        <field name="separateRequired" type="indicator"><description>Y: the component must be separate (LSCMP_REV_INCLUDED is rejected)</description></field>
+        <prim-key field="componentTypeEnumId"/>
+        <relation type="one" fk-name="LEASECRA_TYPE" rel-entity-name="Enumeration">
+            <key-map field-name="componentTypeEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="LEASECRA_GLTYPE" rel-entity-name="GlAccountType">
+            <key-map field-name="glAccountTypeId"/>
+        </relation>
+    </entity>
+
+    <!-- Maintenance plan (保守計画) of an agreement asset: what, how often, by whom. -->
+    <entity entity-name="LeaseMaintPlan" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease maintenance plan">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="maintPlanSeqId" type="id"></field>
+        <field name="assetSeqId" type="id"><description>agreement asset the plan applies to</description></field>
+        <field name="productMaintTypeId" type="id"><description>core ProductMaintType (点検・オイル交換 等)</description></field>
+        <field name="intervalMonths" type="numeric"><description>interval between scheduled maintenances (months)</description></field>
+        <field name="firstDueDate" type="date-time"><description>first scheduled date; empty = lease start + interval</description></field>
+        <field name="providerPartyId" type="id"><description>maintenance provider (保守業者) who performs and bills the work</description></field>
+        <field name="estimatedCost" type="currency-amount"><description>estimated cost per maintenance (tax excluded), for reference</description></field>
+        <field name="description" type="description"></field>
+        <field name="thruDate" type="date-time"><description>plan ended (no schedule after this date); empty = until the lease end</description></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseAgreementId"/>
+        <prim-key field="maintPlanSeqId"/>
+        <relation type="one" fk-name="LEASEMP_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEMP_ASSET" rel-entity-name="LeaseAgreementAsset">
+            <key-map field-name="leaseAgreementId"/>
+            <key-map field-name="assetSeqId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEMP_MTYPE" rel-entity-name="ProductMaintType">
+            <key-map field-name="productMaintTypeId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEMP_PROV" title="Provider" rel-entity-name="Party">
+            <key-map field-name="providerPartyId" rel-field-name="partyId"/>
+        </relation>
+    </entity>
+
+    <!-- One maintenance (scheduled from a plan, or unscheduled repair) and its result. -->
+    <entity entity-name="LeaseMaintRecord" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease maintenance record (保守予定・実績)">
+        <field name="leaseMaintRecordId" type="id"><description>primary sequenced ID</description></field>
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="maintPlanSeqId" type="id"><description>plan of a scheduled maintenance; empty = unscheduled (修理 等)</description></field>
+        <field name="assetSeqId" type="id"></field>
+        <field name="fixedAssetId" type="id"></field>
+        <field name="maintHistSeqId" type="id"><description>core FixedAssetMaint of the asset</description></field>
+        <field name="workEffortId" type="id"><description>task (core WorkEffort, FINWE_MAINTENANCE)</description></field>
+        <field name="productMaintTypeId" type="id"></field>
+        <field name="scheduledDate" type="date-time"></field>
+        <field name="statusId" type="id"><description>LEASE_MAINT_STATUS: scheduled / completed / cancelled; changed only by the maintenance services</description></field>
+        <field name="completedDate" type="date-time"></field>
+        <field name="providerPartyId" type="id"></field>
+        <field name="costAmount" type="currency-amount"><description>actual cost (tax excluded) billed by the provider</description></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="invoiceId" type="id"><description>core purchase invoice of the provider (Dr maintenance cost / Cr accounts payable)</description></field>
+        <field name="supplierInvoiceRef" type="short-varchar"></field>
+        <field name="comments" type="comment"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseMaintRecordId"/>
+        <relation type="one" fk-name="LEASEMR_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <relation type="one-nofk" rel-entity-name="LeaseMaintPlan">
+            <key-map field-name="leaseAgreementId"/>
+            <key-map field-name="maintPlanSeqId"/>
+        </relation>
+        <relation type="one-nofk" rel-entity-name="FixedAssetMaint">
+            <key-map field-name="fixedAssetId"/>
+            <key-map field-name="maintHistSeqId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEMR_STTS" rel-entity-name="StatusItem">
+            <key-map field-name="statusId"/>
+        </relation>
+        <relation type="one-nofk" title="Provider" rel-entity-name="Party">
+            <key-map field-name="providerPartyId" rel-field-name="partyId"/>
+        </relation>
+        <relation type="one-nofk" rel-entity-name="Invoice">
+            <key-map field-name="invoiceId"/>
+        </relation>
+        <index name="LEASEMR_AGR_IDX">
+            <index-field name="leaseAgreementId"/>
+            <index-field name="maintPlanSeqId"/>
+            <index-field name="scheduledDate"/>
+        </index>
+    </entity>
 </entitymodel>

@@ -791,6 +791,108 @@ under the License.
         <field name="actualCompletionDate" title="${uiLabelMap.FinanceLeaseCompletedOn}"><display type="date"/></field>
     </grid>
 
+    <!-- STEP L11: maintenance lease -->
+    <form name="ViewLeaseMaintSummary" type="single" default-map-name="maintSummary">
+        <field name="contractedMaintenanceAmount" title="${uiLabelMap.FinanceLeaseMaintContracted}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="billedMaintenanceRevenue" title="${uiLabelMap.FinanceLeaseMaintBilledRevenue}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="maintenanceCost" title="${uiLabelMap.FinanceLeaseMaintCost}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="maintenanceMargin" title="${uiLabelMap.FinanceLeaseMaintMargin}"><display type="currency" currency="${currencyUomId}"/></field>
+    </form>
+
+    <form name="CreateLeaseMaintPlan" type="single" target="createLeaseMaintPlan" header-row-style="header-row" default-table-style="basic-table">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="assetSeqId" title="${uiLabelMap.FinanceLeaseAssetSeqId}">
+            <drop-down allow-empty="false"><list-options list-name="assetLines" key-name="assetSeqId" description="${assetSeqId} ${assetName}"/></drop-down>
+        </field>
+        <field name="productMaintTypeId" title="${uiLabelMap.FinanceLeaseMaintType}">
+            <drop-down allow-empty="false">
+                <entity-options entity-name="ProductMaintType" key-field-name="productMaintTypeId" description="${description}">
+                    <entity-order-by field-name="description"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="intervalMonths" title="${uiLabelMap.FinanceLeaseMaintInterval}"><text size="4"/></field>
+        <field name="firstDueDate" title="${uiLabelMap.FinanceLeaseMaintScheduledDate}"><date-time type="date"/></field>
+        <field name="providerPartyId" title="${uiLabelMap.FinanceLeaseMaintProvider}"><lookup target-form-name="LookupPartyName"/></field>
+        <field name="estimatedCost" title="${uiLabelMap.FinanceLeaseMaintCost}"><text size="15"/></field>
+        <field name="description" title="${uiLabelMap.CommonDescription}"><text size="40"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceLeaseMaintAddPlan}"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListLeaseMaintPlans" list-name="maintPlans" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="maintPlanSeqId" title="#"><display/></field>
+        <field name="assetSeqId" title="${uiLabelMap.FinanceLeaseAssetSeqId}"><display/></field>
+        <field name="productMaintTypeId" title="${uiLabelMap.FinanceLeaseMaintType}"><display-entity entity-name="ProductMaintType"/></field>
+        <field name="intervalMonths" title="${uiLabelMap.FinanceLeaseMaintInterval}"><display/></field>
+        <field name="firstDueDate" title="${uiLabelMap.FinanceLeaseMaintScheduledDate}"><display type="date"/></field>
+        <field name="providerPartyId" title="${uiLabelMap.FinanceLeaseMaintProvider}"><display/></field>
+        <field name="thruDate" title="${uiLabelMap.CommonThruDate}"><display type="date"/></field>
+        <field name="endPlan" title=" " use-when="${bsh:context.get(&quot;canEnd&quot;)}">
+            <hyperlink target="endLeaseMaintPlan" description="${uiLabelMap.FinanceLeaseMaintCancel}" also-hidden="false" request-confirmation="true">
+                <parameter param-name="leaseAgreementId"/>
+                <parameter param-name="maintPlanSeqId"/>
+            </hyperlink>
+        </field>
+    </grid>
+
+    <form name="RunLeaseMaintScheduleBatch" type="single" target="runLeaseMaintScheduleBatch">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="monthsAhead" title="${uiLabelMap.FinanceLeaseMonthsAhead}"><text size="4" default-value="${maintMonthsAhead}"/></field>
+        <field name="assigneePartyId" title="${uiLabelMap.FinanceLeaseAssignee}"><lookup target-form-name="LookupPartyName"/></field>
+        <field name="runButton" title="${uiLabelMap.FinanceLeaseMaintRunBatch}"><submit button-type="button"/></field>
+    </form>
+
+    <form name="CreateLeaseMaintenance" type="single" target="createLeaseMaintenance">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="assetSeqId" title="${uiLabelMap.FinanceLeaseAssetSeqId}">
+            <drop-down allow-empty="false"><list-options list-name="leasedAssets" key-name="assetSeqId" description="${assetSeqId} ${assetName}"/></drop-down>
+        </field>
+        <field name="productMaintTypeId" title="${uiLabelMap.FinanceLeaseMaintType}">
+            <drop-down allow-empty="true">
+                <entity-options entity-name="ProductMaintType" key-field-name="productMaintTypeId" description="${description}">
+                    <entity-order-by field-name="description"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="scheduledDate" title="${uiLabelMap.FinanceLeaseMaintScheduledDate}" tooltip="${uiLabelMap.FinanceLeaseDefaultToday}"><date-time type="date"/></field>
+        <field name="providerPartyId" title="${uiLabelMap.FinanceLeaseMaintProvider}"><lookup target-form-name="LookupPartyName"/></field>
+        <field name="comments" title="${uiLabelMap.CommonComments}"><text size="40"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceLeaseMaintAddUnscheduled}"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListLeaseMaintRecords" list-name="maintRecords" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="leaseMaintRecordId" title="ID"><display/></field>
+        <field name="assetSeqId" title="${uiLabelMap.FinanceLeaseAssetSeqId}"><display/></field>
+        <field name="productMaintTypeId" title="${uiLabelMap.FinanceLeaseMaintType}"><display-entity entity-name="ProductMaintType"/></field>
+        <field name="scheduledDate" title="${uiLabelMap.FinanceLeaseMaintScheduledDate}"><display type="date"/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem" key-field-name="statusId"/></field>
+        <field name="completedDate" title="${uiLabelMap.FinanceLeaseCompletedOn}"><display type="date"/></field>
+        <field name="providerPartyId" title="${uiLabelMap.FinanceLeaseMaintProvider}"><display/></field>
+        <field name="costAmount" title="${uiLabelMap.FinanceLeaseMaintCost}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="invoiceId" title="${uiLabelMap.FinanceInvoiceId}"><display/></field>
+        <field name="cancel" title=" " use-when="${bsh:context.get(&quot;canComplete&quot;)}">
+            <hyperlink target="cancelLeaseMaintenance" description="${uiLabelMap.FinanceLeaseMaintCancel}" also-hidden="false" request-confirmation="true">
+                <parameter param-name="leaseMaintRecordId"/>
+                <parameter param-name="leaseAgreementId"/>
+            </hyperlink>
+        </field>
+    </grid>
+
+    <form name="CompleteLeaseMaintenance" type="single" target="completeLeaseMaintenance">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="leaseMaintRecordId" title="${uiLabelMap.FinanceLeaseMaintRecords}">
+            <drop-down allow-empty="false"><list-options list-name="scheduledMaintRecords" key-name="leaseMaintRecordId" description="${leaseMaintRecordId} ${assetSeqId} ${productMaintTypeId} ${scheduledDateText}"/></drop-down>
+        </field>
+        <field name="completionDate" title="${uiLabelMap.FinanceLeaseCompletedOn}" tooltip="${uiLabelMap.FinanceLeaseDefaultToday}"><date-time type="date"/></field>
+        <field name="costAmount" title="${uiLabelMap.FinanceLeaseMaintCost}"><text size="15"/></field>
+        <field name="providerPartyId" title="${uiLabelMap.FinanceLeaseMaintProvider}"><lookup target-form-name="LookupPartyName"/></field>
+        <field name="supplierInvoiceRef" title="${uiLabelMap.FinanceLeaseSupplierInvoiceRef}"><text size="20"/></field>
+        <field name="comments" title="${uiLabelMap.CommonComments}"><text size="40"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceLeaseMaintComplete}"><submit button-type="button"/></field>
+    </form>
+
     <form name="RunLeaseExpiryBatch" type="single" target="runLeaseExpiryBatch">
         <field name="monthsAhead" title="${uiLabelMap.FinanceLeaseMonthsAhead}"><text size="4" default-value="${monthsAhead}"/></field>
         <field name="assigneePartyId" title="${uiLabelMap.FinanceLeaseAssignee}"><lookup target-form-name="LookupPartyName"/></field>

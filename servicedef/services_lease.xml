@@ -471,4 +471,94 @@ under the License.
         <attribute name="declarationsMigrated" type="Long" mode="OUT" optional="true"/>
         <attribute name="declarationConflicts" type="Long" mode="OUT" optional="true"/>
     </service>
+
+    <!-- ============================================================= -->
+    <!-- STEP L11: maintenance lease (メンテナンスリース)                 -->
+    <!-- ============================================================= -->
+    <service name="createLeaseMaintPlan" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseMaintenanceServices" invoke="createLeaseMaintPlan" auth="true">
+        <description>Register a maintenance plan of an agreement asset (CONTRACTED / ACTIVE): maintenance type, interval in
+            months, provider. On an ACTIVE lease with no first due date the plan starts at the next interval date from today.</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="assetSeqId" type="String" mode="IN" optional="false"/>
+        <attribute name="productMaintTypeId" type="String" mode="IN" optional="false"/>
+        <attribute name="intervalMonths" type="Long" mode="IN" optional="false"/>
+        <attribute name="firstDueDate" type="Timestamp" mode="IN" optional="true"><description>empty = lease start + interval</description></attribute>
+        <attribute name="providerPartyId" type="String" mode="IN" optional="true"/>
+        <attribute name="estimatedCost" type="BigDecimal" mode="IN" optional="true"/>
+        <attribute name="description" type="String" mode="IN" optional="true"/>
+        <attribute name="maintPlanSeqId" type="String" mode="OUT" optional="true"/>
+    </service>
+    <service name="endLeaseMaintPlan" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseMaintenanceServices" invoke="endLeaseMaintPlan" auth="true">
+        <description>End a maintenance plan: no schedule on or after thruDate; scheduled maintenances on or after it are cancelled.</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="maintPlanSeqId" type="String" mode="IN" optional="false"/>
+        <attribute name="thruDate" type="Timestamp" mode="IN" optional="true"><description>defaults to today</description></attribute>
+        <attribute name="cancelledCount" type="Long" mode="OUT" optional="true"/>
+    </service>
+    <service name="runLeaseMaintScheduleBatch" engine="java" transaction-timeout="1800"
+            location="org.apache.ofbiz.finance.lease.LeaseMaintenanceServices" invoke="runLeaseMaintScheduleBatch" auth="true">
+        <description>For ACTIVE leases with maintenance plans: create the scheduled maintenances (LeaseMaintRecord, core
+            FixedAssetMaint, WorkEffort task FINWE_MAINTENANCE) due within monthsAhead months. Idempotent per plan x due date.</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <attribute name="processingDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="monthsAhead" type="Long" mode="IN" optional="true"><description>defaults to lease.maint.schedule.months</description></attribute>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="true"><description>empty = all agreements</description></attribute>
+        <attribute name="assigneePartyId" type="String" mode="IN" optional="true"/>
+        <attribute name="processedAgreementCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="createdCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="skippedPlanCount" type="Long" mode="OUT" optional="true"/>
+    </service>
+    <service name="createLeaseMaintenance" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseMaintenanceServices" invoke="createLeaseMaintenance" auth="true">
+        <description>Register an unscheduled maintenance (repair) of a leased asset of an ACTIVE agreement (record, core
+            FixedAssetMaint, WorkEffort task).</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="assetSeqId" type="String" mode="IN" optional="false"/>
+        <attribute name="productMaintTypeId" type="String" mode="IN" optional="true"><description>defaults to LEASE_REPAIR</description></attribute>
+        <attribute name="scheduledDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="providerPartyId" type="String" mode="IN" optional="true"/>
+        <attribute name="assigneePartyId" type="String" mode="IN" optional="true"/>
+        <attribute name="comments" type="String" mode="IN" optional="true"/>
+        <attribute name="leaseMaintRecordId" type="String" mode="OUT" optional="true"/>
+        <attribute name="workEffortId" type="String" mode="OUT" optional="true"/>
+    </service>
+    <service name="completeLeaseMaintenance" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseMaintenanceServices" invoke="completeLeaseMaintenance" auth="true">
+        <description>Record a performed maintenance: the provider's cost (tax excluded) as a core purchase invoice
+            (Dr maintenance cost / Cr accounts payable) when positive; completes the record, FixedAssetMaint and the task.</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="leaseMaintRecordId" type="String" mode="IN" optional="false"/>
+        <attribute name="completionDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="costAmount" type="BigDecimal" mode="IN" optional="true"/>
+        <attribute name="providerPartyId" type="String" mode="IN" optional="true"><description>defaults to the plan's provider</description></attribute>
+        <attribute name="supplierInvoiceRef" type="String" mode="IN" optional="true"/>
+        <attribute name="comments" type="String" mode="IN" optional="true"/>
+        <attribute name="invoiceId" type="String" mode="OUT" optional="true"/>
+    </service>
+    <service name="cancelLeaseMaintenance" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseMaintenanceServices" invoke="cancelLeaseMaintenance" auth="true">
+        <description>Cancel a scheduled maintenance (record, core FixedAssetMaint and task).</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="leaseMaintRecordId" type="String" mode="IN" optional="false"/>
+        <attribute name="comments" type="String" mode="IN" optional="true"/>
+    </service>
+    <service name="getLeaseMaintenanceSummary" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseMaintenanceServices" invoke="getLeaseMaintenanceSummary" auth="true">
+        <description>Maintenance summary of an agreement: contracted and billed maintenance revenue, cost of the completed
+            maintenances, margin, record counts.</description>
+        <permission-service service-name="financeGenericPermission" main-action="VIEW"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="contractedMaintenanceAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="billedMaintenanceRevenue" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="maintenanceCost" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="maintenanceMargin" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="scheduledCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="completedCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="cancelledCount" type="Long" mode="OUT" optional="true"/>
+    </service>
 </services>

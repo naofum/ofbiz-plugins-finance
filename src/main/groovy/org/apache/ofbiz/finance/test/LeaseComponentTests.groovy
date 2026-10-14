@@ -230,8 +230,9 @@ class LeaseComponentTests extends OFBizTestCase {
                 // Separate taxable (property tax equivalent): 1000 + 100 tax -> 403800 / 224500.
                 [componentTypeEnumId: 'LSCMP_PROP_TAX', monthlyAmount: new BigDecimal('1000.00'),
                  taxClassEnumId: 'LSTAX_TAXABLE', revenueTreatmentEnumId: 'LSCMP_REV_SEPARATE'],
-                // Included non-taxable (maintenance): 200, folded into the lease payment item (128500).
-                [componentTypeEnumId: 'LSCMP_MAINTENANCE', monthlyAmount: new BigDecimal('200.00'),
+                // Included non-taxable (insurance): 200, folded into the lease payment item (128500).
+                // (Maintenance must be separate since STEP L11.)
+                [componentTypeEnumId: 'LSCMP_INSURANCE', monthlyAmount: new BigDecimal('200.00'),
                  taxClassEnumId: 'LSTAX_NONTAX', revenueTreatmentEnumId: 'LSCMP_REV_INCLUDED']]
         String agreementId = activeLease(userLogin, start, 60L, components)
         List<GenericValue> rows = schedule(agreementId)

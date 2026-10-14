@@ -1460,6 +1460,102 @@ under the License.
         <value xml:lang="en">Record payment</value>
         <value xml:lang="ja">納付記録</value>
     </property>
+    <property key="FinanceLeaseComponentSeparateRequired">
+        <value xml:lang="en">Component ${componentTypeEnumId} must be billed as separate revenue (it cannot be included in the lease sales).</value>
+        <value xml:lang="ja">構成要素 ${componentTypeEnumId} は区分して別に収益計上する必要があります（売上高に含めることはできません）。</value>
+    </property>
+    <property key="FinanceLeaseMaintRequiresOpenAgreement">
+        <value xml:lang="en">A maintenance plan can be registered only on a contracted or active lease (${leaseAgreementId} is ${statusId}).</value>
+        <value xml:lang="ja">保守計画は契約済または有効なリース契約にだけ登録できます（${leaseAgreementId} は ${statusId}）。</value>
+    </property>
+    <property key="FinanceLeaseMaintIntervalInvalid">
+        <value xml:lang="en">The maintenance interval ${intervalMonths} must be a positive number of months.</value>
+        <value xml:lang="ja">保守の間隔 ${intervalMonths} は 1 か月以上で指定してください。</value>
+    </property>
+    <property key="FinanceLeaseMaintNotScheduled">
+        <value xml:lang="en">Maintenance ${leaseMaintRecordId} is not scheduled (${statusId}).</value>
+        <value xml:lang="ja">保守 ${leaseMaintRecordId} は予定の状態ではありません（${statusId}）。</value>
+    </property>
+    <property key="FinanceLeaseMaintCostInvalid">
+        <value xml:lang="en">The maintenance cost ${costAmount} must not be negative.</value>
+        <value xml:lang="ja">保守費用 ${costAmount} に負の値は指定できません。</value>
+    </property>
+    <property key="FinanceLeaseMaintProviderRequired">
+        <value xml:lang="en">A maintenance provider is required to book the cost of maintenance ${leaseMaintRecordId}.</value>
+        <value xml:lang="ja">保守 ${leaseMaintRecordId} の費用を計上するには保守業者が必要です。</value>
+    </property>
+    <property key="FinanceLeaseMaintenance">
+        <value xml:lang="en">Maintenance (保守)</value>
+        <value xml:lang="ja">保守</value>
+    </property>
+    <property key="FinanceLeaseMaintPlans">
+        <value xml:lang="en">Maintenance plans</value>
+        <value xml:lang="ja">保守計画</value>
+    </property>
+    <property key="FinanceLeaseMaintRecords">
+        <value xml:lang="en">Maintenance schedule and results</value>
+        <value xml:lang="ja">保守予定・実績</value>
+    </property>
+    <property key="FinanceLeaseMaintAddPlan">
+        <value xml:lang="en">Add maintenance plan</value>
+        <value xml:lang="ja">保守計画の登録</value>
+    </property>
+    <property key="FinanceLeaseMaintRunBatch">
+        <value xml:lang="en">Create scheduled maintenance</value>
+        <value xml:lang="ja">保守予定の作成</value>
+    </property>
+    <property key="FinanceLeaseMaintAddUnscheduled">
+        <value xml:lang="en">Add unscheduled maintenance (repair)</value>
+        <value xml:lang="ja">臨時保守（修理）の登録</value>
+    </property>
+    <property key="FinanceLeaseMaintComplete">
+        <value xml:lang="en">Record result</value>
+        <value xml:lang="ja">実績の記録</value>
+    </property>
+    <property key="FinanceLeaseMaintCancel">
+        <value xml:lang="en">Cancel</value>
+        <value xml:lang="ja">取消</value>
+    </property>
+    <property key="FinanceLeaseSupplierInvoiceRef">
+        <value xml:lang="en">Provider invoice number</value>
+        <value xml:lang="ja">業者の請求書番号</value>
+    </property>
+    <property key="FinanceLeaseMaintSummary">
+        <value xml:lang="en">Maintenance revenue and cost</value>
+        <value xml:lang="ja">保守料収益と保守原価</value>
+    </property>
+    <property key="FinanceLeaseMaintType">
+        <value xml:lang="en">Maintenance type</value>
+        <value xml:lang="ja">保守種別</value>
+    </property>
+    <property key="FinanceLeaseMaintInterval">
+        <value xml:lang="en">Interval (months)</value>
+        <value xml:lang="ja">間隔（月）</value>
+    </property>
+    <property key="FinanceLeaseMaintProvider">
+        <value xml:lang="en">Provider</value>
+        <value xml:lang="ja">保守業者</value>
+    </property>
+    <property key="FinanceLeaseMaintScheduledDate">
+        <value xml:lang="en">Scheduled date</value>
+        <value xml:lang="ja">予定日</value>
+    </property>
+    <property key="FinanceLeaseMaintCost">
+        <value xml:lang="en">Cost (tax excluded)</value>
+        <value xml:lang="ja">費用（税抜）</value>
+    </property>
+    <property key="FinanceLeaseMaintBilledRevenue">
+        <value xml:lang="en">Billed maintenance revenue</value>
+        <value xml:lang="ja">請求済み保守料</value>
+    </property>
+    <property key="FinanceLeaseMaintContracted">
+        <value xml:lang="en">Contracted maintenance fee</value>
+        <value xml:lang="ja">契約上の保守料総額</value>
+    </property>
+    <property key="FinanceLeaseMaintMargin">
+        <value xml:lang="en">Margin</value>
+        <value xml:lang="ja">差額（収益−原価）</value>
+    </property>
     <property key="FinanceOrganizationPartyId">
         <value xml:lang="en">Organization</value>
         <value xml:lang="ja">組織</value>

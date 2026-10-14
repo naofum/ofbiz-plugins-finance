@@ -145,6 +145,11 @@ under the License.
     <GlAccountOrganization glAccountId="601500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_PCHG_PAYABLE" glAccountId="224600"/>
     <GlAccountOrganization glAccountId="224600" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <!-- STEP L11: maintenance revenue (保守料収益) and maintenance cost (保守原価) -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_MAINT_REVENUE" glAccountId="403900"/>
+    <GlAccountOrganization glAccountId="403900" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_MAINT_COST" glAccountId="503900"/>
+    <GlAccountOrganization glAccountId="503900" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <Party partyId="TEST_TAXAUTH_JP" partyTypeId="PARTY_GROUP"/>
     <PartyGroup partyId="TEST_TAXAUTH_JP" groupName="Test Consumption Tax Authority"/>
     <PartyRole partyId="TEST_TAXAUTH_JP" roleTypeId="TAX_AUTHORITY"/>

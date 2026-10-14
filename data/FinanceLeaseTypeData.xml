@@ -243,4 +243,25 @@ under the License.
     <LeasePublicChargeRate leasePublicChargeRateId="LPCR_WT_1500" publicChargeTypeId="LSPC_WEIGHT_TAX" rateClassCode="PASS_W1500" unitAmount="12300" standardRate="Y" fromDate="2001-01-01 00:00:00.0" description="Passenger car up to 1.5t"/>
     <LeasePublicChargeRate leasePublicChargeRateId="LPCR_WT_2000" publicChargeTypeId="LSPC_WEIGHT_TAX" rateClassCode="PASS_W2000" unitAmount="16400" standardRate="Y" fromDate="2001-01-01 00:00:00.0" description="Passenger car up to 2.0t"/>
     <LeasePublicChargeRate leasePublicChargeRateId="LPCR_WT_2500" publicChargeTypeId="LSPC_WEIGHT_TAX" rateClassCode="PASS_W2500" unitAmount="20500" standardRate="Y" fromDate="2001-01-01 00:00:00.0" description="Passenger car up to 2.5t"/>
+
+    <!-- ============ STEP L11: maintenance lease (メンテナンスリース) ============ -->
+    <!-- The maintenance fee (service part) is separate revenue on its own account. -->
+    <GlAccountType description="Lease maintenance revenue (保守料収益)" glAccountTypeId="LEASE_MAINT_REVENUE" hasTable="N" parentTypeId="SALES_ACCOUNT"/>
+    <GlAccount glAccountId="403900" accountCode="403900" glAccountClassId="REVENUE" glAccountTypeId="LEASE_MAINT_REVENUE" glResourceTypeId="MONEY" accountName="LEASE MAINTENANCE REVENUE"/>
+    <LeaseComponentRevenueAccount componentTypeEnumId="LSCMP_MAINTENANCE" glAccountTypeId="LEASE_MAINT_REVENUE" separateRequired="Y"/>
+    <!-- Maintenance cost billed by the provider (purchase invoice): Dr maintenance cost / Cr accounts payable. -->
+    <GlAccountType description="Lease maintenance cost (保守原価)" glAccountTypeId="LEASE_MAINT_COST" hasTable="N" parentTypeId="COGS_ACCOUNT"/>
+    <GlAccount glAccountId="503900" accountCode="503900" glAccountClassId="COGS_EXPENSE" glAccountTypeId="LEASE_MAINT_COST" glResourceTypeId="MONEY" accountName="LEASE MAINTENANCE COST"/>
+    <InvoiceItemType description="Lease maintenance cost (保守費用)" hasTable="N" invoiceItemTypeId="LEASE_MAINT_COST"/>
+    <InvoiceItemTypeMap invoiceTypeId="PURCHASE_INVOICE" invoiceItemMapKey="LEASE_MAINT_COST" invoiceItemTypeId="LEASE_MAINT_COST"/>
+    <!-- Maintenance record status (business status; the WorkEffort task only says whether the work is done). -->
+    <StatusType description="Lease Maintenance" hasTable="N" statusTypeId="LEASE_MAINT_STATUS"/>
+    <StatusItem description="Scheduled" sequenceId="01" statusCode="SCHEDULED" statusId="LSMNT_SCHEDULED" statusTypeId="LEASE_MAINT_STATUS"/>
+    <StatusItem description="Completed" sequenceId="02" statusCode="COMPLETED" statusId="LSMNT_COMPLETED" statusTypeId="LEASE_MAINT_STATUS"/>
+    <StatusItem description="Cancelled" sequenceId="99" statusCode="CANCELLED" statusId="LSMNT_CANCELLED" statusTypeId="LEASE_MAINT_STATUS"/>
+    <StatusValidChange statusId="LSMNT_SCHEDULED" statusIdTo="LSMNT_COMPLETED" transitionName="Complete"/>
+    <StatusValidChange statusId="LSMNT_SCHEDULED" statusIdTo="LSMNT_CANCELLED" transitionName="Cancel"/>
+    <!-- Generic maintenance type for unscheduled repairs (core ProductMaintType). -->
+    <ProductMaintType description="Inspection (点検)" productMaintTypeId="LEASE_INSPECTION"/>
+    <ProductMaintType description="Repair (修理)" productMaintTypeId="LEASE_REPAIR"/>
 </entity-engine-xml>

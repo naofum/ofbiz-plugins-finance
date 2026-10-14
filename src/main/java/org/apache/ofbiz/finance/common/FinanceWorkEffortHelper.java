@@ -58,6 +58,7 @@ public final class FinanceWorkEffortHelper {
     public static final String TYPE_ASSET_RETURN = "FINWE_ASSET_RETURN";
     public static final String TYPE_ASSET_DISPOSAL = "FINWE_ASSET_DISPOSAL";
     public static final String TYPE_OWNERSHIP_TRANSFER = "FINWE_OWN_TRANSFER";
+    public static final String TYPE_MAINTENANCE = "FINWE_MAINTENANCE";
     public static final String TYPE_OTHER = "FINWE_OTHER";
 
     public static final String STATUS_OPEN = "CAL_NEEDS_ACTION";
@@ -166,6 +167,29 @@ public final class FinanceWorkEffortHelper {
                 "currentStatusId", STATUS_COMPLETED,
                 "actualCompletionDate", completionDate == null ? UtilDateTime.nowTimestamp() : completionDate,
                 "userLogin", userLogin)));
+        return workEffortId;
+    }
+
+    /**
+     * Cancel the open task of a contract for a work type and trigger key (no-op when it
+     * does not exist or is already closed). Returns the workEffortId or null.
+     */
+    public static String cancelTask(Delegator delegator, LocalDispatcher dispatcher, String financeContractId,
+            String workTypeEnumId, String triggerKey, GenericValue userLogin)
+            throws GenericEntityException, GenericServiceException {
+        GenericValue link = findLink(delegator, financeContractId, workTypeEnumId, triggerKey);
+        if (link == null) {
+            return null;
+        }
+        String workEffortId = link.getString("workEffortId");
+        GenericValue task = EntityQuery.use(delegator).from("WorkEffort").where("workEffortId", workEffortId)
+                .cache(false).queryOne();
+        if (task == null || STATUS_COMPLETED.equals(task.getString("currentStatusId"))
+                || STATUS_CANCELLED.equals(task.getString("currentStatusId"))) {
+            return workEffortId;
+        }
+        check(dispatcher.runSync("updateWorkEffort", UtilMisc.toMap("workEffortId", workEffortId,
+                "currentStatusId", STATUS_CANCELLED, "userLogin", userLogin)));
         return workEffortId;
     }
 

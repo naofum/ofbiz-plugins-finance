@@ -30,6 +30,7 @@ import org.apache.ofbiz.finance.common.FinanceContractHelper
 import org.apache.ofbiz.finance.common.FinanceInterestCalculator
 import org.apache.ofbiz.finance.lease.LeaseCalculator
 import org.apache.ofbiz.finance.lease.LeaseComponentCalculator
+import org.apache.ofbiz.finance.lease.LeaseComponentSettings
 import org.apache.ofbiz.finance.lease.LeaseProductHelper
 import org.apache.ofbiz.finance.lease.LeasePublicChargeServices
 import org.apache.ofbiz.finance.lease.LeaseTaxHelper
@@ -231,6 +232,11 @@ Map createLeaseQuote() {
         GenericValue revEnum = from('Enumeration').where('enumId', revenueTreatmentEnumId).cache().queryOne()
         if (revEnum == null || revEnum.enumTypeId != 'LEASE_CMP_REVENUE') {
             return error(label('FinanceLeaseEnumInvalid', [field: 'revenueTreatmentEnumId', value: revenueTreatmentEnumId]))
+        }
+        // STEP L11: the service part (保守料) is always separate revenue.
+        if (revenueTreatmentEnumId == LeaseComponentCalculator.REV_INCLUDED
+                && LeaseComponentSettings.separateRequired(delegator, componentTypeEnumId)) {
+            return error(label('FinanceLeaseComponentSeparateRequired', [componentTypeEnumId: componentTypeEnumId]))
         }
         BigDecimal monthlyAmount = (c.get('monthlyAmount') as BigDecimal)
         // STEP L10 / L10b supply: a public charge equivalent component (固定資産税・自動車税・

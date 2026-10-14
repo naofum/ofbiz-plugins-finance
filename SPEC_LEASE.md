@@ -36,6 +36,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L9 | リース料の構成要素（維持管理費用相当額） | 完了（tests=126 / errors=0 / failures=0） |
 | L10 | 固定資産税（償却資産税） | 完了（tests=134 / errors=0 / failures=0） |
 | L10b | 公租公課への一般化（税目・物件種別・所有持分、テーブル名の変更と移行。12 章） | 完了（tests=143 / errors=0 / failures=0） |
+| L11 | メンテナンスリース（保守料の別収益計上、保守計画・予定・実績、保守原価。13 章） | 完了（tests=150 / errors=0 / failures=0） |
 
 前提：STEP L0（共通層の切り出し、`SPEC_COMMON.md`）の完了後に着手する。
 
@@ -45,7 +46,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 
 | 種別 | 配置 |
 |------|------|
-| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`、L10：`PropertyTaxValuation`、L10b：`LeasePublicChargeCalculator` / `LeasePublicChargeServices`） |
+| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`、L10：`PropertyTaxValuation`、L10b：`LeasePublicChargeCalculator` / `LeasePublicChargeServices`、L11：`LeaseComponentSettings` / `LeaseMaintenanceServices`） |
 | Groovy | `groovyScripts/lease/`（`LeaseProductServices` / `LeaseApplicationServices` / `PrepareLeaseApplication`） |
 | entitydef | `entitymodel_lease.xml` |
 | servicedef | `services_lease.xml` |
@@ -743,7 +744,7 @@ Company への科目割当（403800）は demo・テストデータに追加し�
 ### 10.10 要確認・制約
 
 - **消費税区分の最終確認**：課税・非課税・不課税・免税の判断（固定資産税相当額＝課税 等）は税理士の最終確認を得る（要件の残課題）。L19 の自賠責・重量税等の法定費用の立替（不課税）扱いは L19 で判断する。
-- **「含める」の開始仕訳**：区分（既定）は開始仕訳に影響しない。「含める」を使う場合、第1法の開始時の売上高・リース投資資産に構成要素相当を含める必要があるが、本 STEP の開始仕訳（`LeaseRevenueStrategy.AtStart`）は従来どおり取得価額ベースのままで、含める構成要素は請求時にリース投資資産の貸方へ回収する簡易な扱いとした。含める運用を本格的に使う場合は開始仕訳の見直しが必要（要確認）。
+- **「含める」の開始仕訳**：区分（既定）は開始仕訳に影響しない。L11 以降、保守料は区分のみ（`LeaseComponentRevenueAccount.separateRequired`）。「含める」を使う場合、第1法の開始時の売上高・リース投資資産に構成要素相当を含める必要があるが、本 STEP の開始仕訳（`LeaseRevenueStrategy.AtStart`）は従来どおり取得価額ベースのままで、含める構成要素は請求時にリース投資資産の貸方へ回収する簡易な扱いとした。含める運用を本格的に使う場合は開始仕訳の見直しが必要（要確認）。
 - **月額均等のみ**：回ごとの減額・調整、年次で変動する固定資産税相当額（L10 が供給）の反映は後続で追加する。L10 は本 STEP の構成要素（固定資産税相当額）に見込み額を供給する。
 - **延滞の構成要素**：延滞額には構成要素を含める（消費税バケットに合算）が、遅延損害金の計算基礎には含めない。構成要素だけが延滞した場合の督促文言は未調整（既存のリース料督促の文言を流用）。
 
@@ -937,6 +938,107 @@ L10 のテーブル名との対応：`LeasePropertyTaxRate` → `LeasePublicChar
 - **共有物の納税**：共有物は共有者が連帯して納税義務を負う。今は貸手の持分だけを申告・費用計上している。全額申告と持分精算の扱いは L16（協調リース）で決める。
 - **持分の置き場所**：物件の持分は `LeaseAgreementAsset.ownershipShare` に持たせた。L10a の `FinanceContractParty` は契約の持分なので別物。L16 で両者の関係（契約の持分から物件の持分を作る 等）を決める。
 - **申告書の様式**：償却資産申告書・種類別明細書の様式出力は対象外（L10 と同じ）。
+
+---
+
+## 13. STEP L11 — メンテナンスリース
+
+保守料（サービス部分）を L9 の構成要素 `LSCMP_MAINTENANCE` として扱い、リース料部分と分けて保守料収益に計上する。
+あわせて、物件の保守計画、保守予定（core `FixedAssetMaint` と作業管理のタスク）、保守の実績と保守業者の費用（保守原価）を管理する。
+
+実装：`LeaseComponentSettings`（構成要素の種類ごとの収益科目と区分の強制）、`LeaseMaintenanceServices`（計画・予定・実績・集計）。
+`LeaseAccountingServices` の請求と `LeaseQuoteServices.groovy` の見積を変更した。
+
+### 13.1 決定事項（2026-10-15）
+
+| 項目 | 決定 |
+|------|------|
+| 保守料の収益計上 | **専用科目（403900 保守料収益）に請求時に計上**する。毎月同額の保守料は、役務を毎月同じだけ提供したものとみなす。保守料は必ず「区分」とし、「含める」（第1法の売上高に含める）は見積で拒否する |
+| 保守原価 | **保守業者の仕入請求書**（core `PURCHASE_INVOICE`）で計上する：借 保守原価（503900）／ 貸 買掛金。支払・消込は core の機能で行う（L3 の物件購入と同じ） |
+| 保守予定の作成 | **バッチで先に作る**（`runLeaseMaintScheduleBatch`、既定は 2 か月先まで、`lease.maint.schedule.months`）。同じ計画・同じ予定日の予定は 1 件だけ（冪等）。L7 の満了バッチと同じ方式 |
+
+### 13.2 データモデル（`entitymodel_lease.xml` に追加）
+
+| エンティティ | 主キー | 内容 |
+|--------------|--------|------|
+| `LeaseComponentRevenueAccount` | componentTypeEnumId | 構成要素の種類ごとの収益科目タイプ（区分のとき）と、区分の強制 `separateRequired`（seed）。行がない種類は従来どおり 403800 |
+| `LeaseMaintPlan` | leaseAgreementId + maintPlanSeqId | 保守計画：物件、保守種別（core `ProductMaintType`）、間隔（月）、初回予定日、保守業者、見込み費用、終了日 |
+| `LeaseMaintRecord` | leaseMaintRecordId | 1 回の保守（計画による予定、または臨時の修理）：予定日、状態（`LEASE_MAINT_STATUS`）、core `FixedAssetMaint`・タスク（`WorkEffort`）への参照、完了日、保守業者、費用（税抜）、仕入請求書 |
+
+core の `FixedAssetMaint` は物件の保守履歴として作り（`scheduleWorkEffortId` にタスク、間隔は `TF_mon`）、状態を `FAM_SCHEDULED` → `FAM_COMPLETED` / `FAM_CANCELLED` に合わせる。
+業務の状態の正は `LeaseMaintRecord.statusId` で、タスク（`CAL_*`）は作業が済んだかだけを表す（要件 3.5 の原則）。core は変更していない。
+
+### 13.3 seed
+
+| 種類 | 値 |
+|------|----|
+| GL 科目タイプ | `LEASE_MAINT_REVENUE`（403900 保守料収益、`SALES_ACCOUNT` 配下）、`LEASE_MAINT_COST`（503900 保守原価、`COGS_ACCOUNT` 配下）。Company への割当は demo・テストデータに追加 |
+| 構成要素の設定 | `LeaseComponentRevenueAccount`：`LSCMP_MAINTENANCE` → `LEASE_MAINT_REVENUE`、`separateRequired=Y` |
+| 請求明細種別 | `LEASE_MAINT_COST`（`PURCHASE_INVOICE` への `InvoiceItemTypeMap`） |
+| 状態 | `LEASE_MAINT_STATUS`：`LSMNT_SCHEDULED` → `LSMNT_COMPLETED` / `LSMNT_CANCELLED` |
+| 作業種別 | `FINWE_MAINTENANCE`（保守作業、共通層 `FinanceCommonTypeData.xml`） |
+| 保守種別 | core `ProductMaintType` に `LEASE_INSPECTION`（点検）、`LEASE_REPAIR`（修理）を追加 |
+| `finance.properties` | `lease.maint.schedule.months=2` |
+
+### 13.4 請求（L9 の変更）
+
+- 区分の構成要素は、種類ごとの収益科目（`LeaseComponentSettings.revenueAccountType`）で請求明細を分ける。保守料は 403900、それ以外（固定資産税相当額 等）は従来どおり 403800。
+- 消費税・回収状況・延滞の扱いは L9 と同じ（保守料は構成要素として充当・延滞の対象。遅延損害金の基礎には含めない）。
+
+| 借方 | 貸方 | 金額 |
+|------|------|------|
+| 売掛金（core） | リース投資資産／リース債権 | リース料 |
+| 売掛金（core） | 保守料収益（403900） | 保守料 |
+| 売掛金（core） | 仮受消費税（224500）／ core 税当局科目 | リース料・保守料の消費税 |
+
+### 13.5 サービス
+
+| サービス | 内容 |
+|----------|------|
+| `createLeaseMaintPlan` | 契約済・有効な契約の物件に保守計画を登録する。間隔は 1 か月以上、保守種別は core に存在するもの。初回予定日を省略すると、リース開始日＋間隔（有効な契約では今日以降の最初の間隔日） |
+| `endLeaseMaintPlan` | 計画を終了する。終了日以降の予定は取り消す（記録・`FixedAssetMaint`・タスク） |
+| `runLeaseMaintScheduleBatch` | 有効な契約の計画から、処理日＋N か月までの予定を作る。リース終了日・計画の終了日を超えない。貸し出し中でない物件の計画は `skippedPlanCount`。計画×予定日で冪等。タスクは契約のロックの下で作る |
+| `createLeaseMaintenance` | 臨時の保守（修理。既定 `LEASE_REPAIR`）を登録する |
+| `completeLeaseMaintenance` | 実績を記録する。費用が正なら保守業者の仕入請求書を作って READY にし、仕訳を転記する（借 503900 ／ 貸 買掛金）。費用 0（保証修理 等）は仕訳なし。費用があるのに業者がなければエラー。記録・`FixedAssetMaint`・タスクを完了にする |
+| `cancelLeaseMaintenance` | 予定を取り消す（記録・`FixedAssetMaint`・タスク） |
+| `getLeaseMaintenanceSummary` | 契約上の保守料総額、請求済み保守料（403900 の請求明細）、保守原価（完了分）、差額、件数 |
+
+共通層の `FinanceWorkEffortHelper` に `cancelTask` と作業種別 `TYPE_MAINTENANCE` を追加した（ローン層・リース層のクラスは参照しない）。
+
+### 13.6 画面
+
+- `ManageLeaseAgreement` に「保守」のスクリーンレットを追加した：保守料収益と保守原価の集計、保守計画の登録・一覧（終了リンク）、保守予定の作成（バッチ）、臨時保守の登録、保守予定・実績の一覧（取消リンク）、実績の記録フォーム（費用・業者・請求書番号）。
+- タスクは既存の「契約のタスク」一覧と workeffort アプリに表示される。
+
+### 13.7 テスト（`LeaseMaintenanceTests`。USD 商品 `TEST_LEASEPROD_USD`、60 か月、テストごとに新しい借手）
+
+| テスト | 内容 |
+|--------|------|
+| `testMaintenanceFeeBilledAsSeparateRevenue` | 保守料を「含める」とした見積の拒否。請求で保守料が 403900 に計上され、403800・売上（403500）には計上されない。貸借一致。集計の契約上の保守料総額・請求済み保守料 |
+| `testMaintenancePlanSchedule` | 不正な計画の拒否。バッチで予定日ごとに記録・`FixedAssetMaint`・タスク（物件の割当つき）ができる。冪等。期間を延ばすと新しい予定日だけ増える。計画の終了で以降の予定を取消し（`FAM_CANCELLED`・`CAL_CANCELLED`）、その後のバッチで増えない |
+| `testMaintenanceCompletionBooksCost` | 臨時修理の登録。負の費用の拒否。実績で仕入請求書（READY、転記済み、借 503900 ／ 貸 買掛金）。記録・`FixedAssetMaint`・タスクが完了。完了後の再完了・取消の拒否。業者のない有償実績の拒否、無償実績は仕訳なし。集計の差額 |
+
+L9 の `testBillingSeparateAndIncludedComponents` は「含める」の例を保守料から保険料（`LSCMP_INSURANCE`）に変えた（保守料は区分のみになったため）。
+
+### 13.8 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| XML の整形式 | 変更した 11 ファイルで OK |
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 新規 3 テーブル（`LEASE_COMPONENT_REVENUE_ACCOUNT` / `LEASE_MAINT_PLAN` / `LEASE_MAINT_RECORD`）、324 行を変更 |
+| `gradlew "ofbiz --test component=finance"` | tests=150 / errors=0 / failures=0（L11 の 3 件を含む） |
+| demo 投入 | BUILD SUCCESSFUL（228 行を変更） |
+| 画面 | 未確認（定義のみ） |
+
+### 13.9 要確認・制約
+
+- **保守料の収益認識**：請求時に計上する（毎月同額＝役務の均等提供とみなす）。保守の実施時期に偏りがある契約（年 1 回の大規模点検 等）で、実施に合わせて収益を認識する必要があるかは会計方針として確認する。
+- **保守原価の対応**：保守原価は実績の都度計上し、保守料収益との期間対応（引当・前払）はしない。集計の差額は契約全体の目安。
+- **保守料の消費税**：見積で指定した区分（通常は課税）に従う。保守業者からの仕入の消費税（仮払消費税）は仕入請求書に含めていない（税抜の費用だけを計上）。仕入税額控除を扱う場合は請求書に税明細を追加する（要確認）。
+- **中途解約・満了**：解約（L14）や満了で計画を自動終了しない。満了時は `endLeaseMaintPlan` を使う。L14 で連動させる。
+- **メーター（走行距離・稼働時間）による保守**：月の間隔だけ。core の `FixedAssetMeter` による保守間隔は後続（L19 の車検・点検で検討）。
+- **保守業者への支払**：仕入請求書の支払・消込は core の画面・サービスで行う。finance 側に支払画面は作っていない。
 
 ---
 

@@ -267,15 +267,18 @@ public final class LeaseAccountingServices {
             }
             BigDecimal billed = leaseAmount.add(taxAmount);
 
-            // STEP L9: payment components. Separate (区分) components credit the lease
+            // STEP L9: payment components. Separate (蛹ｺ蛻・ components credit the lease
             // component revenue account (revenue recognized at billing); their taxable
-            // (課税) consumption tax credits the tax received account (or the core tax
-            // authority when the contract has one, per installment). Included (含める)
+            // (隱ｲ遞・ consumption tax credits the tax received account (or the core tax
+            // authority when the contract has one, per installment). Included (蜷ｫ繧√ｋ)
             // components are folded into the lease payment item (credit the asset account,
             // no new sales), as they were part of the method-1 sales at the start.
+            // STEP L11: separate components are credited to the revenue account of their
+            // component type (LeaseComponentRevenueAccount, e.g. maintenance -> 菫晏ｮ域侭蜿守寢),
+            // else the generic component revenue account; one item per revenue account.
             BigDecimal componentAmount = BigDecimal.ZERO;
             BigDecimal componentTax = BigDecimal.ZERO;
-            BigDecimal separateAmount = BigDecimal.ZERO;
+            Map<String, BigDecimal> separateByGlType = new java.util.LinkedHashMap<>();
             BigDecimal includedAmount = BigDecimal.ZERO;
             BigDecimal separateTax = BigDecimal.ZERO;
             for (GenericValue comp : EntityQuery.use(delegator).from("LeaseAgrPaySchedComp")
@@ -287,16 +290,19 @@ public final class LeaseAccountingServices {
                 componentTax = componentTax.add(tax);
                 boolean separate = !LeaseComponentCalculator.REV_INCLUDED.equals(comp.getString("revenueTreatmentEnumId"));
                 if (separate) {
-                    separateAmount = separateAmount.add(amount);
+                    String glType = LeaseComponentSettings.revenueAccountType(delegator, comp.getString("componentTypeEnumId"));
+                    separateByGlType.merge(glType, amount, BigDecimal::add);
                     separateTax = separateTax.add(tax);
                 } else {
                     includedAmount = includedAmount.add(amount);
                 }
             }
-            if (separateAmount.signum() > 0) {
-                createItem(dispatcher, invoiceId, ITEM_COMPONENT, separateAmount,
-                        glAccount(delegator, organizationPartyId, LeaseRevenueStrategy.GL_COMPONENT_REVENUE),
-                        "Lease components #" + installmentNumber, userLogin);
+            for (Map.Entry<String, BigDecimal> sep : separateByGlType.entrySet()) {
+                if (sep.getValue().signum() > 0) {
+                    createItem(dispatcher, invoiceId, ITEM_COMPONENT, sep.getValue(),
+                            glAccount(delegator, organizationPartyId, sep.getKey()),
+                            "Lease components #" + installmentNumber, userLogin);
+                }
             }
             if (includedAmount.signum() > 0) {
                 createItem(dispatcher, invoiceId, ITEM_COMPONENT, includedAmount, leaseGl,

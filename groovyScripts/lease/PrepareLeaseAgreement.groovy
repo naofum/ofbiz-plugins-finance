@@ -24,6 +24,7 @@ import org.apache.ofbiz.accounting.invoice.InvoiceWorker
 import org.apache.ofbiz.entity.GenericValue
 import org.apache.ofbiz.finance.common.FinanceWorkEffortHelper
 import org.apache.ofbiz.finance.lease.LeaseAccountingServices
+import org.apache.ofbiz.finance.lease.LeaseMaintenanceServices
 
 GenericValue leaseAgreement = from('LeaseAgreement').where('leaseAgreementId', parameters.leaseAgreementId).queryOne()
 context.leaseAgreement = leaseAgreement
@@ -107,3 +108,24 @@ context.contractTasks = FinanceWorkEffortHelper.listTasks(delegator, financeCont
     row.actualCompletionDate = task?.actualCompletionDate
     return row
 }
+// STEP L11: maintenance plans, schedule / results and the revenue / cost summary.
+context.canAddMaintPlan = leaseAgreement.statusId in ['LEASEAGR_CONTRACTED', 'LEASEAGR_ACTIVE']
+context.maintPlans = from('LeaseMaintPlan').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
+        .orderBy('maintPlanSeqId').queryList().collect { GenericValue p ->
+    Map row = new LinkedHashMap(p.getAllFields())
+    row.canEnd = p.thruDate == null && context.canAddMaintPlan
+    return row
+}
+context.maintRecords = from('LeaseMaintRecord').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
+        .orderBy('scheduledDate', 'leaseMaintRecordId').queryList().collect { GenericValue r ->
+    Map row = new LinkedHashMap(r.getAllFields())
+    row.canComplete = r.statusId == 'LSMNT_SCHEDULED'
+    row.scheduledDateText = r.scheduledDate?.toString()?.substring(0, 10)
+    return row
+}
+context.scheduledMaintRecords = context.maintRecords.findAll { it.canComplete }
+context.leasedAssets = context.assetLines.findAll { it.assetStatusId == 'LSAST_LEASED' }
+context.maintMonthsAhead = LeaseMaintenanceServices.scheduleMonthsOf(delegator)
+Map summary = dispatcher.runSync('getLeaseMaintenanceSummary', [leaseAgreementId: leaseAgreement.leaseAgreementId,
+        userLogin: userLogin])
+context.maintSummary = summary

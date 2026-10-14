@@ -44,6 +44,7 @@
 - リースの未回収元本は、有効な PaymentApplication と `PMNT_RECEIVED` / `PMNT_CONFIRMED` の Payment を正本とし、請求書ごとに消費税 → 利息相当額 → 元本回収額の順に充当して算定する。請求しただけでは減額しない。
 - リースの消費税率は検収日（リース開始日）に有効な core `TaxAuthorityRateProduct`（商品の税カテゴリ）で契約に固定し、請求日の税率は使わない。計上時期（各回／開始時一括、`LEASE_TAX_TIMING`）も検収時に固定する。端数は通貨別端数処理で、開始時一括は総額を 1 回丸めて最終回で調整する。
 - 貸手所有物件の公租公課（償却資産税・自動車税・重量税 等）は `LeasePublicCharge*` で扱う（STEP L10b、`SPEC_LEASE.md` 12 章）。税目ごとの規則（計算方法・課税団体・賦課期日・免税点・GL 科目）は `LeasePublicChargeType`、物件種別ごとの対象税目は `LeasePublicChargeAssetType`、計算方式は `LeasePublicChargeCalculator` に置く。申告は物件の所有持分（`LeaseAgreementAsset.ownershipShare`）で按分する。旧 `LeasePropertyTax*` は移行（`migrateLeasePropertyTaxData`）のためだけに残しており、業務ロジックで使わない。
+- メンテナンスリース（STEP L11、`SPEC_LEASE.md` 13 章）：保守料は構成要素 `LSCMP_MAINTENANCE` で、必ず区分として請求時に保守料収益（`LEASE_MAINT_REVENUE`）へ計上する。構成要素の種類ごとの収益科目は `LeaseComponentRevenueAccount` に置く。保守の予定・実績は `LeaseMaintRecord`（業務STATUS `LSMNT_*`）が正で、core `FixedAssetMaint` とタスク（`FINWE_MAINTENANCE`）はそれに合わせて更新する。保守原価は保守業者の仕入請求書で計上する。
 
 ## Data Rules
 - `data/*TypeData.xml` はseed、`data/*DemoData.xml` はdemo、`testdef/data/*` はテスト専用。用途を混在させない。
