@@ -1388,6 +1388,62 @@ under the License.
         <value xml:lang="en">Component consumption tax total</value>
         <value xml:lang="ja">構成要素の消費税合計</value>
     </property>
+    <property key="FinanceLeasePropertyTaxEstimateInvalid">
+        <value xml:lang="en">The property tax estimate requires a positive acquisition cost and term.</value>
+        <value xml:lang="ja">固定資産税の見込みには正の取得価額と期間が必要です。</value>
+    </property>
+    <property key="FinanceLeasePropertyTaxNoMunicipality">
+        <value xml:lang="en">No municipality is set for fixed asset ${fixedAssetId} (set the asset location or municipalityGeoId).</value>
+        <value xml:lang="ja">固定資産 ${fixedAssetId} の市区町村が未設定です（設置場所または市区町村を設定してください）。</value>
+    </property>
+    <property key="FinanceLeasePropertyTaxNothingDue">
+        <value xml:lang="en">No property tax is due for declaration ${leasePropertyTaxDeclId} (below the exemption threshold).</value>
+        <value xml:lang="ja">申告 ${leasePropertyTaxDeclId} は納付すべき固定資産税がありません（免税点未満）。</value>
+    </property>
+    <property key="FinanceLeasePropertyTax">
+        <value xml:lang="en">Property tax (償却資産税)</value>
+        <value xml:lang="ja">固定資産税（償却資産税）</value>
+    </property>
+    <property key="FinanceLeasePropertyTaxDeclarations">
+        <value xml:lang="en">Property tax declarations</value>
+        <value xml:lang="ja">固定資産税申告</value>
+    </property>
+    <property key="FinanceLeasePropertyTaxGenerate">
+        <value xml:lang="en">Generate declarations</value>
+        <value xml:lang="ja">申告データ生成</value>
+    </property>
+    <property key="FinanceLeasePropertyTaxYear">
+        <value xml:lang="en">Tax year</value>
+        <value xml:lang="ja">課税年度</value>
+    </property>
+    <property key="FinanceLeasePropertyTaxMunicipality">
+        <value xml:lang="en">Municipality</value>
+        <value xml:lang="ja">市区町村</value>
+    </property>
+    <property key="FinanceLeasePropertyTaxAssessedValue">
+        <value xml:lang="en">Assessed value</value>
+        <value xml:lang="ja">評価額</value>
+    </property>
+    <property key="FinanceLeasePropertyTaxTaxableBase">
+        <value xml:lang="en">Taxable base</value>
+        <value xml:lang="ja">課税標準額</value>
+    </property>
+    <property key="FinanceLeasePropertyTaxBelowThreshold">
+        <value xml:lang="en">Below exemption threshold</value>
+        <value xml:lang="ja">免税点未満</value>
+    </property>
+    <property key="FinanceLeasePropertyTaxAmount">
+        <value xml:lang="en">Property tax amount</value>
+        <value xml:lang="ja">固定資産税額</value>
+    </property>
+    <property key="FinanceLeasePropertyTaxRecordPayment">
+        <value xml:lang="en">Record payment</value>
+        <value xml:lang="ja">納付記録</value>
+    </property>
+    <property key="FinanceOrganizationPartyId">
+        <value xml:lang="en">Organization</value>
+        <value xml:lang="ja">組織</value>
+    </property>
     <property key="FinanceLeaseCalcMethod">
         <value xml:lang="en">Calculation method</value>
         <value xml:lang="ja">計算方式</value>

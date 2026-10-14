@@ -33,6 +33,9 @@ under the License.
         </menu-item>        <menu-item name="LeaseInquiry" title="${uiLabelMap.FinanceLeaseInquiry}">
             <link target="LeaseCollectionStatus"/>
         </menu-item>
+        <menu-item name="LeasePropertyTax" title="${uiLabelMap.FinanceLeasePropertyTax}">
+            <link target="FindLeasePropertyTax"/>
+        </menu-item>
         <menu-item name="LoanApplications" title="${uiLabelMap.FinanceLoanApplications}">
             <link target="FindLoanApplication"/>
         </menu-item>

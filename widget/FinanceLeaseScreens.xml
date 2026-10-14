@@ -473,6 +473,28 @@ under the License.
             </widgets>
         </section>
     </screen>
+    <!-- Lease property tax (STEP L10) -->
+    <screen name="FindLeasePropertyTax">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceLeasePropertyTax"/>
+                <set field="headerItem" value="LeasePropertyTax"/>
+                <script location="component://finance/groovyScripts/lease/PrepareLeasePropertyTax.groovy"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <screenlet title="${uiLabelMap.FinanceLeasePropertyTaxGenerate}">
+                            <include-form name="GenerateLeasePropertyTax" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        </screenlet>
+                        <screenlet title="${uiLabelMap.FinanceLeasePropertyTaxDeclarations}">
+                            <include-grid name="ListLeasePropertyTaxDecl" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        </screenlet>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
     <!-- Lease inquiries (STEP L8) -->
     <screen name="LeaseCollectionStatus">
         <section>

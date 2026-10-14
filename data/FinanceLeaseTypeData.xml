@@ -173,4 +173,28 @@ under the License.
     <InvoiceItemTypeMap invoiceTypeId="SALES_INVOICE" invoiceItemMapKey="LEASE_COMP_TAX" invoiceItemTypeId="LEASE_COMP_TAX"/>
     <GlAccountType description="Lease component revenue (separate from method-1 sales)" glAccountTypeId="LEASE_COMP_REVENUE" hasTable="N" parentTypeId="SALES_ACCOUNT"/>
     <GlAccount glAccountId="403800" accountCode="403800" glAccountClassId="REVENUE" glAccountTypeId="LEASE_COMP_REVENUE" glResourceTypeId="MONEY" accountName="LEASE COMPONENT REVENUE"/>
+
+    <!-- ============ STEP L10: property tax (償却資産税) ============ -->
+    <!-- Declaration status. -->
+    <StatusType description="Lease Property Tax Declaration" hasTable="N" statusTypeId="LEASE_PTAX_STATUS"/>
+    <StatusItem description="Generated" sequenceId="01" statusCode="GENERATED" statusId="LEASE_PTAX_GENERATED" statusTypeId="LEASE_PTAX_STATUS"/>
+    <StatusItem description="Paid" sequenceId="02" statusCode="PAID" statusId="LEASE_PTAX_PAID" statusTypeId="LEASE_PTAX_STATUS"/>
+    <StatusValidChange statusId="LEASE_PTAX_GENERATED" statusIdTo="LEASE_PTAX_PAID" transitionName="Record payment"/>
+
+    <!-- GL: property tax expense (租税公課) and the tax payable (未払固定資産税). -->
+    <GlAccountType description="Property tax expense (租税公課)" glAccountTypeId="LEASE_PTAX_EXPENSE" hasTable="N" parentTypeId="EXPENSE"/>
+    <GlAccountType description="Property tax payable (未払固定資産税)" glAccountTypeId="LEASE_PTAX_PAYABLE" hasTable="N" parentTypeId="CURRENT_LIABILITY"/>
+    <GlAccount glAccountId="601500" accountCode="601500" glAccountClassId="EXPENSE" glAccountTypeId="LEASE_PTAX_EXPENSE" glResourceTypeId="MONEY" accountName="PROPERTY TAX EXPENSE"/>
+    <GlAccount glAccountId="224600" accountCode="224600" glAccountClassId="CURRENT_LIABILITY" glAccountTypeId="LEASE_PTAX_PAYABLE" glResourceTypeId="MONEY" accountName="PROPERTY TAX PAYABLE"/>
+
+    <!-- A few municipality Geo (scope A: demo/test only; the full ~1,900 set is a separate data task).
+         geoCode = all-Japan local government code (6 digits incl. the check digit); geoId <= 20 chars. -->
+    <Geo geoId="JP-131016" geoTypeId="MUNICIPALITY" geoName="千代田区" geoCode="131016" abbreviation="千代田区"/>
+    <GeoAssoc geoId="JP-13" geoIdTo="JP-131016" geoAssocTypeId="REGIONS"/>
+    <Geo geoId="JP-141003" geoTypeId="MUNICIPALITY" geoName="横浜市" geoCode="141003" abbreviation="横浜市"/>
+    <GeoAssoc geoId="JP-14" geoIdTo="JP-141003" geoAssocTypeId="REGIONS"/>
+
+    <!-- Standard rate 1.4% (fallback) and an example excess-tax municipality (超過課税). -->
+    <LeasePropertyTaxRate leasePropertyTaxRateId="LPTR_STANDARD" taxRate="0.014" standardRate="Y" fromDate="2001-01-01 00:00:00.0" description="Standard property tax rate (標準税率 1.4%)"/>
+    <LeasePropertyTaxRate leasePropertyTaxRateId="LPTR_YOKOHAMA" municipalityGeoId="JP-141003" taxRate="0.015" standardRate="N" fromDate="2001-01-01 00:00:00.0" description="Yokohama excess rate example (超過課税 1.5%)"/>
 </entity-engine-xml>

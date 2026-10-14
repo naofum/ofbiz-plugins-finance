@@ -922,4 +922,32 @@ under the License.
         <field name="transferDate" title="${uiLabelMap.FinanceLeaseTransferDate}"><display type="date"/></field>
         <field name="disposalDate" title="${uiLabelMap.FinanceLeaseDisposalDate}"><display type="date"/></field>
     </grid>
+
+    <!-- STEP L10: property tax -->
+    <form name="GenerateLeasePropertyTax" type="single" target="generateLeasePropertyTaxDeclarations">
+        <field name="organizationPartyId" title="${uiLabelMap.FinanceOrganizationPartyId}"><text value="${organizationPartyId}"/></field>
+        <field name="taxYear" title="${uiLabelMap.FinanceLeasePropertyTaxYear}"><text/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceLeasePropertyTaxGenerate}" widget-style="smallSubmit"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListLeasePropertyTaxDecl" list-name="declarations" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="taxYear" title="${uiLabelMap.FinanceLeasePropertyTaxYear}"><display/></field>
+        <field name="municipalityName" title="${uiLabelMap.FinanceLeasePropertyTaxMunicipality}"><display/></field>
+        <field name="assetCount" title="${uiLabelMap.FinanceLeaseAssets}"><display/></field>
+        <field name="totalAssessedValue" title="${uiLabelMap.FinanceLeasePropertyTaxAssessedValue}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="taxableBase" title="${uiLabelMap.FinanceLeasePropertyTaxTaxableBase}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="belowThreshold" title="${uiLabelMap.FinanceLeasePropertyTaxBelowThreshold}"><display/></field>
+        <field name="taxRate" title="${uiLabelMap.FinanceLeaseTaxRate}"><display/></field>
+        <field name="taxAmount" title="${uiLabelMap.FinanceLeasePropertyTaxAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}">
+            <display-entity entity-name="StatusItem" key-field-name="statusId" description="${description}"/>
+        </field>
+        <field name="paymentDate" title="${uiLabelMap.FinanceLeasePropertyTaxRecordPayment}" use-when="${!bsh:context.get(&quot;canPay&quot;)}"><display type="date"/></field>
+        <field name="recordPayment" title=" " use-when="${bsh:context.get(&quot;canPay&quot;)}">
+            <hyperlink target="recordLeasePropertyTaxPayment" description="${uiLabelMap.FinanceLeasePropertyTaxRecordPayment}" also-hidden="false">
+                <parameter param-name="leasePropertyTaxDeclId"/>
+            </hyperlink>
+        </field>
+    </grid>
 </forms>

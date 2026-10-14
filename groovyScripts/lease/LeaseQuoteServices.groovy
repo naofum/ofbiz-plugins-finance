@@ -232,6 +232,25 @@ Map createLeaseQuote() {
             return error(label('FinanceLeaseEnumInvalid', [field: 'revenueTreatmentEnumId', value: revenueTreatmentEnumId]))
         }
         BigDecimal monthlyAmount = (c.get('monthlyAmount') as BigDecimal)
+        // STEP L10 supply: a property tax equivalent component with no amount is
+        // estimated from the valuation x the municipal rate at the asset location.
+        if ((monthlyAmount == null || monthlyAmount.signum() == 0)
+                && componentTypeEnumId == 'LSCMP_PROP_TAX'
+                && c.get('municipalityGeoId') != null) {
+            Map est = dispatcher.runSync('resolveLeasePropertyTaxEstimate', [
+                    acquisitionCost  : acquisitionCost,
+                    termMonths       : term,
+                    municipalityGeoId: c.get('municipalityGeoId'),
+                    currencyUomId    : currencyUomId,
+                    usefulLifeYears  : (c.get('usefulLifeYears') as Long),
+                    asOfDate         : start,
+                    userLogin        : parameters.userLogin,
+                    locale           : parameters.locale])
+            if (ServiceUtil.isError(est)) {
+                return error(ServiceUtil.getErrorMessage(est))
+            }
+            monthlyAmount = (BigDecimal) est.monthlyEstimate
+        }
         if (monthlyAmount == null || monthlyAmount.signum() < 0) {
             return error(label('FinanceLeaseComponentInvalid', [reason: "monthlyAmount ${monthlyAmount}"]))
         }

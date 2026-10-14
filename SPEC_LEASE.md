@@ -34,6 +34,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L7 | 期間満了処理（返還・所有権移転）。作業管理（WorkEffort）を共通層に導入（`REQUIREMENTS_LEASE.md` 3.5） | 完了（tests=119 / errors=0 / failures=0） |
 | L8 | 帳票・照会 | 完了（tests=121 / errors=0 / failures=0） |
 | L9 | リース料の構成要素（維持管理費用相当額） | 完了（tests=126 / errors=0 / failures=0） |
+| L10 | 固定資産税（償却資産税） | 完了（tests=134 / errors=0 / failures=0） |
 
 前提：STEP L0（共通層の切り出し、`SPEC_COMMON.md`）の完了後に着手する。
 
@@ -43,7 +44,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 
 | 種別 | 配置 |
 |------|------|
-| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`） |
+| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`、L10：`PropertyTaxValuation` / `LeasePropertyTaxServices`） |
 | Groovy | `groovyScripts/lease/`（`LeaseProductServices` / `LeaseApplicationServices` / `PrepareLeaseApplication`） |
 | entitydef | `entitymodel_lease.xml` |
 | servicedef | `services_lease.xml` |
@@ -744,6 +745,103 @@ Company への科目割当（403800）は demo・テストデータに追加し�
 - **「含める」の開始仕訳**：区分（既定）は開始仕訳に影響しない。「含める」を使う場合、第1法の開始時の売上高・リース投資資産に構成要素相当を含める必要があるが、本 STEP の開始仕訳（`LeaseRevenueStrategy.AtStart`）は従来どおり取得価額ベースのままで、含める構成要素は請求時にリース投資資産の貸方へ回収する簡易な扱いとした。含める運用を本格的に使う場合は開始仕訳の見直しが必要（要確認）。
 - **月額均等のみ**：回ごとの減額・調整、年次で変動する固定資産税相当額（L10 が供給）の反映は後続で追加する。L10 は本 STEP の構成要素（固定資産税相当額）に見込み額を供給する。
 - **延滞の構成要素**：延滞額には構成要素を含める（消費税バケットに合算）が、遅延損害金の計算基礎には含めない。構成要素だけが延滞した場合の督促文言は未調整（既存のリース料督促の文言を流用）。
+
+---
+
+## 11. STEP L10 — 固定資産税（償却資産税）
+
+リース会社所有の物件（**所有権移転外**ファイナンスリース。所有権移転は借手が申告するため対象外）について、
+毎年 1 月 1 日時点の評価額を物件ごとに計算し、所在の市町村ごとに申告データ（免税点 150 万円の判定）を作り、
+納付を記録して費用計上する。会計上の減価償却（L12）とは独立した税務計算。見積時の見込み額を L9 の
+固定資産税相当額（構成要素）に供給する。
+
+実装：`PropertyTaxValuation`（評価額、エンティティ非依存）、`LeasePropertyTaxServices`（税率解決・見込み供給・申告生成・納付）。
+
+### 11.1 スコープ（A）
+
+- L10 の業務ロジック（評価・税率・見込み・申告・納付）を実装し、テストで検証する。
+- **市区町村 Geo は seed にデモ／テスト用の数件だけ**入れる（千代田区 `JP-131016`、横浜市 `JP-141003`）。全国約 1,900 件の全件投入は別途データ整備タスクとする（11.7 に手順）。
+
+### 11.2 評価額（`PropertyTaxValuation`、Java・エンティティ非依存）
+
+- 減価率 `r` は耐用年数 `n` から旧定率法相当で導出：`r = 1 − 0.1^(1/n)`（耐用年数末で残存率 10%）。明示指定も可。
+- 評価額：取得初年度は半年分 `取得価額 ×(1 − r/2)`、以降の各年は前年 `×(1 − r)`、**下限は取得価額の 5%**。
+- 1 月 1 日基準：取得年の翌年 1 月 1 日に初めて課税台帳に載る（`assessedValue(cost, r, 取得年, 課税年度)` は課税年度 ≤ 取得年なら 0）。
+
+### 11.3 データモデル（`entitymodel_lease.xml` に追加）
+
+| エンティティ | 主キー | 内容 |
+|--------------|--------|------|
+| `LeasePropertyTaxRate` | leasePropertyTaxRateId | 市町村税率（`municipalityGeoId`、`taxRate`、`standardRate` 標準税率フラグ、from/thru）。市町村の行がなければ標準税率を使う |
+| `LeasePropertyTaxDecl` | leasePropertyTaxDeclId | 貸手組織 × 課税年度 × 市町村の申告：資産件数、評価額合計、課税標準額、免税点、免税点未満フラグ、税率、税額、状態（`LEASE_PTAX_STATUS`）。組織＋年度＋市町村で一意 |
+| `LeasePropertyTaxDeclAsset` | declId + fixedAssetId | 申告に含めた物件（取得価額・取得年・耐用年数・減価率・評価額） |
+| `LeasePropertyTaxPayment` | declId | 納付（納付日・金額・core Payment（任意）・仕訳）。申告ごとに 1 件 |
+| `LeaseAgreementAsset`（追加列） | — | `usefulLifeYears`（耐用年数）、`municipalityGeoId`（物件所在の市町村） |
+
+物件の所在：`LeaseAgreementAsset.municipalityGeoId` を優先し、空なら `FixedAsset.locatedAtFacilityId` →
+`FacilityContactMech`（現在の POSTAL_ADDRESS）→ `PostalAddress.municipalityGeoId` の順で解決する。
+
+### 11.4 seed・設定
+
+| 種類 | 値 |
+|------|----|
+| `LEASE_PTAX_STATUS` | `LEASE_PTAX_GENERATED`（生成）→ `LEASE_PTAX_PAID`（納付済） |
+| GL 科目タイプ | `LEASE_PTAX_EXPENSE`（601500 租税公課、費用）／ `LEASE_PTAX_PAYABLE`（224600 未払固定資産税、流動負債） |
+| 市区町村 Geo | `JP-131016` 千代田区・`JP-141003` 横浜市（`geoCode`＝全国地方公共団体コード 6 桁、`REGIONS` で `JP-13`／`JP-14` に関連付け） |
+| `LeasePropertyTaxRate` | `LPTR_STANDARD`（標準 1.4%）、`LPTR_YOKOHAMA`（横浜市 超過課税の例 1.5%） |
+| `finance.properties` | `lease.propertytax.usefullife.years=6`、`lease.propertytax.exemption.threshold=1500000`、`lease.propertytax.standard.rate=0.014` |
+
+Company への GL 割当（601500／224600）は demo・テストデータに追加した。
+
+### 11.5 サービス
+
+| サービス | 内容 |
+|----------|------|
+| `resolveLeasePropertyTaxEstimate` | 見積の見込み額：取得価額・期間・所在市町村の税率から、各課税年度の評価額（1/1）× 税率を期間平均して年額・月額を返す。**免税点は適用しない**（1 契約では判定できないため課税として見込む）。L9 の `createLeaseQuote` が、金額未指定・`municipalityGeoId` 指定の `LSCMP_PROP_TAX` 構成要素に対して自動で呼ぶ |
+| `generateLeasePropertyTaxDeclarations` | 課税年度の 1/1 時点で、貸手組織所有（`FixedAsset.partyId`＝組織）の**所有権移転外**・ACTIVE/COMPLETED のリース物件を市町村ごとに集計。評価額合計に対し**免税点 150 万円**を市町村単位で判定し、免税点以上なら課税標準額（1000 円未満切捨）× 税率を税額（100 円未満切捨）とする。組織＋年度＋市町村で冪等。**所在が解決できない物件はスキップ**（`skippedAssetCount`。所在データが未整備でもバッチは止めない） |
+| `recordLeasePropertyTaxPayment` | 申告の納付を記録し費用計上：**借 租税公課（601500）／ 貸 未払固定資産税（224600）**。申告ごとに冪等、申告を `LEASE_PTAX_PAID` にする。現金出金（買掛金の消込）は対象外 |
+
+### 11.6 画面
+
+- メニュー「固定資産税」（`FindLeasePropertyTax`）：申告データ生成フォーム（組織・課税年度）、申告一覧（市町村・評価額・課税標準・免税点未満・税率・税額・状態・納付、未納は「納付記録」リンク）。
+- 入力（物件の所在・耐用年数、見積の構成要素）は当面サービス API 中心。見積の構成要素への見込み供給は L9 の `createLeaseQuote` に統合済み。
+
+### 11.7 市区町村 Geo の全件投入（別タスクの手順）
+
+全国約 1,900 件の市区町村を本番で使うには、総務省「全国地方公共団体コード」から次を生成して seed（または別リーダ）で投入する。
+
+- `Geo`：`geoId`＝`JP-` ＋ 団体コード（6 桁、検査数字込み。20 文字以内に収まる）、`geoTypeId=MUNICIPALITY`、`geoName`＝市区町村名、`geoCode`＝団体コード。
+- `GeoAssoc`：`geoId`＝都道府県（`JP-01`〜`JP-47`）、`geoIdTo`＝市区町村、`geoAssocTypeId=REGIONS`。
+- 超過課税の市町村だけ `LeasePropertyTaxRate` に行を追加（既定は標準税率 1.4%）。
+- 市町村合併等で団体コードが変わった場合の Geo 更新手順（旧コードの thru 設定、新コードの追加、`LeaseAgreementAsset.municipalityGeoId` の付け替え）を運用で定める（要確認）。
+
+### 11.8 テスト（`LeasePropertyTaxTests`。USD 非移転商品 `TEST_LEASEPROD_USD`。免税点の集計を分離するためテストごとに専用の市町村 Geo＋税率を作る）
+
+| テスト | 内容 |
+|--------|------|
+| `testValuationCalculation` | 初年度半年・以降各年・5% 下限、取得年以前は評価額 0・翌年から半年分、不正入力の拒否 |
+| `testRateResolutionAndEstimate` | 標準税率 1.4%、市町村の超過課税の優先、税率が高いほど見込みが大きい、不正入力の拒否 |
+| `testEstimateSuppliedToComponent` | 金額未指定・所在指定の `LSCMP_PROP_TAX` 構成要素が見込み額で自動設定され、`resolveLeasePropertyTaxEstimate` と一致 |
+| `testDeclarationAndPayment` | 免税点以上の市町村は課税（課税標準 1000 円未満切捨・税額 100 円未満切捨）、免税点未満の市町村は税額 0・免税点未満フラグ、冪等、納付仕訳（借 601500 ／ 貸 224600、貸借一致、申告 PAID）、冪等納付、免税点未満の納付拒否 |
+
+### 11.9 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 新規 4 テーブル（`LEASE_PROPERTY_TAX_RATE` / `LEASE_PROPERTY_TAX_DECL` / `LEASE_PROPERTY_TAX_DECL_ASSET` / `LEASE_PROPERTY_TAX_PAYMENT`）、`LEASE_AGREEMENT_ASSET` に 2 列、状態・GL・Geo・税率の seed |
+| `gradlew "ofbiz --test component=finance"` | `runtime/logs/test-results/financetests.xml`：tests=134 / errors=0 / failures=0（L10 の 4 件を含む） |
+| demo 投入 | 601500／224600 の Company 割当を追加（demo・テストデータ） |
+| 画面 | 未確認（フォーム・グリッドの定義のみ） |
+
+### 11.10 要確認・制約
+
+- **消費税**：固定資産税相当額は L9 で課税（区分の別収益）として扱う。固定資産税そのもの（本税）は不課税のため、`recordLeasePropertyTaxPayment` の費用計上に消費税は付さない。
+- **評価額の方式**：旧定率法相当（`r = 1 − 0.1^(1/n)`、初年度半年、下限 5%）を自前計算とした。実際の償却資産課税は「減価残存率表」に基づくため、本番では耐用年数ごとの残存率表を `LeasePropertyTaxRate` と同様のテーブルで持たせる余地がある（要確認）。
+- **課税は 1/1 の所在で決まる**：`LeaseAgreementAsset.municipalityGeoId`（または FixedAsset の設置場所）は現在値で、所在の履歴は持たない。リース期間中の移設で課税市町村・税率が変わる場合の差額（貸手負担／精算）は契約条件で定める（要確認）。
+- **納付**：費用計上（借 租税公課 ／ 貸 未払固定資産税）までを行い、未払金の現金出金・消込は対象外。
+- **所在未設定の物件**：申告生成でスキップする（`skippedAssetCount`）。本番では所在未設定を別途点検する運用が必要。
+- **耐用年数**：`LeaseAgreementAsset.usefulLifeYears` → FixedAsset の取得日・耐用年数末 → `finance.properties` の既定（6 年）の順で解決する。
 
 ---
 

@@ -393,4 +393,51 @@ under the License.
         <attribute name="completionDate" type="Timestamp" mode="IN" optional="true"/>
         <attribute name="agreementCompleted" type="Boolean" mode="OUT" optional="true"/>
     </service>
+
+    <!-- ============================================================= -->
+    <!-- STEP L10: property tax (償却資産税)                             -->
+    <!-- ============================================================= -->
+    <service name="resolveLeasePropertyTaxEstimate" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeasePropertyTaxServices" invoke="resolveLeasePropertyTaxEstimate" auth="true">
+        <description>Estimate the property tax equivalent of an asset for the L9 component: valuation (旧定率法相当) x the
+            municipal rate at the location, averaged over the term (yearly / monthly). The 免税点 is not applied.</description>
+        <permission-service service-name="financeGenericPermission" main-action="VIEW"/>
+        <attribute name="acquisitionCost" type="BigDecimal" mode="IN" optional="false"/>
+        <attribute name="termMonths" type="Long" mode="IN" optional="false"/>
+        <attribute name="municipalityGeoId" type="String" mode="IN" optional="true"><description>core Geo (MUNICIPALITY); empty = standard rate</description></attribute>
+        <attribute name="currencyUomId" type="String" mode="IN" optional="true"/>
+        <attribute name="usefulLifeYears" type="Long" mode="IN" optional="true"><description>default lease.propertytax.usefullife.years</description></attribute>
+        <attribute name="depreciationRate" type="BigDecimal" mode="IN" optional="true"><description>overrides the life-derived rate</description></attribute>
+        <attribute name="asOfDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="taxRate" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="depreciationRate" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="yearlyEstimate" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="monthlyEstimate" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="totalEstimate" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="yearlyBreakdown" type="List" mode="OUT" optional="true"/>
+    </service>
+    <service name="generateLeasePropertyTaxDeclarations" engine="java" transaction-timeout="1800"
+            location="org.apache.ofbiz.finance.lease.LeasePropertyTaxServices" invoke="generateLeasePropertyTaxDeclarations" auth="true">
+        <description>Generate the property tax declarations of a lessor organization for a tax year: group the
+            lessor-owned non-transfer leased assets as of January 1 by municipality, value each (旧定率法相当),
+            apply the 免税点 (1.5M) per municipality and compute the tax. Idempotent per org x year x municipality.</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="organizationPartyId" type="String" mode="IN" optional="true"><description>defaults to Company</description></attribute>
+        <attribute name="taxYear" type="Long" mode="IN" optional="true"><description>defaults to the current year</description></attribute>
+        <attribute name="createdCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="declarationCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="skippedAssetCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="leasePropertyTaxDeclIds" type="List" mode="OUT" optional="true"/>
+    </service>
+    <service name="recordLeasePropertyTaxPayment" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeasePropertyTaxServices" invoke="recordLeasePropertyTaxPayment" auth="true">
+        <description>Record the payment of a declaration and book Dr property tax expense (租税公課) / Cr property tax
+            payable (未払固定資産税). Idempotent per declaration.</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="leasePropertyTaxDeclId" type="String" mode="IN" optional="false"/>
+        <attribute name="paymentDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="comments" type="String" mode="IN" optional="true"/>
+        <attribute name="acctgTransId" type="String" mode="OUT" optional="true"/>
+        <attribute name="paymentCreated" type="Boolean" mode="OUT" optional="true"/>
+    </service>
 </services>

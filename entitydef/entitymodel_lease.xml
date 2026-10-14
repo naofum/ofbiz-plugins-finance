@@ -345,6 +345,8 @@ under the License.
         <field name="supplierPartyId" type="id"></field>
         <field name="fixedAssetId" type="id"><description>core FixedAsset owned by the lessor (STEP L3)</description></field>
         <field name="assetStatusId" type="id"><description>LEASE_ASSET_STATUS: pending purchase / purchased / leased / returned / transferred (STEP L3)</description></field>
+        <field name="usefulLifeYears" type="numeric"><description>STEP L10: useful life in years for the property tax valuation (empty = finance.properties default)</description></field>
+        <field name="municipalityGeoId" type="id"><description>STEP L10: municipality (core Geo, MUNICIPALITY) where the asset is located; defaults from the FixedAsset facility address</description></field>
         <prim-key field="leaseAgreementId"/>
         <prim-key field="assetSeqId"/>
         <relation type="one" fk-name="LEASEAGRAS_AGR" rel-entity-name="LeaseAgreement">
@@ -673,6 +675,115 @@ under the License.
         <relation type="one" fk-name="LEASEAPSCMP_CMP" rel-entity-name="LeaseAgreementComponent">
             <key-map field-name="leaseAgreementId"/>
             <key-map field-name="componentSeqId"/>
+        </relation>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- STEP L10: property tax (償却資産税) of lessor-owned assets   -->
+    <!-- A municipal tax-rate table keyed by the all-Japan local    -->
+    <!-- government code; yearly per-municipality declarations with  -->
+    <!-- the 免税点 (1.5M) judgment; the recorded payment and the     -->
+    <!-- expense booking. Independent of the accounting depreciation.-->
+    <!-- ========================================================= -->
+
+    <!-- Municipal property tax rate (by municipality Geo; default standard rate elsewhere). -->
+    <entity entity-name="LeasePropertyTaxRate" package-name="org.apache.ofbiz.finance.lease"
+            title="Municipal property tax rate (償却資産税率)">
+        <field name="leasePropertyTaxRateId" type="id"><description>primary sequenced ID</description></field>
+        <field name="municipalityGeoId" type="id"><description>core Geo (MUNICIPALITY, geoCode = 6-digit local government code); empty = the standard rate used when a municipality has no row</description></field>
+        <field name="taxRate" type="fixed-point"><description>annual property tax rate (fraction, e.g. 0.014 for 1.4%)</description></field>
+        <field name="standardRate" type="indicator"><description>Y for the fallback standard rate (1.4%); only one active standard row</description></field>
+        <field name="fromDate" type="date-time"></field>
+        <field name="thruDate" type="date-time"></field>
+        <field name="description" type="description"></field>
+        <prim-key field="leasePropertyTaxRateId"/>
+        <relation type="one-nofk" title="Municipality" rel-entity-name="Geo">
+            <key-map field-name="municipalityGeoId" rel-field-name="geoId"/>
+        </relation>
+        <index name="LEASEPTR_GEO_IDX">
+            <index-field name="municipalityGeoId"/>
+        </index>
+    </entity>
+
+    <!-- One property tax declaration per lessor organization x municipality x tax year. -->
+    <entity entity-name="LeasePropertyTaxDecl" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease property tax declaration (償却資産税申告)">
+        <field name="leasePropertyTaxDeclId" type="id"><description>primary sequenced ID</description></field>
+        <field name="organizationPartyId" type="id"><description>lessor organization (declarant / owner)</description></field>
+        <field name="taxYear" type="numeric"><description>tax year (assessed as of January 1)</description></field>
+        <field name="municipalityGeoId" type="id"><description>core Geo (MUNICIPALITY) the declaration is filed with</description></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="assetCount" type="numeric"></field>
+        <field name="totalAssessedValue" type="currency-amount"><description>sum of the asset assessed values (課税標準額の基礎)</description></field>
+        <field name="taxableBase" type="currency-amount"><description>taxable base (floored to 1000 yen); 0 when below the exemption threshold</description></field>
+        <field name="exemptionThreshold" type="currency-amount"><description>免税点 (1,500,000); below it no tax is due</description></field>
+        <field name="belowThreshold" type="indicator"><description>Y when the total assessed value is below the exemption threshold (免税点未満)</description></field>
+        <field name="taxRate" type="fixed-point"><description>municipal rate applied (standard 1.4% unless the municipality has an excess rate)</description></field>
+        <field name="taxAmount" type="currency-amount"><description>property tax due (0 when below the threshold)</description></field>
+        <field name="statusId" type="id"><description>LEASE_PTAX_STATUS: generated / paid</description></field>
+        <field name="generatedDate" type="date-time"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leasePropertyTaxDeclId"/>
+        <relation type="one" fk-name="LEASEPTD_ORG" title="Organization" rel-entity-name="Party">
+            <key-map field-name="organizationPartyId" rel-field-name="partyId"/>
+        </relation>
+        <relation type="one-nofk" title="Municipality" rel-entity-name="Geo">
+            <key-map field-name="municipalityGeoId" rel-field-name="geoId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPTD_STTS" rel-entity-name="StatusItem">
+            <key-map field-name="statusId"/>
+        </relation>
+        <index name="LEASEPTD_UQ" unique="true">
+            <index-field name="organizationPartyId"/>
+            <index-field name="taxYear"/>
+            <index-field name="municipalityGeoId"/>
+        </index>
+    </entity>
+
+    <!-- One line per lessor-owned asset included in a declaration. -->
+    <entity entity-name="LeasePropertyTaxDeclAsset" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease property tax declaration - asset line">
+        <field name="leasePropertyTaxDeclId" type="id"></field>
+        <field name="fixedAssetId" type="id"></field>
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="assetSeqId" type="id"></field>
+        <field name="assetName" type="name"></field>
+        <field name="acquisitionCost" type="currency-amount"></field>
+        <field name="acquisitionYear" type="numeric"></field>
+        <field name="usefulLifeYears" type="numeric"></field>
+        <field name="depreciationRate" type="fixed-point"><description>annual depreciation rate used (旧定率法相当)</description></field>
+        <field name="assessedValue" type="currency-amount"><description>valuation as of January 1 of the tax year (下限 5%)</description></field>
+        <prim-key field="leasePropertyTaxDeclId"/>
+        <prim-key field="fixedAssetId"/>
+        <relation type="one" fk-name="LEASEPTDA_DECL" rel-entity-name="LeasePropertyTaxDecl">
+            <key-map field-name="leasePropertyTaxDeclId"/>
+        </relation>
+        <relation type="one-nofk" rel-entity-name="FixedAsset">
+            <key-map field-name="fixedAssetId"/>
+        </relation>
+    </entity>
+
+    <!-- Payment of a declaration and the expense booking (one per declaration). -->
+    <entity entity-name="LeasePropertyTaxPayment" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease property tax payment (納付・費用計上)">
+        <field name="leasePropertyTaxDeclId" type="id"></field>
+        <field name="paymentDate" type="date-time"></field>
+        <field name="amount" type="currency-amount"></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="paymentId" type="id"><description>core Payment when a cash disbursement is recorded (optional)</description></field>
+        <field name="acctgTransId" type="id"><description>Dr property tax expense (租税公課) / Cr cash or payable</description></field>
+        <field name="comments" type="comment"></field>
+        <field name="createdByUserLogin" type="id-vlong"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leasePropertyTaxDeclId"/>
+        <relation type="one" fk-name="LEASEPTP_DECL" rel-entity-name="LeasePropertyTaxDecl">
+            <key-map field-name="leasePropertyTaxDeclId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPTP_PMT" rel-entity-name="Payment">
+            <key-map field-name="paymentId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPTP_TRANS" rel-entity-name="AcctgTrans">
+            <key-map field-name="acctgTransId"/>
         </relation>
     </entity>
 </entitymodel>

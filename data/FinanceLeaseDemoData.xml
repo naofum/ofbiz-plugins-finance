@@ -94,6 +94,11 @@ under the License.
     <!-- STEP L9: separate component revenue -->
     <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_COMP_REVENUE" glAccountId="403800"/>
     <GlAccountOrganization glAccountId="403800" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <!-- STEP L10: property tax expense and payable -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_PTAX_EXPENSE" glAccountId="601500"/>
+    <GlAccountOrganization glAccountId="601500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_PTAX_PAYABLE" glAccountId="224600"/>
+    <GlAccountOrganization glAccountId="224600" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <Party partyId="DEMO_TAXAUTH_JP" partyTypeId="PARTY_GROUP"/>
     <PartyGroup partyId="DEMO_TAXAUTH_JP" groupName="消費税（デモ税務当局）"/>
     <PartyRole partyId="DEMO_TAXAUTH_JP" roleTypeId="TAX_AUTHORITY"/>
