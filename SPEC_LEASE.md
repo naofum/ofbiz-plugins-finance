@@ -706,14 +706,14 @@ Company への科目割当（403800）は demo・テストデータに追加し�
 - **回収状況（`computeBalance`）**：請求額・消込額に構成要素を含める（`billedComponentAmount` / `billedComponentTaxAmount` / `collectedComponentAmount` を追加）。1 請求書の消込は **消費税（リース＋構成要素）→ 構成要素 → 利息相当額 → 元本回収額** の順に充当する。**未回収元本は構成要素の影響を受けない**（請求しただけでも減らない点は L4 と同じ）。
 - **延滞（`LeaseContractAdapter`）**：未払額は **元本 → 利息相当額 → 構成要素 → 消費税** の順に残す。構成要素の未払は延滞額の消費税バケットにまとめる（償却時はすべて売掛金の貸方。アダプタの `getWriteOffCreditAccountType`）。**遅延損害金の計算基礎には構成要素を含めない**（基礎はリース料＝元本＋利息相当額、`lease.latefee.base` で消費税の算入を切替。構成要素は常に基礎外）。未請求の回は確定リース料表の構成要素額を見込みに含める。
 
-### 10.6 土台（契約×取引先×役割、契約の親子）の見送り（記録）
+### 10.6 土台（契約×取引先×役割、契約の親子）
 
-要件「後続 STEP の設計上の考慮事項 1.（土台）」で、L9 の前提作業として共通層に **`FinanceContractParty`（契約×取引先×役割×持分率）** と
-**`FinanceContract` の親子関係** を置くことが挙げられている（L16〜L20：協調・転貸・フリート・ベンダープログラムで作り直しが起きないため。遅くとも L10 の前）。
+要件「後続 STEP の設計上の考慮事項 1.（土台）」の共通層 **`FinanceContractParty`（契約×取引先×役割×持分率）** と
+**`FinanceContract` の親子関係** は、L9 では実装せず、L10 の後に **STEP L10a** として実施した（`SPEC_COMMON.md` 10 章）。
 
-- **本 STEP（L9）では実装しない**。L9 の費用構成要素は 1 契約＝1 借手・1 貸手の現行モデルの上で完結し、土台がなくても業務の挙動は変わらないため。
-- 要件の記述どおり「遅くとも L10 の前」に別途着手する。着手時は、既存契約を「借手 100%・貸手（自社）100%」として登録し、借手への請求スケジュールは 1 本のまま、取引先・持分に応じた分配・支払側を**追加**する形（L1〜L8 の請求・入金を作り直さない）とする。ローンの保証人も将来この形へ寄せる。
-- 影響範囲（移行時に見直す箇所）：`LeaseAgreement.lesseePartyId` / `organizationPartyId`、`FinanceContract.customerPartyId`、請求書の相手、`FixedAsset.partyId`。
+- L9 の費用構成要素は 1 契約＝1 借手・1 貸手の現行モデルの上で完結し、土台がなくても挙動は変わらないため L9 からは切り離した。
+- L10a は追加のみ：新規契約は借手・貸手を 100% で自動登録し、既存契約は `backfillFinanceContractParties` で登録する。リースの請求・入金・延滞・固定資産税は引き続き `LeaseAgreement.lesseePartyId` / `organizationPartyId` を読む。
+- 土台を読むように切り替える箇所（L16 以降）：`LeaseAgreement.lesseePartyId` / `organizationPartyId`、`FinanceContract.customerPartyId`、請求書の相手、`FixedAsset.partyId`、L10 の申告（物件の所有持分による按分）。
 
 ### 10.7 画面
 

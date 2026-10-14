@@ -49,8 +49,15 @@ under the License.
         <field name="principalAmount" type="currency-amount"><description>contracted principal (loan) or acquisition cost (lease); used for credit exposure</description></field>
         <field name="contractDate" type="date-time"></field>
         <field name="processingLockVersion" type="numeric"><description>optimistic token used to serialize accrual / billing / payment processing</description></field>
+        <field name="parentFinanceContractId" type="id"><description>STEP L10a: parent contract (master agreement: fleet, vendor program, syndication); empty = top level</description></field>
         <field name="createdDate" type="date-time"></field>
         <prim-key field="financeContractId"/>
+        <relation type="one" fk-name="FINCTR_PARENT" title="Parent" rel-entity-name="FinanceContract">
+            <key-map field-name="parentFinanceContractId" rel-field-name="financeContractId"/>
+        </relation>
+        <relation type="many" title="Child" rel-entity-name="FinanceContract">
+            <key-map field-name="financeContractId" rel-field-name="parentFinanceContractId"/>
+        </relation>
         <relation type="one" fk-name="FINCTR_TYPE" rel-entity-name="FinanceContractType">
             <key-map field-name="contractTypeId"/>
         </relation>
@@ -68,6 +75,46 @@ under the License.
         </relation>
         <index name="FINCTR_CUST_IDX">
             <index-field name="customerPartyId"/>
+        </index>
+        <index name="FINCTR_PARENT_IDX">
+            <index-field name="parentFinanceContractId"/>
+        </index>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- STEP L10a: parties of a contract (contract x party x role -->
+    <!-- x share, effective-dated). Additive: the layer agreements -->
+    <!-- keep their own party columns, which existing processing   -->
+    <!-- still reads. Roles are core RoleType rows under           -->
+    <!-- FIN_CTR_ROLE.                                             -->
+    <!-- ========================================================= -->
+    <entity entity-name="FinanceContractParty" package-name="org.apache.ofbiz.finance.common"
+            title="Finance Contract - party in a role (with share)">
+        <field name="financeContractId" type="id"></field>
+        <field name="partyId" type="id"></field>
+        <field name="roleTypeId" type="id"><description>core RoleType under FIN_CTR_ROLE (lessee, lessor, borrower, lender, participant, ...)</description></field>
+        <field name="fromDate" type="date-time"></field>
+        <field name="thruDate" type="date-time"><description>empty = still effective</description></field>
+        <field name="shareRate" type="fixed-point"><description>share of the role (0 &lt; share &lt;= 1, e.g. 1.000000 = 100%); empty = not shared</description></field>
+        <field name="isPrimary" type="indicator"><description>Y for the party registered from the layer agreement (borrower / lessee / lender / lessor)</description></field>
+        <field name="comments" type="comment"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="financeContractId"/>
+        <prim-key field="partyId"/>
+        <prim-key field="roleTypeId"/>
+        <prim-key field="fromDate"/>
+        <relation type="one" fk-name="FINCTRPTY_CTR" rel-entity-name="FinanceContract">
+            <key-map field-name="financeContractId"/>
+        </relation>
+        <relation type="one" fk-name="FINCTRPTY_PARTY" rel-entity-name="Party">
+            <key-map field-name="partyId"/>
+        </relation>
+        <relation type="one" fk-name="FINCTRPTY_ROLE" rel-entity-name="RoleType">
+            <key-map field-name="roleTypeId"/>
+        </relation>
+        <index name="FINCTRPTY_PARTY_IDX">
+            <index-field name="partyId"/>
+            <index-field name="roleTypeId"/>
         </index>
     </entity>
 

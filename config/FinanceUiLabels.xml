@@ -1444,6 +1444,66 @@ under the License.
         <value xml:lang="en">Organization</value>
         <value xml:lang="ja">組織</value>
     </property>
+    <property key="FinanceContractPartyRoleInvalid">
+        <value xml:lang="en">Role ${roleTypeId} is not a finance contract role (FIN_CTR_ROLE).</value>
+        <value xml:lang="ja">役割 ${roleTypeId} は契約の役割（FIN_CTR_ROLE）ではありません。</value>
+    </property>
+    <property key="FinanceContractPartyShareInvalid">
+        <value xml:lang="en">The share ${shareRate} must be greater than 0 and at most 1.</value>
+        <value xml:lang="ja">持分率 ${shareRate} は 0 より大きく 1 以下で指定してください。</value>
+    </property>
+    <property key="FinanceContractPartyShareExceeded">
+        <value xml:lang="en">The shares of role ${roleTypeId} would total ${total} (over 100%).</value>
+        <value xml:lang="ja">役割 ${roleTypeId} の持分率の合計が ${total} となり 100% を超えます。</value>
+    </property>
+    <property key="FinanceContractPartyDuplicate">
+        <value xml:lang="en">Party ${partyId} is already effective in role ${roleTypeId}.</value>
+        <value xml:lang="ja">取引先 ${partyId} は役割 ${roleTypeId} ですでに有効です。</value>
+    </property>
+    <property key="FinanceContractPartyAlreadyExpired">
+        <value xml:lang="en">The role of party ${partyId} has already ended.</value>
+        <value xml:lang="ja">取引先 ${partyId} の役割はすでに終了しています。</value>
+    </property>
+    <property key="FinanceContractPartyThruBeforeFrom">
+        <value xml:lang="en">The end date ${thruDate} is before the start date.</value>
+        <value xml:lang="ja">終了日 ${thruDate} が開始日より前です。</value>
+    </property>
+    <property key="FinanceContractParentCycle">
+        <value xml:lang="en">Contract ${parentFinanceContractId} cannot be the parent of ${financeContractId} (self or cycle).</value>
+        <value xml:lang="ja">契約 ${parentFinanceContractId} は ${financeContractId} の親にできません（自分自身または循環）。</value>
+    </property>
+    <property key="FinanceContractParties">
+        <value xml:lang="en">Contract parties</value>
+        <value xml:lang="ja">契約の取引先</value>
+    </property>
+    <property key="FinanceContractPartyAdd">
+        <value xml:lang="en">Add party</value>
+        <value xml:lang="ja">取引先の追加</value>
+    </property>
+    <property key="FinanceContractPartyExpire">
+        <value xml:lang="en">End role</value>
+        <value xml:lang="ja">役割の終了</value>
+    </property>
+    <property key="FinanceContractRole">
+        <value xml:lang="en">Role</value>
+        <value xml:lang="ja">役割</value>
+    </property>
+    <property key="FinanceContractShareRate">
+        <value xml:lang="en">Share</value>
+        <value xml:lang="ja">持分率</value>
+    </property>
+    <property key="FinanceContractParent">
+        <value xml:lang="en">Parent contract</value>
+        <value xml:lang="ja">親契約</value>
+    </property>
+    <property key="FinanceContractChildren">
+        <value xml:lang="en">Child contracts</value>
+        <value xml:lang="ja">子契約</value>
+    </property>
+    <property key="FinanceContractSetParent">
+        <value xml:lang="en">Set parent contract</value>
+        <value xml:lang="ja">親契約の設定</value>
+    </property>
     <property key="FinanceLeaseCalcMethod">
         <value xml:lang="en">Calculation method</value>
         <value xml:lang="ja">計算方式</value>

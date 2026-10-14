@@ -129,7 +129,7 @@ String finAccountId = finAcctResult.finAccountId
 // 2) Register the contract in the common ledger (STEP L0), then create the draft
 // loan agreement from the accepted terms. The processing lock lives on FinanceContract.
 String financeContractId = FinanceContractHelper.createContract(delegator,
-        FinanceContractHelper.TYPE_LOAN, borrowerPartyId, app.productId, currencyUomId,
+        FinanceContractHelper.TYPE_LOAN, borrowerPartyId, organizationPartyId, app.productId, currencyUomId,
         quote.getBigDecimal('principalAmount'), agreementDate, FinanceContractHelper.STATUS_CONTRACTED)
 String loanAgreementId = delegator.getNextSeqId('LoanAgreement')
 GenericValue agreement = makeValue('LoanAgreement', [

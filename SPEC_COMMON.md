@@ -31,6 +31,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L3 | 共通の GL 計上部品 `FinanceGlHelper`（リース層側は `SPEC_LEASE.md` 4 章） | 完了（testcase 44 件、errors=0 / failures=0） |
 | L2 | 与信額に CONTRACTED を算入、共通の与信枠チェック `financeValidateCustomerCreditLimit`、LEASE アダプタの登録 | 完了（tests=70 / errors=0 / failures=0） |
 | L6 | 延滞・督促へのリース用契約アダプタ登録（共通層側の変更） | 未着手 |
+| L10a | 契約×取引先×役割×持分率（`FinanceContractParty`）と契約の親子関係（10 章） | 完了（tests=138 / errors=0 / failures=0） |
 
 L0 のコミット：L0-1 `6d46268`、L0-2 `fe644c8`、L0-3 `ae6fa2e`、L0-4 `2afe7f7`、L0-5 `beea390`、L0-6 `450b654`。
 
@@ -57,6 +58,7 @@ L0 のコミット：L0-1 `6d46268`、L0-2 `fe644c8`、L0-3 `ae6fa2e`、L0-4 `2a
 | 共通 | `FinanceContractAdapters` | アダプタ登録簿（`contract.adapter.<type>`）、サービス引数からの契約解決 |
 | 共通 | `DelinquencyComputation` | 延滞日数・延滞元本・延滞利息の値オブジェクト（STEP L6 で延滞消費税と遅延損害金の計算基礎を追加。償却科目はアダプタの `getWriteOffCreditAccountType`。詳細は `SPEC_LEASE.md` 7.2） |
 | 共通 | `FinanceWorkEffortHelper` | STEP L7：契約のタスク（core WorkEffort、`FinanceContractWorkEffort` で紐付け）の作成（冪等）・完了・一覧、サービス `createFinanceContractTask`。詳細は `SPEC_LEASE.md` 8.1 |
+| 共通 | `FinanceContractPartyHelper` | STEP L10a：契約の取引先（役割・持分・期間）と親子関係。照会部品、主取引先の自動登録、サービス 4 本（10 章） |
 | 共通 | `FinanceDelinquencyServices` | 延滞判定バッチ・遅延損害金・督促・償却/法的手続き（契約種別に依存しない） |
 | 共通 | `FinanceInterestCalculator` | 日割り基準・端算入・通貨別丸め・設定解決（STEP 8〜10 から移動） |
 | 共通 | `BusinessDayCalculator` | 営業日調整（STEP 10 から移動） |
@@ -241,6 +243,77 @@ L0 で追加したテスト：`FinanceContract` の作成と状態反映、与�
 - 金額は契約通貨で受け取る。組織の基準通貨（`PartyAcctgPreference`）と違うときは明細ごとに `convertUom`（取引日基準）で換算して小数 2 桁に丸め、端数差は最大の貸方明細で調整する。元の金額・通貨は `origAmount` / `origCurrencyUomId` に残す。
 - 取引種別は `OTHER_INTERNAL`、会計種別は `ACTUAL`（ローン層の月次計上と同じ）。
 - ローン層の仕訳処理（`FinanceAccountingServices`）は L3 では変更していない。共通化は必要になった時点で行う。
+
+---
+
+## 10. 契約の取引先と親子関係（STEP L10a）
+
+要件「後続 STEP の設計上の考慮事項 1.（土台）」（`REQUIREMENTS_LEASE.md`）。協調リース・転貸・フリート・ベンダープログラム（L16〜L20）で
+作り直しが起きないよう、契約×取引先×役割×持分率と契約の親子関係を共通層に置く。**追加のみ**で、既存処理の挙動は変えない。
+
+### 10.1 データモデル（`entitymodel_common.xml`）
+
+| エンティティ / 列 | 主キー | 内容 |
+|-------------------|--------|------|
+| `FinanceContractParty` | financeContractId + partyId + roleTypeId + fromDate | 契約の取引先：役割（core `RoleType`、`FIN_CTR_ROLE` 配下）、持分率 `shareRate`（0 超 1 以下、空＝持分なし）、期間（from/thru、thru 空＝有効）、`isPrimary`（各層の契約から登録した借手・貸手等）、備考 |
+| `FinanceContract.parentFinanceContractId` | — | 親契約（基本契約：フリート、ベンダープログラム、協調リース全体）。空＝最上位。循環は禁止 |
+
+core の `Agreement` / `AgreementRole` は使わない（`FinanceContract` は core の Agreement ではなく、持分率・期間を持たせる必要があるため）。役割は core の `RoleType` を使う。
+
+### 10.2 役割（seed `FinanceCommonTypeData.xml`）
+
+`FIN_CTR_ROLE`（親）配下：`FIN_BORROWER` 借主 / `FIN_LENDER` 貸主 / `FIN_LESSEE` 借手 / `FIN_LESSOR` 貸手 / `FIN_GUARANTOR` 保証人 /
+`FIN_PARTICIPANT` 協調参加者 / `FIN_ARRANGER` 幹事 / `FIN_HEAD_LESSOR` 元リースの貸手 / `FIN_VENDOR` 販売店 / `FIN_RECOURSE` リコース先。
+
+### 10.3 主取引先の登録
+
+- `FinanceContractHelper.createContract` に貸手組織つきの版を追加した（従来の版は組織なしで残す）。契約作成時に、顧客（`customerPartyId`）と貸手組織を **持分 100%・`isPrimary=Y`・開始日＝契約日** で登録する。
+- 役割は契約種別のアダプタが返す：`FinanceContractAdapter.getCustomerRoleTypeId` / `getOrganizationRoleTypeId`（既定＝ローン：借主・貸主、`LeaseContractAdapter`：借手・貸手）。共通層はローン層・リース層を参照しない。
+- 呼び出し元：ローン `CreateLoanAgreement.groovy`（組織＝`organizationPartyId`、既定 Company）、リース `createLeaseAgreement`（貸手組織）。
+- **既存契約**：`backfillFinanceContractParties` が、主取引先のない契約に顧客と（アダプタで解決できれば）貸手組織を登録する。役割ごとに既存行があれば作らない（冪等）。
+
+### 10.4 サービス（`services_common.xml`、`FinanceContractPartyHelper`）
+
+| サービス | 内容 |
+|----------|------|
+| `addFinanceContractParty` | 役割は `FIN_CTR_ROLE` 配下のみ、持分は 0 超 1 以下、同じ取引先・役割の重複（開始日時点で有効）を拒否、同じ役割の有効な持分合計が 100% を超えるなら拒否 |
+| `expireFinanceContractParty` | 終了日（既定＝現在）を設定。開始日より前・終了済みは拒否 |
+| `setFinanceContractParent` | 親契約の設定・解除（空）。存在しない親、自分自身、循環（親の祖先に自分を含む）を拒否 |
+| `backfillFinanceContractParties` | 10.3 の既存契約の登録 |
+
+照会部品：`findParties(契約, 役割, 時点)`（期間で有効な行）、`isContractRole`、`ancestors`（親→祖父…）、`registerPrimaryParties`。
+
+### 10.5 画面
+
+`FinanceContractParties`（ローン・リース契約画面のボタン「契約の取引先」から）：契約ヘッダ・取引先一覧（役割・持分・期間・有効・役割の終了）、取引先の追加、親契約の設定、子契約の一覧。
+
+### 10.6 既存処理への影響
+
+なし。請求・入金・与信（`sumExposurePrincipal` は `customerPartyId`）・延滞・督促・固定資産税（`FixedAsset.partyId`）は従来どおり各層の取引先列を読む。
+土台を読むように切り替えるのは、複数の貸手・持分が必要になる L16 以降とする。
+
+### 10.7 テスト（`FinanceContractPartyTests`）
+
+| テスト | 内容 |
+|--------|------|
+| `testPrimaryPartiesOnCreation` | リース契約（直接作成・リースのサービス経由）に借手・貸手 100%、組織なしの旧版は借主のみ、照会部品 |
+| `testAddExpireAndShares` | 参加者 60%＋40%、100% 超・重複・対象外の役割・持分の範囲外・存在しない取引先の拒否、持分なしの保証人、役割の終了（開始日前・二重終了の拒否）、終了後の持分の再割当、時点指定の照会 |
+| `testParentAndCycle` | 3 階層の親子と祖先、循環・自分自身・存在しない親の拒否、解除 |
+| `testBackfill` | 取引先のない旧契約への登録（層の契約がないため借手のみ）、再実行で 0 件 |
+
+### 10.8 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | `FINANCE_CONTRACT_PARTY` 新設、`FINANCE_CONTRACT.PARENT_FINANCE_CONTRACT_ID` 追加、役割 11 件 |
+| `gradlew "ofbiz --test component=finance"` | tests=138 / errors=0 / failures=0（L10a の 4 件を含む） |
+| 画面 | 未確認 |
+
+### 10.9 運用メモ
+
+- 既存環境では seed 投入後に `backfillFinanceContractParties` を 1 回実行する（テスト `testBackfill` が開発 DB 全体に対して実行するため、開発 DB の既存契約は登録済み）。
+- 手動で追加した取引先（保証人・参加者等）は、現時点では業務処理に使われない（記録のみ）。
 
 ---
 

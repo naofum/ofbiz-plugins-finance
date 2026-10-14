@@ -357,6 +357,30 @@ under the License.
         <response name="error" type="view" value="FinanceCustomerSummary"/>
     </request-map>
 
+    <!-- STEP L10a: parties of a contract and the contract hierarchy -->
+    <request-map uri="FinanceContractParties">
+        <security https="true" auth="true"/>
+        <response name="success" type="view" value="FinanceContractParties"/>
+    </request-map>
+    <request-map uri="addFinanceContractParty">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="addFinanceContractParty"/>
+        <response name="success" type="request-redirect" value="FinanceContractParties"><redirect-parameter name="financeContractId"/></response>
+        <response name="error" type="view" value="FinanceContractParties"/>
+    </request-map>
+    <request-map uri="expireFinanceContractParty">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="expireFinanceContractParty"/>
+        <response name="success" type="request-redirect" value="FinanceContractParties"><redirect-parameter name="financeContractId"/></response>
+        <response name="error" type="view" value="FinanceContractParties"/>
+    </request-map>
+    <request-map uri="setFinanceContractParent">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="setFinanceContractParent"/>
+        <response name="success" type="request-redirect" value="FinanceContractParties"><redirect-parameter name="financeContractId"/></response>
+        <response name="error" type="view" value="FinanceContractParties"/>
+    </request-map>
+
     <!-- STEP 6: Delinquency / Late Fee / Dunning -->
     <request-map uri="FindLoanDelinquency">
         <security https="true" auth="true"/>
@@ -862,6 +886,7 @@ under the License.
     <view-map name="EditCreditLine" type="screen" page="component://finance/widget/FinanceStep5Screens.xml#EditCreditLine"/>
     <view-map name="FindLoanDelinquency" type="screen" page="component://finance/widget/FinanceStep6Screens.xml#FindLoanDelinquency"/>
     <view-map name="FinanceCustomerSummary" type="screen" page="component://finance/widget/FinanceCommonScreens.xml#FinanceCustomerSummary"/>
+    <view-map name="FinanceContractParties" type="screen" page="component://finance/widget/FinanceCommonScreens.xml#FinanceContractParties"/>
     <view-map name="DunningNoticePdf" type="jasperreports"
             page="component://finance/webapp/finance/reports/DunningNotice.jrxml"
             content-type="application/pdf"/>

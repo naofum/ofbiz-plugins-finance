@@ -89,4 +89,17 @@ public interface FinanceContractAdapter {
     default String getWriteOffCreditAccountType(String component) {
         return WRITEOFF_INTEREST.equals(component) ? "INTRSTINC_RECEIVABLE" : "ACCOUNTS_RECEIVABLE";
     }
+
+    /**
+     * STEP L10a: role of the contract customer ({@code FinanceContract.customerPartyId})
+     * in {@code FinanceContractParty}. Default (loan): borrower.
+     */
+    default String getCustomerRoleTypeId() {
+        return "FIN_BORROWER";
+    }
+
+    /** STEP L10a: role of the accounting organization in {@code FinanceContractParty}. Default (loan): lender. */
+    default String getOrganizationRoleTypeId() {
+        return "FIN_LENDER";
+    }
 }

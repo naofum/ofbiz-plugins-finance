@@ -61,6 +61,19 @@ public final class FinanceContractHelper {
             String customerPartyId, String productId, String currencyUomId,
             BigDecimal principalAmount, Timestamp contractDate, String statusId)
             throws GenericEntityException {
+        return createContract(delegator, contractTypeId, customerPartyId, null, productId, currencyUomId,
+                principalAmount, contractDate, statusId);
+    }
+
+    /**
+     * Create a common contract ledger row and register its primary parties
+     * (STEP L10a): the customer and, when given, the accounting organization, each
+     * at 100% in the roles of the contract type's adapter. Returns the id.
+     */
+    public static String createContract(Delegator delegator, String contractTypeId,
+            String customerPartyId, String organizationPartyId, String productId, String currencyUomId,
+            BigDecimal principalAmount, Timestamp contractDate, String statusId)
+            throws GenericEntityException {
         String financeContractId = delegator.getNextSeqId("FinanceContract");
         GenericValue contract = delegator.makeValue("FinanceContract");
         contract.set("financeContractId", financeContractId);
@@ -74,6 +87,7 @@ public final class FinanceContractHelper {
         contract.set("processingLockVersion", 0L);
         contract.set("createdDate", UtilDateTime.nowTimestamp());
         contract.create();
+        FinanceContractPartyHelper.registerPrimaryParties(delegator, contract, organizationPartyId);
         return financeContractId;
     }
 

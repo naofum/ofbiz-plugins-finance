@@ -380,7 +380,7 @@ Map createLeaseAgreement() {
     List<String> suppliers = assets*.supplierPartyId.unique()
 
     String financeContractId = FinanceContractHelper.createContract(delegator, FinanceContractHelper.TYPE_LEASE,
-            application.applicantPartyId, application.productId, quote.currencyUomId, acquisitionCost,
+            application.applicantPartyId, organizationPartyId, application.productId, quote.currencyUomId, acquisitionCost,
             agreementDate, FinanceContractHelper.STATUS_CONTRACTED)
     String leaseAgreementId = delegator.getNextSeqId('LeaseAgreement')
     GenericValue agreement = makeValue('LeaseAgreement', [

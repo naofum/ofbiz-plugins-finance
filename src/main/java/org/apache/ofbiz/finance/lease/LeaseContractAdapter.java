@@ -244,4 +244,16 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
     public String getWriteOffCreditAccountType(String component) {
         return "ACCOUNTS_RECEIVABLE";
     }
+
+    /** STEP L10a: the contract customer of a lease is the lessee. */
+    @Override
+    public String getCustomerRoleTypeId() {
+        return "FIN_LESSEE";
+    }
+
+    /** STEP L10a: the accounting organization of a lease is the lessor. */
+    @Override
+    public String getOrganizationRoleTypeId() {
+        return "FIN_LESSOR";
+    }
 }

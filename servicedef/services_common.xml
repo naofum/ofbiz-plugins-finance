@@ -95,4 +95,43 @@ under the License.
         <attribute name="workEffortId" type="String" mode="OUT" optional="true"/>
         <attribute name="taskCreated" type="Boolean" mode="OUT" optional="true"/>
     </service>
+
+    <!-- STEP L10a: parties of a contract (role x share, effective-dated) and the contract hierarchy -->
+    <service name="addFinanceContractParty" engine="java"
+            location="org.apache.ofbiz.finance.common.FinanceContractPartyHelper" invoke="addFinanceContractParty" auth="true">
+        <description>Add a party to a contract in a role under FIN_CTR_ROLE with an optional share (0 &lt; share &lt;= 1).
+            Rejects a duplicate effective party/role and effective shares of one role above 100%.</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <attribute name="financeContractId" type="String" mode="IN" optional="false"/>
+        <attribute name="partyId" type="String" mode="IN" optional="false"/>
+        <attribute name="roleTypeId" type="String" mode="IN" optional="false"/>
+        <attribute name="shareRate" type="BigDecimal" mode="IN" optional="true"/>
+        <attribute name="fromDate" type="Timestamp" mode="INOUT" optional="true"><description>defaults to now</description></attribute>
+        <attribute name="isPrimary" type="String" mode="IN" optional="true"/>
+        <attribute name="comments" type="String" mode="IN" optional="true"/>
+    </service>
+    <service name="expireFinanceContractParty" engine="java"
+            location="org.apache.ofbiz.finance.common.FinanceContractPartyHelper" invoke="expireFinanceContractParty" auth="true">
+        <description>End a party's role on a contract (thruDate, default now; not before fromDate)</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="financeContractId" type="String" mode="IN" optional="false"/>
+        <attribute name="partyId" type="String" mode="IN" optional="false"/>
+        <attribute name="roleTypeId" type="String" mode="IN" optional="false"/>
+        <attribute name="fromDate" type="Timestamp" mode="IN" optional="false"/>
+        <attribute name="thruDate" type="Timestamp" mode="IN" optional="true"/>
+    </service>
+    <service name="setFinanceContractParent" engine="java"
+            location="org.apache.ofbiz.finance.common.FinanceContractPartyHelper" invoke="setFinanceContractParent" auth="true">
+        <description>Set or clear (empty) the parent (master) contract; rejects self and cycles</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="financeContractId" type="String" mode="IN" optional="false"/>
+        <attribute name="parentFinanceContractId" type="String" mode="IN" optional="true"/>
+    </service>
+    <service name="backfillFinanceContractParties" engine="java" transaction-timeout="1800"
+            location="org.apache.ofbiz.finance.common.FinanceContractPartyHelper" invoke="backfillFinanceContractParties" auth="true">
+        <description>Register the customer and organization (100%) of every existing contract that lacks them (idempotent)</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="updatedContractCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="createdPartyCount" type="Long" mode="OUT" optional="true"/>
+    </service>
 </services>

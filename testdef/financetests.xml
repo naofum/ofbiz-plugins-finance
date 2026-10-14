@@ -86,4 +86,8 @@ under the License.
         <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeasePropertyTaxTests"/>
     </test-case>
 
+    <test-case case-name="finance-contract-party-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.FinanceContractPartyTests"/>
+    </test-case>
+
 </test-suite>

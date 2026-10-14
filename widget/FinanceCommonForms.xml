@@ -195,4 +195,67 @@ under the License.
         <field name="submitButton" title="${uiLabelMap.CommonSave}"><submit button-type="button"/></field>
     </form>
 
+    <!-- STEP L10a: parties of a contract and the contract hierarchy -->
+    <form name="ViewFinanceContractPartyHeader" type="single" default-map-name="financeContract">
+        <field name="financeContractId" title="${uiLabelMap.FinanceContractId}"><display/></field>
+        <field name="contractTypeId" title="${uiLabelMap.FinanceContractType}"><display/></field>
+        <field name="customerPartyId" title="${uiLabelMap.FinanceCustomer}"><display/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}">
+            <display-entity entity-name="StatusItem" key-field-name="statusId" description="${description}"/>
+        </field>
+        <field name="parentFinanceContractId" title="${uiLabelMap.FinanceContractParent}"><display/></field>
+    </form>
+
+    <grid name="ListFinanceContractParties" list-name="contractParties" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="roleDescription" title="${uiLabelMap.FinanceContractRole}"><display/></field>
+        <field name="partyId" title="${uiLabelMap.FinanceCustomer}"><display description="${partyName} [${partyId}]"/></field>
+        <field name="shareRate" title="${uiLabelMap.FinanceContractShareRate}"><display/></field>
+        <field name="isPrimary" title="Primary"><display/></field>
+        <field name="fromDate" title="${uiLabelMap.CommonFromDate}"><display type="date"/></field>
+        <field name="thruDate" title="${uiLabelMap.CommonThruDate}"><display type="date"/></field>
+        <field name="effective" title="Effective"><display/></field>
+        <field name="expireLink" title=" " widget-style="buttontext" use-when="${bsh:context.get(&quot;canExpire&quot;)}">
+            <hyperlink description="${uiLabelMap.FinanceContractPartyExpire}" target="expireFinanceContractParty" link-type="hidden-form" also-hidden="false">
+                <parameter param-name="financeContractId"/>
+                <parameter param-name="partyId"/>
+                <parameter param-name="roleTypeId"/>
+                <parameter param-name="fromDate"/>
+            </hyperlink>
+        </field>
+    </grid>
+
+    <form name="AddFinanceContractParty" type="single" target="addFinanceContractParty">
+        <field name="financeContractId"><hidden value="${financeContractId}"/></field>
+        <field name="roleTypeId" title="${uiLabelMap.FinanceContractRole}">
+            <drop-down allow-empty="false">
+                <list-options list-name="roleOptions" key-name="roleTypeId" description="${description}"/>
+            </drop-down>
+        </field>
+        <field name="partyId" title="${uiLabelMap.FinanceCustomer}"><lookup target-form-name="LookupPartyName"/></field>
+        <field name="shareRate" title="${uiLabelMap.FinanceContractShareRate}"><text size="10"/></field>
+        <field name="fromDate" title="${uiLabelMap.CommonFromDate}"><date-time type="timestamp"/></field>
+        <field name="comments" title="${uiLabelMap.FinanceComments}"><text size="40"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceContractPartyAdd}" widget-style="smallSubmit"><submit button-type="button"/></field>
+    </form>
+
+    <form name="SetFinanceContractParent" type="single" target="setFinanceContractParent">
+        <field name="financeContractId"><hidden value="${financeContractId}"/></field>
+        <field name="parentFinanceContractId" title="${uiLabelMap.FinanceContractParent}"><text value="${financeContract.parentFinanceContractId}" size="20"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceContractSetParent}" widget-style="smallSubmit"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListFinanceContractChildren" list-name="childContracts" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="financeContractId" title="${uiLabelMap.FinanceContractId}">
+            <hyperlink target="FinanceContractParties" description="${financeContractId}">
+                <parameter param-name="financeContractId"/>
+            </hyperlink>
+        </field>
+        <field name="contractTypeId" title="${uiLabelMap.FinanceContractType}"><display/></field>
+        <field name="customerPartyId" title="${uiLabelMap.FinanceCustomer}"><display/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}">
+            <display-entity entity-name="StatusItem" key-field-name="statusId" description="${description}"/>
+        </field>
+    </grid>
 </forms>

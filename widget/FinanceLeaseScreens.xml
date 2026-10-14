@@ -309,6 +309,9 @@ under the License.
                                     <link target="FinanceCustomerSummary" text="${uiLabelMap.FinanceCustomerSummary}" style="buttontext">
                                         <parameter param-name="customerPartyId" from-field="leaseAgreement.lesseePartyId"/>
                                     </link>
+                                    <link target="FinanceContractParties" text="${uiLabelMap.FinanceContractParties}" style="buttontext">
+                                        <parameter param-name="financeContractId" from-field="leaseAgreement.financeContractId"/>
+                                    </link>
                                 </container>
                                 <screenlet title="${uiLabelMap.FinanceLeaseAgreement}">
                                     <include-form name="ViewLeaseAgreementHeader" location="component://finance/widget/FinanceLeaseForms.xml"/>

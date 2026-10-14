@@ -78,6 +78,9 @@ under the License.
                                             style="buttontext pdf">
                                         <parameter param-name="loanAgreementId" from-field="loanAgreement.loanAgreementId"/>
                                     </link>
+                                    <link target="FinanceContractParties" text="${uiLabelMap.FinanceContractParties}" style="buttontext">
+                                        <parameter param-name="financeContractId" from-field="loanAgreement.financeContractId"/>
+                                    </link>
                                 </container>
 
                                 <screenlet title="${uiLabelMap.FinanceLoanAgreement}">

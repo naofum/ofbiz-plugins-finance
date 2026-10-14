@@ -123,4 +123,51 @@ under the License.
         </section>
     </screen>
 
+    <!-- STEP L10a: parties of a contract and the contract hierarchy -->
+    <screen name="FinanceContractParties">
+        <section>
+            <actions>
+                <set field="titleProperty" value="FinanceContractParties"/>
+                <set field="headerItem" value="Customers"/>
+                <script location="component://finance/groovyScripts/PrepareFinanceContractParties.groovy"/>
+            </actions>
+            <widgets>
+                <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
+                    <decorator-section name="body">
+                        <section>
+                            <condition><not><if-empty field="financeContract"/></not></condition>
+                            <widgets>
+                                <container style="button-bar">
+                                    <link target="ViewFinanceContract" text="${uiLabelMap.CommonBack}" style="buttontext">
+                                        <parameter param-name="financeContractId" from-field="financeContract.financeContractId"/>
+                                    </link>
+                                </container>
+                                <screenlet title="${uiLabelMap.FinanceContractParties}">
+                                    <include-form name="ViewFinanceContractPartyHeader" location="component://finance/widget/FinanceCommonForms.xml"/>
+                                    <include-grid name="ListFinanceContractParties" location="component://finance/widget/FinanceCommonForms.xml"/>
+                                </screenlet>
+                                <screenlet title="${uiLabelMap.FinanceContractPartyAdd}">
+                                    <include-form name="AddFinanceContractParty" location="component://finance/widget/FinanceCommonForms.xml"/>
+                                </screenlet>
+                                <screenlet title="${uiLabelMap.FinanceContractSetParent}">
+                                    <include-form name="SetFinanceContractParent" location="component://finance/widget/FinanceCommonForms.xml"/>
+                                </screenlet>
+                                <section>
+                                    <condition><not><if-empty field="childContracts"/></not></condition>
+                                    <widgets>
+                                        <screenlet title="${uiLabelMap.FinanceContractChildren}">
+                                            <include-grid name="ListFinanceContractChildren" location="component://finance/widget/FinanceCommonForms.xml"/>
+                                        </screenlet>
+                                    </widgets>
+                                </section>
+                            </widgets>
+                            <fail-widgets>
+                                <label text="${uiLabelMap.FinanceRecordNotFound}"/>
+                            </fail-widgets>
+                        </section>
+                    </decorator-section>
+                </decorator-screen>
+            </widgets>
+        </section>
+    </screen>
 </screens>
