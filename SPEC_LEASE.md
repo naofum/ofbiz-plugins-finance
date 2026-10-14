@@ -35,6 +35,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L8 | 帳票・照会 | 完了（tests=121 / errors=0 / failures=0） |
 | L9 | リース料の構成要素（維持管理費用相当額） | 完了（tests=126 / errors=0 / failures=0） |
 | L10 | 固定資産税（償却資産税） | 完了（tests=134 / errors=0 / failures=0） |
+| L10b | 公租公課への一般化（税目・物件種別・所有持分、テーブル名の変更と移行。12 章） | 完了（tests=143 / errors=0 / failures=0） |
 
 前提：STEP L0（共通層の切り出し、`SPEC_COMMON.md`）の完了後に着手する。
 
@@ -44,7 +45,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 
 | 種別 | 配置 |
 |------|------|
-| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`、L10：`PropertyTaxValuation` / `LeasePropertyTaxServices`） |
+| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`、L10：`PropertyTaxValuation`、L10b：`LeasePublicChargeCalculator` / `LeasePublicChargeServices`） |
 | Groovy | `groovyScripts/lease/`（`LeaseProductServices` / `LeaseApplicationServices` / `PrepareLeaseApplication`） |
 | entitydef | `entitymodel_lease.xml` |
 | servicedef | `services_lease.xml` |
@@ -842,6 +843,100 @@ Company への GL 割当（601500／224600）は demo・テストデータに追
 - **納付**：費用計上（借 租税公課 ／ 貸 未払固定資産税）までを行い、未払金の現金出金・消込は対象外。
 - **所在未設定の物件**：申告生成でスキップする（`skippedAssetCount`）。本番では所在未設定を別途点検する運用が必要。
 - **耐用年数**：`LeaseAgreementAsset.usefulLifeYears` → FixedAsset の取得日・耐用年数末 → `finance.properties` の既定（6 年）の順で解決する。
+
+> **L10b で置き換え済み**：本章のエンティティ名・サービス名・状態・GL 科目タイプ・`lease.propertytax.*` は 12 章（公租公課）の名前に変わった。計算規則（評価額・免税点・端数処理）は変えていない。
+
+---
+
+## 12. STEP L10b — 公租公課への一般化
+
+L10 の固定資産税（償却資産税）を「公租公課」として一般化した（`REQUIREMENTS_LEASE.md`「後続 STEP の設計上の考慮事項」3.）。
+税目と評価方法を物件種別ごとに切り替えられるようにし、物件の所有持分を扱う。償却資産税の計算結果は L10 と同じ。
+
+### 12.1 設計
+
+- **税目**（`LeasePublicChargeType`、seed）：計算方法、課税団体の単位、賦課期日、免税点、課税標準・税額の端数単位、既定税率、既定耐用年数、見込み額を入れる構成要素、費用・未払の GL 科目タイプを持つ。L10 で `finance.properties` に置いていた値は税目の行に移した。
+- **計算方法**（`LeasePublicChargeCalculator`、`LEASE_PCHG_CALC`、エンティティ非依存）：`LeaseRevenueStrategy` と同じく `REGISTRY` で差し替える。
+  - `LSPC_CALC_VALUE`（評価額方式）：評価額（`PropertyTaxValuation`）× 所有持分 × 課税標準の特例率。課税団体ごとに合計し、合計に対して免税点を判定する。課税標準と税額は切り捨てる。
+  - `LSPC_CALC_UNIT`（定額方式）：区分（`rateClassCode`）ごとの年額 × 台数 × 所有持分。免税点はない。
+- **課税団体**（`LEASE_PCHG_JUR`）：市町村（`LSPC_JUR_MUNI`）、都道府県（`LSPC_JUR_PREF`、市町村の `GeoAssoc REGIONS` の親）、固定（`LSPC_JUR_FIXED`、国 `JPN` など）。
+- **物件種別と税目**（`LeasePublicChargeAssetType`）：物件種別、またはいちばん近い親の種別に行があれば、その行の税目だけを対象にする（`applicable=N` は対象外）。どの種別にも行がなければ、`appliesToUnmapped=Y` の税目（償却資産税）を対象にする。
+- **所有持分**：`LeaseAgreementAsset.ownershipShare`（空なら 1）。申告は持分で按分し、免税点も按分後の額で判定する。見積の見込み額は物件全体で計算する（借手が負担するのは公租公課相当額の全額のため）。
+
+### 12.2 データモデル（`entitymodel_lease.xml`）
+
+| エンティティ | 主キー | 内容 |
+|--------------|--------|------|
+| `LeasePublicChargeType` | publicChargeTypeId | 税目と計算規則（12.1） |
+| `LeasePublicChargeAssetType` | fixedAssetTypeId + publicChargeTypeId | 物件種別ごとの税目。対象外の指定、課税標準の特例率 `taxableBaseRatio` |
+| `LeasePublicChargeRate` | leasePublicChargeRateId | 税目 × 課税団体（× 区分）の税率 `taxRate`（評価額方式）または年額 `unitAmount`（定額方式）、標準行のフラグ、期間 |
+| `LeaseAssetPublicCharge` | leaseAgreementId + assetSeqId + publicChargeTypeId | 定額方式の物件の区分（排気量・重量 等） |
+| `LeasePublicChargeDecl` | leasePublicChargeDeclId | 申告：組織 × 税目 × 課税年度 × 課税団体で一意。`legacyDeclId`（移行元の L10 申告） |
+| `LeasePublicChargeDeclAsset` | declId + fixedAssetId | 物件の明細：持分、物件全体の評価額 `fullAssessedValue`、持分後の評価額 `assessedValue`、特例率、課税標準の基礎額 `taxableValue`、区分・年額・税額 |
+| `LeasePublicChargePayment` | declId | 納付と費用計上 |
+| `LeaseAgreementAsset`（追加列） | — | `ownershipShare` |
+
+L10 のテーブル名との対応：`LeasePropertyTaxRate` → `LeasePublicChargeRate`（`municipalityGeoId` → `jurisdictionGeoId`）、`LeasePropertyTaxDecl` → `LeasePublicChargeDecl`、`LeasePropertyTaxDeclAsset` → `LeasePublicChargeDeclAsset`、`LeasePropertyTaxPayment` → `LeasePublicChargePayment`。
+旧エンティティは移行のためだけに定義を残している（業務ロジックでは使わない）。旧テーブルは AGENTS.md の規則に従って削除していない。全環境で移行が終わったら、定義とテーブルを削除できる。
+
+### 12.3 seed
+
+| 種類 | 値 |
+|------|----|
+| 税目 | `LSPC_DEPR_ASSET` 償却資産税（評価額方式・市町村・1/1・免税点 150 万円・1000 円／100 円切捨・1.4%・6 年・`LSCMP_PROP_TAX`、`appliesToUnmapped=Y`）、`LSPC_AUTO_TAX` 自動車税種別割（定額方式・都道府県・4/1・`LSCMP_AUTO_TAX`）、`LSPC_WEIGHT_TAX` 自動車重量税（定額方式・固定 `JPN`・年額換算・`LSCMP_WEIGHT_TAX`） |
+| 物件種別 | `VEHICLE`：償却資産税は対象外、自動車税・重量税が対象。`VESSEL`（新設）：償却資産税、特例率 0.5（例示） |
+| 税率・年額 | `LPTR_STANDARD` 1.4%、`LPTR_YOKOHAMA` 1.5%（ID は L10 と同じ）。自動車税 `PASS_1000`〜`PASS_3000`（25,000〜50,000 円）、重量税 `PASS_W1000`〜`PASS_W2500`（8,200〜20,500 円）。どれも例示 |
+| 構成要素 | `LSCMP_AUTO_TAX`（自動車税相当額）、`LSCMP_WEIGHT_TAX`（自動車重量税相当額）を追加 |
+| 状態 | `LEASE_PCHG_STATUS`：`LEASE_PCHG_GENERATED` → `LEASE_PCHG_PAID` |
+| GL 科目タイプ | `LEASE_PCHG_EXPENSE`（601500 租税公課）／ `LEASE_PCHG_PAYABLE`（224600 未払租税公課）。科目番号は L10 と同じで、科目タイプを付け替えた。demo・テストデータの Company への割当も新しい科目タイプに替えた |
+| `finance.properties` | `lease.propertytax.*` を削除（値は税目の行に移した） |
+
+### 12.4 サービス
+
+| サービス | 内容 |
+|----------|------|
+| `resolveLeasePublicChargeEstimate` | 旧 `resolveLeasePropertyTaxEstimate`。`publicChargeTypeId`（既定は償却資産税）、`quantity`、`rateClassCode`、`taxableBaseRatio` を追加した。最初の課税年度は、開始日より後の最初の賦課期日の年とする |
+| `setLeaseAssetPublicChargeAttributes` | 新規。契約物件の所在市町村、耐用年数、所有持分（0 より大きく 1 以下）、税目ごとの区分を設定する |
+| `generateLeasePublicChargeDeclarations` | 旧 `generateLeasePropertyTaxDeclarations`。税目を指定しなければ全税目を処理する。物件種別で対象の税目を決め、賦課期日より前に取得した物件だけを対象にする。所在や区分を解決できない物件は `skippedAssetCount` に数える |
+| `recordLeasePublicChargePayment` | 旧 `recordLeasePropertyTaxPayment`。税目の GL 科目タイプで計上する |
+| `migrateLeasePropertyTaxData` | 新規。L10 の行を償却資産税として新しいテーブルにコピーする。何度実行しても同じ結果になる（税率は ID、申告は `legacyDeclId` で重複を判定）。同じ組織・年度・団体の申告が既にあれば、コピーせず `declarationConflicts` に数える。旧テーブルの行は残す |
+
+見積（`createLeaseQuote`）：税目に対応する構成要素で金額を指定しない場合、見込み額を自動で設定する。対象は、見積の物件のうちその税目がかかる物件で、特例率ごとにまとめて見込む。市町村・都道府県が課税団体の税目には、所在（`municipalityGeoId`）が必要。対象の物件がない場合はエラーにする（例：車両に固定資産税相当額）。
+
+### 12.5 画面
+
+- メニュー「公租公課」（`FindLeasePublicCharge`）。生成フォームに税目の選択（空なら全税目）を追加し、一覧に税目と課税団体の列を追加した。
+
+### 12.6 テスト（`LeasePublicChargeTests`。旧 `LeasePropertyTaxTests` の 4 件を移し替え、5 件を追加）
+
+| テスト | 内容 |
+|--------|------|
+| （L10 の 4 件） | 新しい名前のサービス・テーブル・状態で、同じ内容を検証する |
+| `testCalculatorShareRatioAndUnit` | 持分・特例率の適用、免税点を課税標準で判定すること、取得年に課税しないこと、定額方式の年額 × 台数 × 持分と合計、不正な入力の拒否 |
+| `testAssetTypeChargeResolution` | 一般の物件＝償却資産税、車両＝自動車税・重量税、船舶＝償却資産税（特例率 0.5）、子の種別は親の設定を引き継ぐ |
+| `testVehicleEstimateAndDeclaration` | 車両に固定資産税相当額は付けられない。自動車税・重量税の見込み額（年額 / 12）。自動車税は都道府県に申告し、区分のない車両はスキップする。車両には償却資産税がかからない。納付の仕訳 |
+| `testCoOwnedAssetShare` | 持分の不正な値の拒否。持分 1/2 で按分し、物件全体では免税点以上でも、持分後は免税点未満になる |
+| `testMigrationFromLegacy` | 税率・申告・明細・納付の移行、移行した税率が使われること、2 回目の実行で何も増えないこと |
+
+### 12.7 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| XML の整形式 | 変更した 11 ファイルで OK |
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 新規 7 テーブル、`LEASE_AGREEMENT_ASSET.OWNERSHIP_SHARE`、308 行を変更 |
+| `gradlew "ofbiz --test component=finance"` | tests=143 / errors=0 / failures=0 |
+| demo 投入 | BUILD SUCCESSFUL（224 行を変更） |
+| 移行 | テスト内で `migrateLeasePropertyTaxData` を既定 DB に対して実行した（テスト用 delegator は既定 DB を共有するため、開発 DB の L10 の行も移行済み） |
+| 画面 | 未確認（定義のみ） |
+
+### 12.8 要確認・制約
+
+- **税額は例示**：自動車税・重量税の年額、船舶の特例率 0.5 は動作確認用の例示。本番の値（登録時期・用途・環境性能による違い、重量税の車検期間ごとの納付と年額換算、船舶の特例の条件）は税理士の確認を得てから設定する。
+- **重量税の納付時期**：実際には車検時に複数年分をまとめて納付する。今は年額換算で 4/1 の年次申告として扱う。車検ごとの納付は L19（自動車リース）で扱う。
+- **共有物の納税**：共有物は共有者が連帯して納税義務を負う。今は貸手の持分だけを申告・費用計上している。全額申告と持分精算の扱いは L16（協調リース）で決める。
+- **持分の置き場所**：物件の持分は `LeaseAgreementAsset.ownershipShare` に持たせた。L10a の `FinanceContractParty` は契約の持分なので別物。L16 で両者の関係（契約の持分から物件の持分を作る 等）を決める。
+- **申告書の様式**：償却資産申告書・種類別明細書の様式出力は対象外（L10 と同じ）。
 
 ---
 

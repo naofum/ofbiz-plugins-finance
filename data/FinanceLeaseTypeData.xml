@@ -153,6 +153,9 @@ under the License.
     <Enumeration description="Insurance (保険料)" enumCode="INSURANCE" enumId="LSCMP_INSURANCE" sequenceId="02" enumTypeId="LEASE_COMPONENT_TYPE"/>
     <Enumeration description="Maintenance (保守料)" enumCode="MAINTENANCE" enumId="LSCMP_MAINTENANCE" sequenceId="03" enumTypeId="LEASE_COMPONENT_TYPE"/>
     <Enumeration description="Other (その他)" enumCode="OTHER" enumId="LSCMP_OTHER" sequenceId="04" enumTypeId="LEASE_COMPONENT_TYPE"/>
+    <!-- STEP L10b: public charge equivalents other than the property tax (公租公課). -->
+    <Enumeration description="Automobile tax equivalent (自動車税相当額)" enumCode="AUTO_TAX" enumId="LSCMP_AUTO_TAX" sequenceId="05" enumTypeId="LEASE_COMPONENT_TYPE"/>
+    <Enumeration description="Motor vehicle weight tax equivalent (自動車重量税相当額)" enumCode="WEIGHT_TAX" enumId="LSCMP_WEIGHT_TAX" sequenceId="06" enumTypeId="LEASE_COMPONENT_TYPE"/>
 
     <!-- Consumption tax classification: 4 kinds (課税 / 非課税 / 不課税 / 免税). -->
     <EnumerationType description="Lease Consumption Tax Classification" enumTypeId="LEASE_TAX_CLASS" hasTable="N"/>
@@ -174,18 +177,50 @@ under the License.
     <GlAccountType description="Lease component revenue (separate from method-1 sales)" glAccountTypeId="LEASE_COMP_REVENUE" hasTable="N" parentTypeId="SALES_ACCOUNT"/>
     <GlAccount glAccountId="403800" accountCode="403800" glAccountClassId="REVENUE" glAccountTypeId="LEASE_COMP_REVENUE" glResourceTypeId="MONEY" accountName="LEASE COMPONENT REVENUE"/>
 
-    <!-- ============ STEP L10: property tax (償却資産税) ============ -->
+    <!-- ============ STEP L10 / L10b: public charges (公租公課) ============ -->
     <!-- Declaration status. -->
-    <StatusType description="Lease Property Tax Declaration" hasTable="N" statusTypeId="LEASE_PTAX_STATUS"/>
-    <StatusItem description="Generated" sequenceId="01" statusCode="GENERATED" statusId="LEASE_PTAX_GENERATED" statusTypeId="LEASE_PTAX_STATUS"/>
-    <StatusItem description="Paid" sequenceId="02" statusCode="PAID" statusId="LEASE_PTAX_PAID" statusTypeId="LEASE_PTAX_STATUS"/>
-    <StatusValidChange statusId="LEASE_PTAX_GENERATED" statusIdTo="LEASE_PTAX_PAID" transitionName="Record payment"/>
+    <StatusType description="Lease Public Charge Declaration" hasTable="N" statusTypeId="LEASE_PCHG_STATUS"/>
+    <StatusItem description="Generated" sequenceId="01" statusCode="GENERATED" statusId="LEASE_PCHG_GENERATED" statusTypeId="LEASE_PCHG_STATUS"/>
+    <StatusItem description="Paid" sequenceId="02" statusCode="PAID" statusId="LEASE_PCHG_PAID" statusTypeId="LEASE_PCHG_STATUS"/>
+    <StatusValidChange statusId="LEASE_PCHG_GENERATED" statusIdTo="LEASE_PCHG_PAID" transitionName="Record payment"/>
 
-    <!-- GL: property tax expense (租税公課) and the tax payable (未払固定資産税). -->
-    <GlAccountType description="Property tax expense (租税公課)" glAccountTypeId="LEASE_PTAX_EXPENSE" hasTable="N" parentTypeId="EXPENSE"/>
-    <GlAccountType description="Property tax payable (未払固定資産税)" glAccountTypeId="LEASE_PTAX_PAYABLE" hasTable="N" parentTypeId="CURRENT_LIABILITY"/>
-    <GlAccount glAccountId="601500" accountCode="601500" glAccountClassId="EXPENSE" glAccountTypeId="LEASE_PTAX_EXPENSE" glResourceTypeId="MONEY" accountName="PROPERTY TAX EXPENSE"/>
-    <GlAccount glAccountId="224600" accountCode="224600" glAccountClassId="CURRENT_LIABILITY" glAccountTypeId="LEASE_PTAX_PAYABLE" glResourceTypeId="MONEY" accountName="PROPERTY TAX PAYABLE"/>
+    <!-- Calculation method and jurisdiction level of a charge type. -->
+    <EnumerationType description="Lease Public Charge Calculation Method" enumTypeId="LEASE_PCHG_CALC" hasTable="N"/>
+    <Enumeration description="Assessed value x rate, aggregated per jurisdiction (評価額×税率、免税点)" enumCode="VALUE" enumId="LSPC_CALC_VALUE" sequenceId="01" enumTypeId="LEASE_PCHG_CALC"/>
+    <Enumeration description="Fixed annual amount per unit by rate class (区分ごとの年額×台数)" enumCode="UNIT" enumId="LSPC_CALC_UNIT" sequenceId="02" enumTypeId="LEASE_PCHG_CALC"/>
+    <EnumerationType description="Lease Public Charge Jurisdiction Level" enumTypeId="LEASE_PCHG_JUR" hasTable="N"/>
+    <Enumeration description="Municipality (市町村)" enumCode="MUNICIPALITY" enumId="LSPC_JUR_MUNI" sequenceId="01" enumTypeId="LEASE_PCHG_JUR"/>
+    <Enumeration description="Prefecture (都道府県)" enumCode="PREFECTURE" enumId="LSPC_JUR_PREF" sequenceId="02" enumTypeId="LEASE_PCHG_JUR"/>
+    <Enumeration description="Fixed jurisdiction (国 等)" enumCode="FIXED" enumId="LSPC_JUR_FIXED" sequenceId="03" enumTypeId="LEASE_PCHG_JUR"/>
+
+    <!-- GL: public charge expense (租税公課) and the payable (未払租税公課). -->
+    <GlAccountType description="Public charge expense (租税公課)" glAccountTypeId="LEASE_PCHG_EXPENSE" hasTable="N" parentTypeId="EXPENSE"/>
+    <GlAccountType description="Public charge payable (未払租税公課)" glAccountTypeId="LEASE_PCHG_PAYABLE" hasTable="N" parentTypeId="CURRENT_LIABILITY"/>
+    <GlAccount glAccountId="601500" accountCode="601500" glAccountClassId="EXPENSE" glAccountTypeId="LEASE_PCHG_EXPENSE" glResourceTypeId="MONEY" accountName="TAXES AND PUBLIC CHARGES"/>
+    <GlAccount glAccountId="224600" accountCode="224600" glAccountClassId="CURRENT_LIABILITY" glAccountTypeId="LEASE_PCHG_PAYABLE" glResourceTypeId="MONEY" accountName="PUBLIC CHARGES PAYABLE"/>
+
+    <!-- Charge types (税目). The amounts and rules of the vehicle taxes are examples (要確認). -->
+    <LeasePublicChargeType publicChargeTypeId="LSPC_DEPR_ASSET" description="Depreciable asset tax (償却資産税)"
+            calcMethodEnumId="LSPC_CALC_VALUE" jurisdictionLevelEnumId="LSPC_JUR_MUNI" assessmentMonth="1" assessmentDay="1"
+            exemptionThreshold="1500000" baseRoundingUnit="1000" taxRoundingUnit="100" defaultTaxRate="0.014" defaultUsefulLifeYears="6"
+            componentTypeEnumId="LSCMP_PROP_TAX" expenseGlAccountTypeId="LEASE_PCHG_EXPENSE" payableGlAccountTypeId="LEASE_PCHG_PAYABLE"
+            appliesToUnmapped="Y" sequenceNum="1"/>
+    <LeasePublicChargeType publicChargeTypeId="LSPC_AUTO_TAX" description="Automobile tax, type-based (自動車税種別割)"
+            calcMethodEnumId="LSPC_CALC_UNIT" jurisdictionLevelEnumId="LSPC_JUR_PREF" assessmentMonth="4" assessmentDay="1"
+            componentTypeEnumId="LSCMP_AUTO_TAX" expenseGlAccountTypeId="LEASE_PCHG_EXPENSE" payableGlAccountTypeId="LEASE_PCHG_PAYABLE"
+            appliesToUnmapped="N" sequenceNum="2"/>
+    <LeasePublicChargeType publicChargeTypeId="LSPC_WEIGHT_TAX" description="Motor vehicle weight tax (自動車重量税、年額換算)"
+            calcMethodEnumId="LSPC_CALC_UNIT" jurisdictionLevelEnumId="LSPC_JUR_FIXED" jurisdictionGeoId="JPN" assessmentMonth="4" assessmentDay="1"
+            componentTypeEnumId="LSCMP_WEIGHT_TAX" expenseGlAccountTypeId="LEASE_PCHG_EXPENSE" payableGlAccountTypeId="LEASE_PCHG_PAYABLE"
+            appliesToUnmapped="N" sequenceNum="3"/>
+
+    <!-- Asset types: vehicles pay the vehicle taxes instead of the depreciable asset tax;
+         vessels pay the depreciable asset tax with a special taxable-base ratio (example 1/2, 要確認). -->
+    <FixedAssetType description="Vessel (船舶)" fixedAssetTypeId="VESSEL" hasTable="N"/>
+    <LeasePublicChargeAssetType fixedAssetTypeId="VEHICLE" publicChargeTypeId="LSPC_DEPR_ASSET" applicable="N" description="Vehicles are outside the depreciable asset tax"/>
+    <LeasePublicChargeAssetType fixedAssetTypeId="VEHICLE" publicChargeTypeId="LSPC_AUTO_TAX" applicable="Y"/>
+    <LeasePublicChargeAssetType fixedAssetTypeId="VEHICLE" publicChargeTypeId="LSPC_WEIGHT_TAX" applicable="Y"/>
+    <LeasePublicChargeAssetType fixedAssetTypeId="VESSEL" publicChargeTypeId="LSPC_DEPR_ASSET" applicable="Y" taxableBaseRatio="0.5" description="Special taxable base ratio of vessels (example, 要確認)"/>
 
     <!-- A few municipality Geo (scope A: demo/test only; the full ~1,900 set is a separate data task).
          geoCode = all-Japan local government code (6 digits incl. the check digit); geoId <= 20 chars. -->
@@ -194,7 +229,18 @@ under the License.
     <Geo geoId="JP-141003" geoTypeId="MUNICIPALITY" geoName="横浜市" geoCode="141003" abbreviation="横浜市"/>
     <GeoAssoc geoId="JP-14" geoIdTo="JP-141003" geoAssocTypeId="REGIONS"/>
 
-    <!-- Standard rate 1.4% (fallback) and an example excess-tax municipality (超過課税). -->
-    <LeasePropertyTaxRate leasePropertyTaxRateId="LPTR_STANDARD" taxRate="0.014" standardRate="Y" fromDate="2001-01-01 00:00:00.0" description="Standard property tax rate (標準税率 1.4%)"/>
-    <LeasePropertyTaxRate leasePropertyTaxRateId="LPTR_YOKOHAMA" municipalityGeoId="JP-141003" taxRate="0.015" standardRate="N" fromDate="2001-01-01 00:00:00.0" description="Yokohama excess rate example (超過課税 1.5%)"/>
+    <!-- Depreciable asset tax: standard rate 1.4% (fallback) and an example excess-tax municipality (超過課税). -->
+    <LeasePublicChargeRate leasePublicChargeRateId="LPTR_STANDARD" publicChargeTypeId="LSPC_DEPR_ASSET" taxRate="0.014" standardRate="Y" fromDate="2001-01-01 00:00:00.0" description="Standard property tax rate (標準税率 1.4%)"/>
+    <LeasePublicChargeRate leasePublicChargeRateId="LPTR_YOKOHAMA" publicChargeTypeId="LSPC_DEPR_ASSET" jurisdictionGeoId="JP-141003" taxRate="0.015" standardRate="N" fromDate="2001-01-01 00:00:00.0" description="Yokohama excess rate example (超過課税 1.5%)"/>
+    <!-- Automobile tax (自家用乗用車, registered on or after 2019-10-01), annual amount by displacement class (例示、要確認). -->
+    <LeasePublicChargeRate leasePublicChargeRateId="LPCR_AUTO_1000" publicChargeTypeId="LSPC_AUTO_TAX" rateClassCode="PASS_1000" unitAmount="25000" standardRate="Y" fromDate="2019-10-01 00:00:00.0" description="Passenger car up to 1.0L"/>
+    <LeasePublicChargeRate leasePublicChargeRateId="LPCR_AUTO_1500" publicChargeTypeId="LSPC_AUTO_TAX" rateClassCode="PASS_1500" unitAmount="30500" standardRate="Y" fromDate="2019-10-01 00:00:00.0" description="Passenger car 1.0L to 1.5L"/>
+    <LeasePublicChargeRate leasePublicChargeRateId="LPCR_AUTO_2000" publicChargeTypeId="LSPC_AUTO_TAX" rateClassCode="PASS_2000" unitAmount="36000" standardRate="Y" fromDate="2019-10-01 00:00:00.0" description="Passenger car 1.5L to 2.0L"/>
+    <LeasePublicChargeRate leasePublicChargeRateId="LPCR_AUTO_2500" publicChargeTypeId="LSPC_AUTO_TAX" rateClassCode="PASS_2500" unitAmount="43500" standardRate="Y" fromDate="2019-10-01 00:00:00.0" description="Passenger car 2.0L to 2.5L"/>
+    <LeasePublicChargeRate leasePublicChargeRateId="LPCR_AUTO_3000" publicChargeTypeId="LSPC_AUTO_TAX" rateClassCode="PASS_3000" unitAmount="50000" standardRate="Y" fromDate="2019-10-01 00:00:00.0" description="Passenger car 2.5L to 3.0L"/>
+    <!-- Motor vehicle weight tax (自家用乗用車, annual equivalent, 4,100 yen per 0.5t) by weight class (例示、要確認). -->
+    <LeasePublicChargeRate leasePublicChargeRateId="LPCR_WT_1000" publicChargeTypeId="LSPC_WEIGHT_TAX" rateClassCode="PASS_W1000" unitAmount="8200" standardRate="Y" fromDate="2001-01-01 00:00:00.0" description="Passenger car up to 1.0t"/>
+    <LeasePublicChargeRate leasePublicChargeRateId="LPCR_WT_1500" publicChargeTypeId="LSPC_WEIGHT_TAX" rateClassCode="PASS_W1500" unitAmount="12300" standardRate="Y" fromDate="2001-01-01 00:00:00.0" description="Passenger car up to 1.5t"/>
+    <LeasePublicChargeRate leasePublicChargeRateId="LPCR_WT_2000" publicChargeTypeId="LSPC_WEIGHT_TAX" rateClassCode="PASS_W2000" unitAmount="16400" standardRate="Y" fromDate="2001-01-01 00:00:00.0" description="Passenger car up to 2.0t"/>
+    <LeasePublicChargeRate leasePublicChargeRateId="LPCR_WT_2500" publicChargeTypeId="LSPC_WEIGHT_TAX" rateClassCode="PASS_W2500" unitAmount="20500" standardRate="Y" fromDate="2001-01-01 00:00:00.0" description="Passenger car up to 2.5t"/>
 </entity-engine-xml>

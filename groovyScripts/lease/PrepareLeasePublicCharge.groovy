@@ -17,8 +17,9 @@
  * under the License.
  */
 
-// Screen data for FindLeasePropertyTax (STEP L10): the property tax declarations of
-// a lessor organization for a tax year, with the municipality name and payment state.
+// Screen data for FindLeasePublicCharge (STEP L10 / L10b): the public charge declarations
+// of a lessor organization (optionally for a tax year / charge type), with the
+// jurisdiction name and payment state.
 
 import org.apache.ofbiz.entity.GenericValue
 
@@ -27,18 +28,21 @@ context.organizationPartyId = organizationPartyId
 Integer taxYear = parameters.taxYear ? (parameters.taxYear as Integer) : null
 context.taxYear = taxYear
 
-List conditions = ['organizationPartyId': organizationPartyId]
+Map conditions = ['organizationPartyId': organizationPartyId]
 if (taxYear != null) {
     conditions.taxYear = (long) taxYear
 }
-context.declarations = from('LeasePropertyTaxDecl').where(conditions)
-        .orderBy('-taxYear', 'municipalityGeoId').queryList().collect { GenericValue d ->
+if (parameters.publicChargeTypeId) {
+    conditions.publicChargeTypeId = parameters.publicChargeTypeId
+}
+context.declarations = from('LeasePublicChargeDecl').where(conditions)
+        .orderBy('-taxYear', 'publicChargeTypeId', 'jurisdictionGeoId').queryList().collect { GenericValue d ->
     Map row = new LinkedHashMap(d.getAllFields())
-    GenericValue geo = d.municipalityGeoId ? from('Geo').where('geoId', d.municipalityGeoId).cache().queryOne() : null
-    row.municipalityName = geo?.geoName ?: d.municipalityGeoId
-    GenericValue payment = from('LeasePropertyTaxPayment').where('leasePropertyTaxDeclId', d.leasePropertyTaxDeclId).queryOne()
+    GenericValue geo = d.jurisdictionGeoId ? from('Geo').where('geoId', d.jurisdictionGeoId).cache().queryOne() : null
+    row.jurisdictionName = geo?.geoName ?: d.jurisdictionGeoId
+    GenericValue payment = from('LeasePublicChargePayment').where('leasePublicChargeDeclId', d.leasePublicChargeDeclId).queryOne()
     row.paymentDate = payment?.paymentDate
     row.acctgTransId = payment?.acctgTransId
-    row.canPay = d.statusId == 'LEASE_PTAX_GENERATED' && (d.taxAmount ?: BigDecimal.ZERO).signum() > 0
+    row.canPay = d.statusId == 'LEASE_PCHG_GENERATED' && (d.taxAmount ?: BigDecimal.ZERO).signum() > 0
     return row
 }

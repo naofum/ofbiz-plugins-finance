@@ -395,49 +395,80 @@ under the License.
     </service>
 
     <!-- ============================================================= -->
-    <!-- STEP L10: property tax (償却資産税)                             -->
+    <!-- STEP L10 / L10b: public charges (公租公課)                       -->
     <!-- ============================================================= -->
-    <service name="resolveLeasePropertyTaxEstimate" engine="java"
-            location="org.apache.ofbiz.finance.lease.LeasePropertyTaxServices" invoke="resolveLeasePropertyTaxEstimate" auth="true">
-        <description>Estimate the property tax equivalent of an asset for the L9 component: valuation (旧定率法相当) x the
-            municipal rate at the location, averaged over the term (yearly / monthly). The 免税点 is not applied.</description>
+    <service name="resolveLeasePublicChargeEstimate" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeasePublicChargeServices" invoke="resolveLeasePublicChargeEstimate" auth="true">
+        <description>Estimate the public charge equivalent of an asset (group) for the L9 component, by the charge type's
+            calculation method: VALUE = valuation (旧定率法相当) x special ratio x the jurisdiction rate; UNIT = annual amount of
+            the rate class x quantity. Averaged over the term (yearly / monthly). The 免税点 is not applied.</description>
         <permission-service service-name="financeGenericPermission" main-action="VIEW"/>
-        <attribute name="acquisitionCost" type="BigDecimal" mode="IN" optional="false"/>
+        <attribute name="publicChargeTypeId" type="String" mode="IN" optional="true"><description>LeasePublicChargeType; default LSPC_DEPR_ASSET</description></attribute>
+        <attribute name="acquisitionCost" type="BigDecimal" mode="IN" optional="true"><description>required for VALUE</description></attribute>
+        <attribute name="quantity" type="BigDecimal" mode="IN" optional="true"><description>UNIT: number of units (default 1)</description></attribute>
         <attribute name="termMonths" type="Long" mode="IN" optional="false"/>
-        <attribute name="municipalityGeoId" type="String" mode="IN" optional="true"><description>core Geo (MUNICIPALITY); empty = standard rate</description></attribute>
+        <attribute name="municipalityGeoId" type="String" mode="IN" optional="true"><description>core Geo (MUNICIPALITY) of the location; empty = standard rate</description></attribute>
+        <attribute name="rateClassCode" type="String" mode="IN" optional="true"><description>UNIT: rate class (e.g. PASS_1500)</description></attribute>
+        <attribute name="taxableBaseRatio" type="BigDecimal" mode="IN" optional="true"><description>VALUE: special taxable-base ratio (default 1)</description></attribute>
         <attribute name="currencyUomId" type="String" mode="IN" optional="true"/>
-        <attribute name="usefulLifeYears" type="Long" mode="IN" optional="true"><description>default lease.propertytax.usefullife.years</description></attribute>
+        <attribute name="usefulLifeYears" type="Long" mode="IN" optional="true"><description>VALUE: default LeasePublicChargeType.defaultUsefulLifeYears</description></attribute>
         <attribute name="depreciationRate" type="BigDecimal" mode="IN" optional="true"><description>overrides the life-derived rate</description></attribute>
         <attribute name="asOfDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="jurisdictionGeoId" type="String" mode="OUT" optional="true"/>
         <attribute name="taxRate" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="unitAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="depreciationRate" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="yearlyEstimate" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="monthlyEstimate" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="totalEstimate" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="yearlyBreakdown" type="List" mode="OUT" optional="true"/>
     </service>
-    <service name="generateLeasePropertyTaxDeclarations" engine="java" transaction-timeout="1800"
-            location="org.apache.ofbiz.finance.lease.LeasePropertyTaxServices" invoke="generateLeasePropertyTaxDeclarations" auth="true">
-        <description>Generate the property tax declarations of a lessor organization for a tax year: group the
-            lessor-owned non-transfer leased assets as of January 1 by municipality, value each (旧定率法相当),
-            apply the 免税点 (1.5M) per municipality and compute the tax. Idempotent per org x year x municipality.</description>
+    <service name="setLeaseAssetPublicChargeAttributes" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeasePublicChargeServices" invoke="setLeaseAssetPublicChargeAttributes" auth="true">
+        <description>Set the public charge attributes of an agreement asset: municipality, useful life, the lessor's ownership
+            share (0 &lt; share &lt;= 1) and the rate class of a charge type (LeaseAssetPublicCharge).</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="assetSeqId" type="String" mode="IN" optional="false"/>
+        <attribute name="municipalityGeoId" type="String" mode="IN" optional="true"/>
+        <attribute name="usefulLifeYears" type="Long" mode="IN" optional="true"/>
+        <attribute name="ownershipShare" type="BigDecimal" mode="IN" optional="true"/>
+        <attribute name="publicChargeTypeId" type="String" mode="IN" optional="true"/>
+        <attribute name="rateClassCode" type="String" mode="IN" optional="true"/>
+    </service>
+    <service name="generateLeasePublicChargeDeclarations" engine="java" transaction-timeout="1800"
+            location="org.apache.ofbiz.finance.lease.LeasePublicChargeServices" invoke="generateLeasePublicChargeDeclarations" auth="true">
+        <description>Generate the public charge declarations of a lessor organization for a tax year: for each charge type (or
+            the given one), the lessor-owned non-transfer leased assets subject to it (by asset type) acquired before its
+            assessment date, assessed by its calculation method and grouped by jurisdiction. Idempotent per
+            org x charge type x year x jurisdiction.</description>
         <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
         <attribute name="organizationPartyId" type="String" mode="IN" optional="true"><description>defaults to Company</description></attribute>
         <attribute name="taxYear" type="Long" mode="IN" optional="true"><description>defaults to the current year</description></attribute>
+        <attribute name="publicChargeTypeId" type="String" mode="IN" optional="true"><description>empty = all charge types</description></attribute>
         <attribute name="createdCount" type="Long" mode="OUT" optional="true"/>
         <attribute name="declarationCount" type="Long" mode="OUT" optional="true"/>
         <attribute name="skippedAssetCount" type="Long" mode="OUT" optional="true"/>
-        <attribute name="leasePropertyTaxDeclIds" type="List" mode="OUT" optional="true"/>
+        <attribute name="leasePublicChargeDeclIds" type="List" mode="OUT" optional="true"/>
     </service>
-    <service name="recordLeasePropertyTaxPayment" engine="java"
-            location="org.apache.ofbiz.finance.lease.LeasePropertyTaxServices" invoke="recordLeasePropertyTaxPayment" auth="true">
-        <description>Record the payment of a declaration and book Dr property tax expense (租税公課) / Cr property tax
-            payable (未払固定資産税). Idempotent per declaration.</description>
+    <service name="recordLeasePublicChargePayment" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeasePublicChargeServices" invoke="recordLeasePublicChargePayment" auth="true">
+        <description>Record the payment of a declaration and book Dr public charge expense (租税公課) / Cr public charge payable
+            (未払租税公課), with the GL account types of the charge type. Idempotent per declaration.</description>
         <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
-        <attribute name="leasePropertyTaxDeclId" type="String" mode="IN" optional="false"/>
+        <attribute name="leasePublicChargeDeclId" type="String" mode="IN" optional="false"/>
         <attribute name="paymentDate" type="Timestamp" mode="IN" optional="true"/>
         <attribute name="comments" type="String" mode="IN" optional="true"/>
         <attribute name="acctgTransId" type="String" mode="OUT" optional="true"/>
         <attribute name="paymentCreated" type="Boolean" mode="OUT" optional="true"/>
+    </service>
+    <service name="migrateLeasePropertyTaxData" engine="java" transaction-timeout="1800"
+            location="org.apache.ofbiz.finance.lease.LeasePublicChargeServices" invoke="migrateLeasePropertyTaxData" auth="true">
+        <description>STEP L10b one-time migration: copy the STEP L10 rows (LeasePropertyTaxRate / Decl / DeclAsset / Payment)
+            to the LeasePublicCharge* tables as the depreciable asset tax (LSPC_DEPR_ASSET). Idempotent; legacy rows are kept.</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="ratesMigrated" type="Long" mode="OUT" optional="true"/>
+        <attribute name="declarationsMigrated" type="Long" mode="OUT" optional="true"/>
+        <attribute name="declarationConflicts" type="Long" mode="OUT" optional="true"/>
     </service>
 </services>

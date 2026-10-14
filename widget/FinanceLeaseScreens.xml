@@ -476,22 +476,22 @@ under the License.
             </widgets>
         </section>
     </screen>
-    <!-- Lease property tax (STEP L10) -->
-    <screen name="FindLeasePropertyTax">
+    <!-- Lease public charges (STEP L10 / L10b) -->
+    <screen name="FindLeasePublicCharge">
         <section>
             <actions>
-                <set field="titleProperty" value="FinanceLeasePropertyTax"/>
-                <set field="headerItem" value="LeasePropertyTax"/>
-                <script location="component://finance/groovyScripts/lease/PrepareLeasePropertyTax.groovy"/>
+                <set field="titleProperty" value="FinanceLeasePublicCharge"/>
+                <set field="headerItem" value="LeasePublicCharge"/>
+                <script location="component://finance/groovyScripts/lease/PrepareLeasePublicCharge.groovy"/>
             </actions>
             <widgets>
                 <decorator-screen name="main-decorator" location="${parameters.mainDecoratorLocation}">
                     <decorator-section name="body">
-                        <screenlet title="${uiLabelMap.FinanceLeasePropertyTaxGenerate}">
-                            <include-form name="GenerateLeasePropertyTax" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        <screenlet title="${uiLabelMap.FinanceLeasePublicChargeGenerate}">
+                            <include-form name="GenerateLeasePublicCharge" location="component://finance/widget/FinanceLeaseForms.xml"/>
                         </screenlet>
-                        <screenlet title="${uiLabelMap.FinanceLeasePropertyTaxDeclarations}">
-                            <include-grid name="ListLeasePropertyTaxDecl" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                        <screenlet title="${uiLabelMap.FinanceLeasePublicChargeDeclarations}">
+                            <include-grid name="ListLeasePublicChargeDecl" location="component://finance/widget/FinanceLeaseForms.xml"/>
                         </screenlet>
                     </decorator-section>
                 </decorator-screen>

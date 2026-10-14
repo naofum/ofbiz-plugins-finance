@@ -347,6 +347,7 @@ under the License.
         <field name="assetStatusId" type="id"><description>LEASE_ASSET_STATUS: pending purchase / purchased / leased / returned / transferred (STEP L3)</description></field>
         <field name="usefulLifeYears" type="numeric"><description>STEP L10: useful life in years for the property tax valuation (empty = finance.properties default)</description></field>
         <field name="municipalityGeoId" type="id"><description>STEP L10: municipality (core Geo, MUNICIPALITY) where the asset is located; defaults from the FixedAsset facility address</description></field>
+        <field name="ownershipShare" type="fixed-point"><description>STEP L10b: lessor's ownership share of the asset (0 &lt; share &lt;= 1, e.g. a co-owned asset of a syndicated lease); empty = 1 (sole owner). Public charges are declared pro rata</description></field>
         <prim-key field="leaseAgreementId"/>
         <prim-key field="assetSeqId"/>
         <relation type="one" fk-name="LEASEAGRAS_AGR" rel-entity-name="LeaseAgreement">
@@ -679,11 +680,228 @@ under the License.
     </entity>
 
     <!-- ========================================================= -->
-    <!-- STEP L10: property tax (償却資産税) of lessor-owned assets   -->
-    <!-- A municipal tax-rate table keyed by the all-Japan local    -->
-    <!-- government code; yearly per-municipality declarations with  -->
-    <!-- the 免税点 (1.5M) judgment; the recorded payment and the     -->
-    <!-- expense booking. Independent of the accounting depreciation.-->
+    <!-- STEP L10 / L10b: public charges (公租公課) of lessor-owned   -->
+    <!-- leased assets. A charge type (税目: 償却資産税, 自動車税      -->
+    <!-- 種別割, 自動車重量税, ...) defines the calculation method,    -->
+    <!-- the jurisdiction level, the assessment date, the 免税点 and  -->
+    <!-- the GL accounts; asset types select their charge types;     -->
+    <!-- a rate table per charge type x jurisdiction x rate class;   -->
+    <!-- yearly declarations per organization x charge type x        -->
+    <!-- jurisdiction; the recorded payment and the expense booking. -->
+    <!-- Independent of the accounting depreciation (L12).           -->
+    <!-- ========================================================= -->
+
+    <!-- Charge type (税目) and its calculation rules. -->
+    <entity entity-name="LeasePublicChargeType" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease public charge type (公租公課の税目)">
+        <field name="publicChargeTypeId" type="id"></field>
+        <field name="description" type="description"></field>
+        <field name="calcMethodEnumId" type="id"><description>LEASE_PCHG_CALC: VALUE (assessed value x rate, aggregated per jurisdiction with the 免税点) / UNIT (fixed annual amount per unit by rate class)</description></field>
+        <field name="jurisdictionLevelEnumId" type="id"><description>LEASE_PCHG_JUR: MUNICIPALITY (市町村) / PREFECTURE (都道府県, parent of the municipality by GeoAssoc REGIONS) / FIXED (jurisdictionGeoId, e.g. national JPN)</description></field>
+        <field name="jurisdictionGeoId" type="id"><description>fixed jurisdiction Geo for jurisdictionLevel FIXED</description></field>
+        <field name="assessmentMonth" type="numeric"><description>month of the assessment date (賦課期日) in the tax year: 1 for 償却資産税 (1/1), 4 for 自動車税 (4/1)</description></field>
+        <field name="assessmentDay" type="numeric"></field>
+        <field name="exemptionThreshold" type="currency-amount"><description>免税点 per declaration (VALUE): below it no charge is due; empty = none</description></field>
+        <field name="baseRoundingUnit" type="currency-amount"><description>VALUE: taxable base floored to this unit (1000 yen); empty = none</description></field>
+        <field name="taxRoundingUnit" type="currency-amount"><description>charge amount floored to this unit (100 yen); empty = currency rounding only</description></field>
+        <field name="defaultTaxRate" type="fixed-point"><description>VALUE: fallback rate when no rate row (no municipal / standard row) is valid</description></field>
+        <field name="defaultUsefulLifeYears" type="numeric"><description>VALUE: useful life used when the asset has none</description></field>
+        <field name="componentTypeEnumId" type="id"><description>LEASE_COMPONENT_TYPE of the L9 component the estimate is supplied to</description></field>
+        <field name="expenseGlAccountTypeId" type="id"><description>GL account type debited by the payment (租税公課)</description></field>
+        <field name="payableGlAccountTypeId" type="id"><description>GL account type credited by the payment (未払租税公課)</description></field>
+        <field name="appliesToUnmapped" type="indicator"><description>Y: applies to asset types with no LeasePublicChargeAssetType row (general depreciable assets)</description></field>
+        <field name="sequenceNum" type="numeric"></field>
+        <prim-key field="publicChargeTypeId"/>
+        <relation type="one" fk-name="LEASEPCT_CALC" title="CalcMethod" rel-entity-name="Enumeration">
+            <key-map field-name="calcMethodEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPCT_JUR" title="JurisdictionLevel" rel-entity-name="Enumeration">
+            <key-map field-name="jurisdictionLevelEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one-nofk" title="Jurisdiction" rel-entity-name="Geo">
+            <key-map field-name="jurisdictionGeoId" rel-field-name="geoId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPCT_CMP" title="ComponentType" rel-entity-name="Enumeration">
+            <key-map field-name="componentTypeEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPCT_EXPGL" title="Expense" rel-entity-name="GlAccountType">
+            <key-map field-name="expenseGlAccountTypeId" rel-field-name="glAccountTypeId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPCT_PAYGL" title="Payable" rel-entity-name="GlAccountType">
+            <key-map field-name="payableGlAccountTypeId" rel-field-name="glAccountTypeId"/>
+        </relation>
+    </entity>
+
+    <!-- Charge types of an asset type (物件種別ごとの税目). An asset type (or its nearest ancestor)
+         with rows is subject to exactly the rows with applicable != N; a type with no rows in its
+         ancestry is subject to the charge types with appliesToUnmapped = Y. -->
+    <entity entity-name="LeasePublicChargeAssetType" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease public charge - asset type">
+        <field name="fixedAssetTypeId" type="id"></field>
+        <field name="publicChargeTypeId" type="id"></field>
+        <field name="applicable" type="indicator"><description>N excludes the charge type for the asset type (empty = Y)</description></field>
+        <field name="taxableBaseRatio" type="fixed-point"><description>VALUE: special ratio of the taxable base (課税標準の特例, e.g. vessels); empty = 1</description></field>
+        <field name="description" type="description"></field>
+        <prim-key field="fixedAssetTypeId"/>
+        <prim-key field="publicChargeTypeId"/>
+        <relation type="one" fk-name="LEASEPCAT_FAT" rel-entity-name="FixedAssetType">
+            <key-map field-name="fixedAssetTypeId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPCAT_TYPE" rel-entity-name="LeasePublicChargeType">
+            <key-map field-name="publicChargeTypeId"/>
+        </relation>
+    </entity>
+
+    <!-- Rate of a charge type by jurisdiction and rate class (VALUE: taxRate; UNIT: unitAmount per year). -->
+    <entity entity-name="LeasePublicChargeRate" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease public charge rate (税率・税額表)">
+        <field name="leasePublicChargeRateId" type="id"><description>primary sequenced ID</description></field>
+        <field name="publicChargeTypeId" type="id"></field>
+        <field name="jurisdictionGeoId" type="id"><description>core Geo of the jurisdiction (municipality / prefecture / country); empty for a standard row</description></field>
+        <field name="rateClassCode" type="short-varchar"><description>UNIT: class of the asset (e.g. displacement / weight class of a vehicle); empty for VALUE</description></field>
+        <field name="taxRate" type="fixed-point"><description>VALUE: annual rate (fraction, e.g. 0.014)</description></field>
+        <field name="unitAmount" type="currency-amount"><description>UNIT: annual amount per unit</description></field>
+        <field name="standardRate" type="indicator"><description>Y for the fallback row used when the jurisdiction has no row</description></field>
+        <field name="fromDate" type="date-time"></field>
+        <field name="thruDate" type="date-time"></field>
+        <field name="description" type="description"></field>
+        <prim-key field="leasePublicChargeRateId"/>
+        <relation type="one" fk-name="LEASEPCR_TYPE" rel-entity-name="LeasePublicChargeType">
+            <key-map field-name="publicChargeTypeId"/>
+        </relation>
+        <relation type="one-nofk" title="Jurisdiction" rel-entity-name="Geo">
+            <key-map field-name="jurisdictionGeoId" rel-field-name="geoId"/>
+        </relation>
+        <index name="LEASEPCR_JUR_IDX">
+            <index-field name="publicChargeTypeId"/>
+            <index-field name="jurisdictionGeoId"/>
+        </index>
+    </entity>
+
+    <!-- Rate class of an agreement asset for a UNIT charge type (e.g. a vehicle's displacement class). -->
+    <entity entity-name="LeaseAssetPublicCharge" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease agreement asset - public charge attributes">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="assetSeqId" type="id"></field>
+        <field name="publicChargeTypeId" type="id"></field>
+        <field name="rateClassCode" type="short-varchar"></field>
+        <prim-key field="leaseAgreementId"/>
+        <prim-key field="assetSeqId"/>
+        <prim-key field="publicChargeTypeId"/>
+        <relation type="one" fk-name="LEASEAPC_ASSET" rel-entity-name="LeaseAgreementAsset">
+            <key-map field-name="leaseAgreementId"/>
+            <key-map field-name="assetSeqId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEAPC_TYPE" rel-entity-name="LeasePublicChargeType">
+            <key-map field-name="publicChargeTypeId"/>
+        </relation>
+    </entity>
+
+    <!-- One declaration per lessor organization x charge type x jurisdiction x tax year. -->
+    <entity entity-name="LeasePublicChargeDecl" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease public charge declaration (公租公課の申告)">
+        <field name="leasePublicChargeDeclId" type="id"><description>primary sequenced ID</description></field>
+        <field name="publicChargeTypeId" type="id"></field>
+        <field name="organizationPartyId" type="id"><description>lessor organization (declarant / owner)</description></field>
+        <field name="taxYear" type="numeric"><description>tax year (assessed as of the charge type's assessment date)</description></field>
+        <field name="jurisdictionGeoId" type="id"><description>core Geo the declaration is filed with (municipality / prefecture / country)</description></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="assetCount" type="numeric"></field>
+        <field name="totalAssessedValue" type="currency-amount"><description>VALUE: sum of the asset assessed values after the ownership share</description></field>
+        <field name="taxableBase" type="currency-amount"><description>VALUE: taxable base (after the special ratio, floored); 0 when below the exemption threshold</description></field>
+        <field name="exemptionThreshold" type="currency-amount"></field>
+        <field name="belowThreshold" type="indicator"></field>
+        <field name="taxRate" type="fixed-point"><description>VALUE: rate applied</description></field>
+        <field name="taxAmount" type="currency-amount"><description>charge due (0 when below the threshold)</description></field>
+        <field name="statusId" type="id"><description>LEASE_PCHG_STATUS: generated / paid</description></field>
+        <field name="generatedDate" type="date-time"></field>
+        <field name="createdDate" type="date-time"></field>
+        <field name="legacyDeclId" type="id"><description>LeasePropertyTaxDecl id this row was migrated from (STEP L10b)</description></field>
+        <prim-key field="leasePublicChargeDeclId"/>
+        <relation type="one" fk-name="LEASEPCD_TYPE" rel-entity-name="LeasePublicChargeType">
+            <key-map field-name="publicChargeTypeId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPCD_ORG" title="Organization" rel-entity-name="Party">
+            <key-map field-name="organizationPartyId" rel-field-name="partyId"/>
+        </relation>
+        <relation type="one-nofk" title="Jurisdiction" rel-entity-name="Geo">
+            <key-map field-name="jurisdictionGeoId" rel-field-name="geoId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPCD_STTS" rel-entity-name="StatusItem">
+            <key-map field-name="statusId"/>
+        </relation>
+        <index name="LEASEPCD_UQ" unique="true">
+            <index-field name="organizationPartyId"/>
+            <index-field name="publicChargeTypeId"/>
+            <index-field name="taxYear"/>
+            <index-field name="jurisdictionGeoId"/>
+        </index>
+        <index name="LEASEPCD_LEGACY_IDX">
+            <index-field name="legacyDeclId"/>
+        </index>
+    </entity>
+
+    <!-- One line per lessor-owned asset included in a declaration. -->
+    <entity entity-name="LeasePublicChargeDeclAsset" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease public charge declaration - asset line">
+        <field name="leasePublicChargeDeclId" type="id"></field>
+        <field name="fixedAssetId" type="id"></field>
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="assetSeqId" type="id"></field>
+        <field name="assetName" type="name"></field>
+        <field name="fixedAssetTypeId" type="id"></field>
+        <field name="acquisitionCost" type="currency-amount"></field>
+        <field name="acquisitionYear" type="numeric"></field>
+        <field name="quantity" type="fixed-point"></field>
+        <field name="ownershipShare" type="fixed-point"><description>lessor's share applied (1 = sole owner)</description></field>
+        <field name="usefulLifeYears" type="numeric"><description>VALUE</description></field>
+        <field name="depreciationRate" type="fixed-point"><description>VALUE: annual depreciation rate used (旧定率法相当)</description></field>
+        <field name="fullAssessedValue" type="currency-amount"><description>VALUE: valuation of the whole asset as of the assessment date (下限 5%)</description></field>
+        <field name="assessedValue" type="currency-amount"><description>VALUE: fullAssessedValue x ownershipShare</description></field>
+        <field name="taxableBaseRatio" type="fixed-point"><description>VALUE: special ratio applied (課税標準の特例)</description></field>
+        <field name="taxableValue" type="currency-amount"><description>VALUE: assessedValue x taxableBaseRatio</description></field>
+        <field name="rateClassCode" type="short-varchar"><description>UNIT</description></field>
+        <field name="unitAmount" type="currency-amount"><description>UNIT: annual amount per unit</description></field>
+        <field name="chargeAmount" type="currency-amount"><description>UNIT: unitAmount x quantity x ownershipShare</description></field>
+        <prim-key field="leasePublicChargeDeclId"/>
+        <prim-key field="fixedAssetId"/>
+        <relation type="one" fk-name="LEASEPCDA_DECL" rel-entity-name="LeasePublicChargeDecl">
+            <key-map field-name="leasePublicChargeDeclId"/>
+        </relation>
+        <relation type="one-nofk" rel-entity-name="FixedAsset">
+            <key-map field-name="fixedAssetId"/>
+        </relation>
+    </entity>
+
+    <!-- Payment of a declaration and the expense booking (one per declaration). -->
+    <entity entity-name="LeasePublicChargePayment" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease public charge payment (納付・費用計上)">
+        <field name="leasePublicChargeDeclId" type="id"></field>
+        <field name="paymentDate" type="date-time"></field>
+        <field name="amount" type="currency-amount"></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="paymentId" type="id"><description>core Payment when a cash disbursement is recorded (optional)</description></field>
+        <field name="acctgTransId" type="id"><description>Dr public charge expense (租税公課) / Cr public charge payable</description></field>
+        <field name="comments" type="comment"></field>
+        <field name="createdByUserLogin" type="id-vlong"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leasePublicChargeDeclId"/>
+        <relation type="one" fk-name="LEASEPCP_DECL" rel-entity-name="LeasePublicChargeDecl">
+            <key-map field-name="leasePublicChargeDeclId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPCP_PMT" rel-entity-name="Payment">
+            <key-map field-name="paymentId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEPCP_TRANS" rel-entity-name="AcctgTrans">
+            <key-map field-name="acctgTransId"/>
+        </relation>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- LEGACY (STEP L10 names, replaced by LeasePublicCharge* in  -->
+    <!-- STEP L10b). Kept only so that migrateLeasePropertyTaxData  -->
+    <!-- can copy existing rows to the new tables. Do not use in    -->
+    <!-- business logic; remove after every environment migrated.   -->
     <!-- ========================================================= -->
 
     <!-- Municipal property tax rate (by municipality Geo; default standard rate elsewhere). -->
@@ -720,7 +938,7 @@ under the License.
         <field name="belowThreshold" type="indicator"><description>Y when the total assessed value is below the exemption threshold (免税点未満)</description></field>
         <field name="taxRate" type="fixed-point"><description>municipal rate applied (standard 1.4% unless the municipality has an excess rate)</description></field>
         <field name="taxAmount" type="currency-amount"><description>property tax due (0 when below the threshold)</description></field>
-        <field name="statusId" type="id"><description>LEASE_PTAX_STATUS: generated / paid</description></field>
+        <field name="statusId" type="id"><description>legacy LEASE_PTAX_STATUS (generated / paid); migrated to LEASE_PCHG_STATUS</description></field>
         <field name="generatedDate" type="date-time"></field>
         <field name="createdDate" type="date-time"></field>
         <prim-key field="leasePropertyTaxDeclId"/>

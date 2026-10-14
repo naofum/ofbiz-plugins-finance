@@ -289,7 +289,7 @@ core の `Agreement` / `AgreementRole` は使わない（`FinanceContract` は c
 
 ### 10.6 既存処理への影響
 
-なし。請求・入金・与信（`sumExposurePrincipal` は `customerPartyId`）・延滞・督促・固定資産税（`FixedAsset.partyId`）は従来どおり各層の取引先列を読む。
+なし。請求・入金・与信（`sumExposurePrincipal` は `customerPartyId`）・延滞・督促・固定資産税（`FixedAsset.partyId`。L10b 以降は公租公課 `LeasePublicCharge*`、物件の持分は `LeaseAgreementAsset.ownershipShare`）は従来どおり各層の取引先列を読む。
 土台を読むように切り替えるのは、複数の貸手・持分が必要になる L16 以降とする。
 
 ### 10.7 テスト（`FinanceContractPartyTests`）

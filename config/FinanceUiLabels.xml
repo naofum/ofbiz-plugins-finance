@@ -1388,55 +1388,75 @@ under the License.
         <value xml:lang="en">Component consumption tax total</value>
         <value xml:lang="ja">構成要素の消費税合計</value>
     </property>
-    <property key="FinanceLeasePropertyTaxEstimateInvalid">
-        <value xml:lang="en">The property tax estimate requires a positive acquisition cost and term.</value>
-        <value xml:lang="ja">固定資産税の見込みには正の取得価額と期間が必要です。</value>
+    <property key="FinanceLeasePublicChargeEstimateInvalid">
+        <value xml:lang="en">The public charge estimate requires a positive acquisition cost (or quantity) and term.</value>
+        <value xml:lang="ja">公租公課の見込みには正の取得価額（または数量）と期間が必要です。</value>
     </property>
-    <property key="FinanceLeasePropertyTaxNoMunicipality">
-        <value xml:lang="en">No municipality is set for fixed asset ${fixedAssetId} (set the asset location or municipalityGeoId).</value>
-        <value xml:lang="ja">固定資産 ${fixedAssetId} の市区町村が未設定です（設置場所または市区町村を設定してください）。</value>
+    <property key="FinanceLeasePublicChargeNothingDue">
+        <value xml:lang="en">No public charge is due for declaration ${leasePublicChargeDeclId} (below the exemption threshold).</value>
+        <value xml:lang="ja">申告 ${leasePublicChargeDeclId} は納付すべき公租公課がありません（免税点未満）。</value>
     </property>
-    <property key="FinanceLeasePropertyTaxNothingDue">
-        <value xml:lang="en">No property tax is due for declaration ${leasePropertyTaxDeclId} (below the exemption threshold).</value>
-        <value xml:lang="ja">申告 ${leasePropertyTaxDeclId} は納付すべき固定資産税がありません（免税点未満）。</value>
+    <property key="FinanceLeasePublicChargeTypeInvalid">
+        <value xml:lang="en">Public charge type ${publicChargeTypeId} is not defined or its calculation method is not supported.</value>
+        <value xml:lang="ja">公租公課の税目 ${publicChargeTypeId} が未定義か、計算方法に対応していません。</value>
     </property>
-    <property key="FinanceLeasePropertyTax">
-        <value xml:lang="en">Property tax (償却資産税)</value>
-        <value xml:lang="ja">固定資産税（償却資産税）</value>
+    <property key="FinanceLeasePublicChargeRateMissing">
+        <value xml:lang="en">No ${publicChargeTypeId} amount is defined for rate class ${rateClassCode}.</value>
+        <value xml:lang="ja">税目 ${publicChargeTypeId} の区分 ${rateClassCode} の税額が定義されていません。</value>
     </property>
-    <property key="FinanceLeasePropertyTaxDeclarations">
-        <value xml:lang="en">Property tax declarations</value>
-        <value xml:lang="ja">固定資産税申告</value>
+    <property key="FinanceLeasePublicChargeNotApplicable">
+        <value xml:lang="en">No asset of the quote is subject to ${publicChargeTypeId}.</value>
+        <value xml:lang="ja">見積の物件に税目 ${publicChargeTypeId} の対象がありません。</value>
     </property>
-    <property key="FinanceLeasePropertyTaxGenerate">
+    <property key="FinanceLeasePublicChargeShareInvalid">
+        <value xml:lang="en">The ownership share ${ownershipShare} must be greater than 0 and at most 1.</value>
+        <value xml:lang="ja">所有持分 ${ownershipShare} は 0 より大きく 1 以下で指定してください。</value>
+    </property>
+    <property key="FinanceLeasePublicCharge">
+        <value xml:lang="en">Public charges (公租公課)</value>
+        <value xml:lang="ja">公租公課</value>
+    </property>
+    <property key="FinanceLeasePublicChargeDeclarations">
+        <value xml:lang="en">Public charge declarations</value>
+        <value xml:lang="ja">公租公課の申告</value>
+    </property>
+    <property key="FinanceLeasePublicChargeGenerate">
         <value xml:lang="en">Generate declarations</value>
         <value xml:lang="ja">申告データ生成</value>
     </property>
-    <property key="FinanceLeasePropertyTaxYear">
+    <property key="FinanceLeasePublicChargeType">
+        <value xml:lang="en">Charge type</value>
+        <value xml:lang="ja">税目</value>
+    </property>
+    <property key="FinanceLeasePublicChargeAllTypes">
+        <value xml:lang="en">(all charge types)</value>
+        <value xml:lang="ja">（全税目）</value>
+    </property>
+    <property key="FinanceLeasePublicChargeYear">
         <value xml:lang="en">Tax year</value>
         <value xml:lang="ja">課税年度</value>
     </property>
-    <property key="FinanceLeasePropertyTaxMunicipality">
-        <value xml:lang="en">Municipality</value>
-        <value xml:lang="ja">市区町村</value>
+    <property key="FinanceLeasePublicChargeJurisdiction">
+        <value xml:lang="en">Jurisdiction</value>
+        <value xml:lang="ja">課税団体</value>
     </property>
-    <property key="FinanceLeasePropertyTaxAssessedValue">
+    <property key="FinanceLeasePublicChargeAssessedValue">
         <value xml:lang="en">Assessed value</value>
         <value xml:lang="ja">評価額</value>
     </property>
-    <property key="FinanceLeasePropertyTaxTaxableBase">
+    <property key="FinanceLeasePublicChargeTaxableBase">
         <value xml:lang="en">Taxable base</value>
         <value xml:lang="ja">課税標準額</value>
     </property>
-    <property key="FinanceLeasePropertyTaxBelowThreshold">
+    <property key="FinanceLeasePublicChargeBelowThreshold">
         <value xml:lang="en">Below exemption threshold</value>
         <value xml:lang="ja">免税点未満</value>
     </property>
-    <property key="FinanceLeasePropertyTaxAmount">
-        <value xml:lang="en">Property tax amount</value>
-        <value xml:lang="ja">固定資産税額</value>
+    <property key="FinanceLeasePublicChargeAmount">
+        <value xml:lang="en">Charge amount</value>
+        <value xml:lang="ja">税額</value>
     </property>
-    <property key="FinanceLeasePropertyTaxRecordPayment">
+    <property key="FinanceLeasePublicChargeRecordPayment">
         <value xml:lang="en">Record payment</value>
         <value xml:lang="ja">納付記録</value>
     </property>

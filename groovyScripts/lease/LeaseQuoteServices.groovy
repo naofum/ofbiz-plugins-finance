@@ -31,6 +31,7 @@ import org.apache.ofbiz.finance.common.FinanceInterestCalculator
 import org.apache.ofbiz.finance.lease.LeaseCalculator
 import org.apache.ofbiz.finance.lease.LeaseComponentCalculator
 import org.apache.ofbiz.finance.lease.LeaseProductHelper
+import org.apache.ofbiz.finance.lease.LeasePublicChargeServices
 import org.apache.ofbiz.finance.lease.LeaseTaxHelper
 import org.apache.ofbiz.service.ServiceUtil
 
@@ -232,24 +233,48 @@ Map createLeaseQuote() {
             return error(label('FinanceLeaseEnumInvalid', [field: 'revenueTreatmentEnumId', value: revenueTreatmentEnumId]))
         }
         BigDecimal monthlyAmount = (c.get('monthlyAmount') as BigDecimal)
-        // STEP L10 supply: a property tax equivalent component with no amount is
-        // estimated from the valuation x the municipal rate at the asset location.
-        if ((monthlyAmount == null || monthlyAmount.signum() == 0)
-                && componentTypeEnumId == 'LSCMP_PROP_TAX'
-                && c.get('municipalityGeoId') != null) {
-            Map est = dispatcher.runSync('resolveLeasePropertyTaxEstimate', [
-                    acquisitionCost  : acquisitionCost,
-                    termMonths       : term,
-                    municipalityGeoId: c.get('municipalityGeoId'),
-                    currencyUomId    : currencyUomId,
-                    usefulLifeYears  : (c.get('usefulLifeYears') as Long),
-                    asOfDate         : start,
-                    userLogin        : parameters.userLogin,
-                    locale           : parameters.locale])
-            if (ServiceUtil.isError(est)) {
-                return error(ServiceUtil.getErrorMessage(est))
+        // STEP L10 / L10b supply: a public charge equivalent component (固定資産税・自動車税・
+        // 重量税 相当額, LeasePublicChargeType.componentTypeEnumId) with no amount is estimated
+        // for the quote assets subject to the charge type (by asset type), grouped by the
+        // special taxable-base ratio. Local charges need the location (municipalityGeoId).
+        GenericValue chargeType = LeasePublicChargeServices.chargeTypeForComponent(delegator, componentTypeEnumId)
+        if ((monthlyAmount == null || monthlyAmount.signum() == 0) && chargeType != null
+                && (c.get('municipalityGeoId') != null
+                    || chargeType.jurisdictionLevelEnumId == LeasePublicChargeServices.JUR_FIXED)) {
+            Map<BigDecimal, Map> groups = [:]
+            assets.each { GenericValue a ->
+                Map<String, BigDecimal> subject = LeasePublicChargeServices.chargeTypesForAssetType(delegator, a.fixedAssetTypeId)
+                if (subject.containsKey(chargeType.publicChargeTypeId)) {
+                    BigDecimal ratio = subject.get(chargeType.publicChargeTypeId).stripTrailingZeros()
+                    Map g = groups.get(ratio) ?: [cost: BigDecimal.ZERO, quantity: BigDecimal.ZERO]
+                    g.cost = g.cost.add(a.getBigDecimal('estimatedAcquisitionCost') ?: BigDecimal.ZERO)
+                    g.quantity = g.quantity.add(a.getBigDecimal('quantity') ?: BigDecimal.ONE)
+                    groups.put(ratio, g)
+                }
             }
-            monthlyAmount = (BigDecimal) est.monthlyEstimate
+            if (groups.isEmpty()) {
+                return error(label('FinanceLeasePublicChargeNotApplicable', [publicChargeTypeId: chargeType.publicChargeTypeId]))
+            }
+            monthlyAmount = BigDecimal.ZERO
+            for (Map.Entry<BigDecimal, Map> g : groups.entrySet()) {
+                Map est = dispatcher.runSync('resolveLeasePublicChargeEstimate', [
+                        publicChargeTypeId: chargeType.publicChargeTypeId,
+                        acquisitionCost   : g.value.cost,
+                        quantity          : g.value.quantity,
+                        taxableBaseRatio  : g.key,
+                        termMonths        : term,
+                        municipalityGeoId : c.get('municipalityGeoId'),
+                        rateClassCode     : c.get('rateClassCode'),
+                        currencyUomId     : currencyUomId,
+                        usefulLifeYears   : (c.get('usefulLifeYears') as Long),
+                        asOfDate          : start,
+                        userLogin         : parameters.userLogin,
+                        locale            : parameters.locale])
+                if (ServiceUtil.isError(est)) {
+                    return error(ServiceUtil.getErrorMessage(est))
+                }
+                monthlyAmount = monthlyAmount.add((BigDecimal) est.monthlyEstimate)
+            }
         }
         if (monthlyAmount == null || monthlyAmount.signum() < 0) {
             return error(label('FinanceLeaseComponentInvalid', [reason: "monthlyAmount ${monthlyAmount}"]))

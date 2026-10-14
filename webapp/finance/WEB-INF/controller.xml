@@ -822,22 +822,22 @@ under the License.
         <response name="success" type="request-redirect" value="FindLeaseExpiry"/>
         <response name="error" type="request-redirect" value="FindLeaseExpiry"/>
     </request-map>
-    <!-- STEP L10: property tax -->
-    <request-map uri="FindLeasePropertyTax">
+    <!-- STEP L10 / L10b: public charges (公租公課) -->
+    <request-map uri="FindLeasePublicCharge">
         <security https="true" auth="true"/>
-        <response name="success" type="view" value="FindLeasePropertyTax"/>
+        <response name="success" type="view" value="FindLeasePublicCharge"/>
     </request-map>
-    <request-map uri="generateLeasePropertyTaxDeclarations">
+    <request-map uri="generateLeasePublicChargeDeclarations">
         <security https="true" auth="true"/>
-        <event type="service" invoke="generateLeasePropertyTaxDeclarations"/>
-        <response name="success" type="request-redirect" value="FindLeasePropertyTax"/>
-        <response name="error" type="request-redirect" value="FindLeasePropertyTax"/>
+        <event type="service" invoke="generateLeasePublicChargeDeclarations"/>
+        <response name="success" type="request-redirect" value="FindLeasePublicCharge"/>
+        <response name="error" type="request-redirect" value="FindLeasePublicCharge"/>
     </request-map>
-    <request-map uri="recordLeasePropertyTaxPayment">
+    <request-map uri="recordLeasePublicChargePayment">
         <security https="true" auth="true"/>
-        <event type="service" invoke="recordLeasePropertyTaxPayment"/>
-        <response name="success" type="request-redirect" value="FindLeasePropertyTax"/>
-        <response name="error" type="request-redirect" value="FindLeasePropertyTax"/>
+        <event type="service" invoke="recordLeasePublicChargePayment"/>
+        <response name="success" type="request-redirect" value="FindLeasePublicCharge"/>
+        <response name="error" type="request-redirect" value="FindLeasePublicCharge"/>
     </request-map>    <!-- STEP L8: lease documents and inquiries -->
     <request-map uri="PrintLeaseDocument.pdf">
         <security https="true" auth="true"/>
@@ -900,7 +900,7 @@ under the License.
     <view-map name="FindLeaseAgreement" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#FindLeaseAgreement"/>
     <view-map name="ManageLeaseAgreement" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#ManageLeaseAgreement"/>
     <view-map name="FindLeaseExpiry" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#FindLeaseExpiry"/>
-    <view-map name="FindLeasePropertyTax" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#FindLeasePropertyTax"/>
+    <view-map name="FindLeasePublicCharge" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#FindLeasePublicCharge"/>
     <view-map name="LeaseCollectionStatus" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#LeaseCollectionStatus"/>
     <view-map name="LeaseOutstandingPrincipal" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#LeaseOutstandingPrincipal"/>
     <view-map name="LeaseAssetRegister" type="screen" page="component://finance/widget/FinanceLeaseScreens.xml#LeaseAssetRegister"/>

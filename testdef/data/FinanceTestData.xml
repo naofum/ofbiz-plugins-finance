@@ -140,10 +140,10 @@ under the License.
     <!-- STEP L9: separate component revenue -->
     <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_COMP_REVENUE" glAccountId="403800"/>
     <GlAccountOrganization glAccountId="403800" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
-    <!-- STEP L10: property tax expense and payable -->
-    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_PTAX_EXPENSE" glAccountId="601500"/>
+    <!-- STEP L10 / L10b: public charge expense (租税公課) and payable (未払租税公課) -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_PCHG_EXPENSE" glAccountId="601500"/>
     <GlAccountOrganization glAccountId="601500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
-    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_PTAX_PAYABLE" glAccountId="224600"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_PCHG_PAYABLE" glAccountId="224600"/>
     <GlAccountOrganization glAccountId="224600" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <Party partyId="TEST_TAXAUTH_JP" partyTypeId="PARTY_GROUP"/>
     <PartyGroup partyId="TEST_TAXAUTH_JP" groupName="Test Consumption Tax Authority"/>
