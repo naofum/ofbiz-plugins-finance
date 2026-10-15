@@ -75,6 +75,9 @@ context.profitRecognitions = from('LeaseProfitRecognition').where('leaseAgreemen
 context.paymentReceipts = from('LeasePaymentReceipt').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
         .orderBy('receiptDate').queryList()
 context.leaseBalance = LeaseAccountingServices.computeBalance(delegator, leaseAgreement)
+// STEP L12: operating lease depreciation.
+context.isOperating = leaseAgreement.leaseClassEnumId == 'LEASE_CLS_OPERATING'
+context.depreciations = context.isOperating ? from('LeaseAssetDepreciation').where('leaseAgreementId', leaseAgreement.leaseAgreementId).orderBy('periodNumber', 'assetSeqId').queryList() : []
 
 // STEP L6: delinquency records of the common layer (keyed by financeContractId).
 String financeContractId = leaseAgreement.financeContractId

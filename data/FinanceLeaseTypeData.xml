@@ -26,7 +26,7 @@ under the License.
     <FinancialProductType financialProductTypeId="LEASE" hasTable="N" description="Lease (root)"/>
     <FinancialProductType financialProductTypeId="LEASE_FIN_TRANSFER" parentTypeId="LEASE" hasTable="N" description="Finance lease - ownership transfer"/>
     <FinancialProductType financialProductTypeId="LEASE_FIN_NONTRANS" parentTypeId="LEASE" hasTable="N" description="Finance lease - no ownership transfer"/>
-    <FinancialProductType financialProductTypeId="LEASE_OPERATING" parentTypeId="LEASE" hasTable="N" description="Operating lease (later step)"/>
+    <FinancialProductType financialProductTypeId="LEASE_OPERATING" parentTypeId="LEASE" hasTable="N" description="Operating lease"/>
 
     <!-- ============ Lease class (derived from the product type) ============ -->
     <EnumerationType description="Lease Class" enumTypeId="LEASE_CLASS" hasTable="N"/>
@@ -43,6 +43,8 @@ under the License.
     <!-- Only method 1 is implemented. Method 3 (interest only) is added with its strategy. -->
     <EnumerationType description="Lease Revenue Method" enumTypeId="LEASE_REV_METHOD" hasTable="N"/>
     <Enumeration description="Sales and cost of sales at lease start (第1法)" enumCode="AT_START" enumId="LEASE_REV_AT_START" sequenceId="01" enumTypeId="LEASE_REV_METHOD"/>
+    <!-- STEP L12: operating lease (lease revenue at billing, lease-term straight-line depreciation). -->
+    <Enumeration description="Operating lease: lease revenue at billing, depreciation (オペレーティング)" enumCode="OPERATING" enumId="LEASE_REV_OPERATING" sequenceId="02" enumTypeId="LEASE_REV_METHOD"/>
 
     <!-- ============ Lease application status ============ -->
     <StatusType description="Lease Application" hasTable="N" statusTypeId="LEASE_APP_STATUS"/>
@@ -264,4 +266,14 @@ under the License.
     <!-- Generic maintenance type for unscheduled repairs (core ProductMaintType). -->
     <ProductMaintType description="Inspection (点検)" productMaintTypeId="LEASE_INSPECTION"/>
     <ProductMaintType description="Repair (修理)" productMaintTypeId="LEASE_REPAIR"/>
-</entity-engine-xml>
+    <!-- ============ STEP L12: operating lease (オペレーティングリース) ============ -->
+    <!-- The leased asset is the lessor's fixed asset (賃貸資産), depreciated with the lease-term
+         straight-line method to the residual value; lease payments are lease revenue at billing. -->
+    <GlAccountType description="Leased assets - operating lease (賃貸資産)" glAccountTypeId="LEASE_OPER_ASSET" hasTable="N" parentTypeId="FIXED_ASSET"/>
+    <GlAccountType description="Accumulated depreciation of leased assets (賃貸資産減価償却累計額)" glAccountTypeId="LEASE_OPER_ACCUM_DEP" hasTable="N" parentTypeId="FIXED_ASSET"/>
+    <GlAccountType description="Depreciation of leased assets (賃貸資産減価償却費)" glAccountTypeId="LEASE_OPER_DEPR" hasTable="N" parentTypeId="COGS_ACCOUNT"/>
+    <GlAccountType description="Operating lease revenue (受取リース料)" glAccountTypeId="LEASE_OPER_REVENUE" hasTable="N" parentTypeId="SALES_ACCOUNT"/>
+    <GlAccount glAccountId="165500" accountCode="165500" glAccountClassId="LONGTERM_ASSET" glAccountTypeId="LEASE_OPER_ASSET" glResourceTypeId="MONEY" accountName="LEASED ASSETS (OPERATING LEASE)"/>
+    <GlAccount glAccountId="165900" accountCode="165900" glAccountClassId="ACCUM_DEPRECIATION" glAccountTypeId="LEASE_OPER_ACCUM_DEP" glResourceTypeId="MONEY" accountName="ACCUMULATED DEPRECIATION - LEASED ASSETS"/>
+    <GlAccount glAccountId="503800" accountCode="503800" glAccountClassId="COGS_EXPENSE" glAccountTypeId="LEASE_OPER_DEPR" glResourceTypeId="MONEY" accountName="DEPRECIATION OF LEASED ASSETS"/>
+    <GlAccount glAccountId="404000" accountCode="404000" glAccountClassId="REVENUE" glAccountTypeId="LEASE_OPER_REVENUE" glResourceTypeId="MONEY" accountName="OPERATING LEASE REVENUE"/></entity-engine-xml>

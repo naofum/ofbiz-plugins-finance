@@ -407,6 +407,14 @@ public final class LeaseAccountingServices {
                 return error("FinanceLeaseRevenueMethodUnsupported",
                         UtilMisc.toMap("revenueMethodEnumId", agreement.getString("revenueMethodEnumId")), locale);
             }
+            if (!strategy.defersProfit()) {
+                // STEP L12: no deferred profit (operating lease revenue is booked at billing).
+                Map<String, Object> none = ServiceUtil.returnSuccess();
+                none.put("recognizedAmount", BigDecimal.ZERO);
+                none.put("cumulativeAmount", BigDecimal.ZERO);
+                none.put("createdCount", 0L);
+                return none;
+            }
             LocalDate start = toDate(agreement.getTimestamp("leaseStartDate"));
             LocalDate requested = toDate(recognitionDate);
             if (requested.isBefore(start)) {
@@ -485,6 +493,7 @@ public final class LeaseAccountingServices {
         long processed = 0;
         long invoices = 0;
         long recognitions = 0;
+        long depreciations = 0;
         try {
             List<GenericValue> agreements = new ArrayList<>();
             if (UtilValidate.isNotEmpty(requestedId)) {
@@ -511,12 +520,14 @@ public final class LeaseAccountingServices {
                 }
                 invoices += (Long) one.get("createdInvoiceCount");
                 recognitions += (Long) one.get("createdRecognitionCount");
+                depreciations += one.get("createdDepreciationCount") == null ? 0L : (Long) one.get("createdDepreciationCount");
                 processed++;
             }
             Map<String, Object> result = ServiceUtil.returnSuccess();
             result.put("processedAgreementCount", processed);
             result.put("createdInvoiceCount", invoices);
             result.put("createdRecognitionCount", recognitions);
+            result.put("createdDepreciationCount", depreciations);
             return result;
         } catch (GenericEntityException | GenericServiceException e) {
             Debug.logError(e, MODULE);
@@ -564,9 +575,24 @@ public final class LeaseAccountingServices {
                 if (ServiceUtil.isError(rec)) {
                     return batchError(leaseAgreementId, ServiceUtil.getErrorMessage(rec), locale);
                 }
+                // STEP L12: depreciation of the leased assets of an operating lease.
+                long depreciations = 0;
+                GenericValue agreement = findAgreement(delegator, leaseAgreementId);
+                LeaseRevenueStrategy strategy = agreement == null ? null
+                        : LeaseRevenueStrategy.REGISTRY.get(agreement.getString("revenueMethodEnumId"));
+                if (strategy != null && strategy.depreciatesAsset()) {
+                    Map<String, Object> dep = LeaseDepreciationServices.depreciateLeaseAssets(dctx, UtilMisc.toMap(
+                            "leaseAgreementId", leaseAgreementId, "depreciationDate", processingDate,
+                            "userLogin", userLogin, "locale", locale));
+                    if (ServiceUtil.isError(dep)) {
+                        return batchError(leaseAgreementId, ServiceUtil.getErrorMessage(dep), locale);
+                    }
+                    depreciations = (Long) dep.get("createdCount");
+                }
                 Map<String, Object> result = ServiceUtil.returnSuccess();
                 result.put("createdInvoiceCount", invoices);
                 result.put("createdRecognitionCount", rec.get("createdCount"));
+                result.put("createdDepreciationCount", depreciations);
                 return result;
             }
         } catch (GenericEntityException e) {
@@ -712,6 +738,7 @@ public final class LeaseAccountingServices {
     public static Map<String, Object> computeBalance(Delegator delegator, GenericValue agreement)
             throws GenericEntityException {
         String leaseAgreementId = agreement.getString("leaseAgreementId");
+        boolean operating = LeaseProductHelper.isOperating(agreement);
         BigDecimal billedLease = BigDecimal.ZERO;
         BigDecimal billedTax = BigDecimal.ZERO;
         BigDecimal billedComponent = BigDecimal.ZERO;
@@ -728,6 +755,11 @@ public final class LeaseAccountingServices {
             BigDecimal tax = nz(link.getBigDecimal("taxAmount"));
             BigDecimal interest = nz(link.getBigDecimal("interestPortion"));
             BigDecimal principal = nz(link.getBigDecimal("principalPortion"));
+            if (operating) {
+                // STEP L12: the whole lease payment is lease revenue (no principal recovery).
+                interest = interest.add(principal);
+                principal = BigDecimal.ZERO;
+            }
             BigDecimal component = nz(link.getBigDecimal("componentAmount"));
             BigDecimal componentTax = nz(link.getBigDecimal("componentTaxAmount"));
             billedLease = billedLease.add(nz(link.getBigDecimal("leaseAmount")));
@@ -777,10 +809,20 @@ public final class LeaseAccountingServices {
         balance.put("collectedComponentAmount", collectedComponent);
         balance.put("collectedInterestAmount", collectedInterest);
         balance.put("collectedPrincipalAmount", collectedPrincipal);
-        balance.put("outstandingPrincipal", nz(agreement.getBigDecimal("acquisitionCost")).subtract(collectedPrincipal));
+        balance.put("outstandingPrincipal", operating ? BigDecimal.ZERO
+                : nz(agreement.getBigDecimal("acquisitionCost")).subtract(collectedPrincipal));
         balance.put("unbilledLeaseAmount", nz(agreement.getBigDecimal("totalLeaseAmount")).subtract(billedLease));
         balance.put("recognizedProfitAmount", recognized);
-        balance.put("deferredProfitBalance", nz(agreement.getBigDecimal("totalInterestAmount")).subtract(recognized));
+        balance.put("deferredProfitBalance", operating ? BigDecimal.ZERO
+                : nz(agreement.getBigDecimal("totalInterestAmount")).subtract(recognized));
+        // STEP L12: the leased asset of an operating lease (cost, accumulated depreciation, book value).
+        if (operating) {
+            BigDecimal cost = nz(agreement.getBigDecimal("acquisitionCost"));
+            BigDecimal accumulated = LeaseDepreciationServices.accumulatedDepreciation(delegator, leaseAgreementId, null);
+            balance.put("leasedAssetCost", cost);
+            balance.put("accumulatedDepreciation", accumulated);
+            balance.put("leasedAssetBookValue", cost.subtract(accumulated));
+        }
         return balance;
     }
 

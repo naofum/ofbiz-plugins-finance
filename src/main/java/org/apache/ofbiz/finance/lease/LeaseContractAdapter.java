@@ -169,6 +169,11 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
             if (unpaid.signum() <= 0) {
                 continue;
             }
+            // STEP L12: an operating lease payment is lease revenue as a whole (no principal recovery).
+            if (LeaseProductHelper.isOperating(agreement)) {
+                interest = interest.add(principal);
+                principal = BigDecimal.ZERO;
+            }
             // Unpaid remains in the order principal, interest, component, tax (component tax
             // merged with the consumption tax). The late fee base uses the lease payment
             // (principal + interest), optionally including the tax; components stay separate.

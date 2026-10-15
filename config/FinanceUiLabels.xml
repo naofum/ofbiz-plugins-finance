@@ -1142,9 +1142,37 @@ under the License.
         <value xml:lang="en">Default monthly lease rate factor (0.018 = 1.8%)</value>
         <value xml:lang="ja">標準月額リース料率（0.018 = 1.8%）</value>
     </property>
-    <property key="FinanceLeaseOperatingNotSupported">
-        <value xml:lang="en">Operating leases are not supported yet.</value>
-        <value xml:lang="ja">オペレーティングリースは未対応です。</value>
+    <property key="FinanceLeaseRevenueMethodClassMismatch">
+        <value xml:lang="en">Revenue method ${revenueMethodEnumId} does not match lease class ${leaseClassEnumId} (operating leases use LEASE_REV_OPERATING, finance leases do not).</value>
+        <value xml:lang="ja">収益計上方法 ${revenueMethodEnumId} はリース区分 ${leaseClassEnumId} と合いません（オペレーティングリースは LEASE_REV_OPERATING、ファイナンスリースはそれ以外）。</value>
+    </property>
+    <property key="FinanceLeaseOperatingTaxTimingInvalid">
+        <value xml:lang="en">An operating lease is taxed per installment; the lump-sum tax timing at the lease start is not allowed.</value>
+        <value xml:lang="ja">オペレーティングリースの消費税は各回の計上のみで、開始時一括は指定できません。</value>
+    </property>
+    <property key="FinanceLeaseDepreciationNotOperating">
+        <value xml:lang="en">Lease ${leaseAgreementId} is not an operating lease; its assets are not depreciated by the lessor.</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} はオペレーティングリースではないため、貸手の減価償却の対象外です。</value>
+    </property>
+    <property key="FinanceLeaseAccumulatedDepreciation">
+        <value xml:lang="en">Accumulated depreciation</value>
+        <value xml:lang="ja">減価償却累計額</value>
+    </property>
+    <property key="FinanceLeaseAssetBookValue">
+        <value xml:lang="en">Book value of the leased assets</value>
+        <value xml:lang="ja">賃貸資産の帳簿価額</value>
+    </property>
+    <property key="FinanceLeaseDepreciation">
+        <value xml:lang="en">Depreciation of leased assets</value>
+        <value xml:lang="ja">賃貸資産の減価償却</value>
+    </property>
+    <property key="FinanceLeaseDepreciate">
+        <value xml:lang="en">Depreciate</value>
+        <value xml:lang="ja">減価償却の実行</value>
+    </property>
+    <property key="FinanceLeasePeriodNumber">
+        <value xml:lang="en">Month</value>
+        <value xml:lang="ja">回</value>
     </property>
     <property key="FinanceLeasePaymentTiming">
         <value xml:lang="en">Payment timing</value>

@@ -822,6 +822,17 @@ under the License.
         <response name="success" type="request-redirect" value="FindLeaseExpiry"/>
         <response name="error" type="request-redirect" value="FindLeaseExpiry"/>
     </request-map>
+    <!-- STEP L12: operating lease depreciation -->
+    <request-map uri="depreciateLeaseAssets">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="depreciateLeaseAssets"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
     <!-- STEP L11: maintenance lease -->
     <request-map uri="createLeaseMaintPlan">
         <security https="true" auth="true"/>

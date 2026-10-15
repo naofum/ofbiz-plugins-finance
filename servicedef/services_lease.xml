@@ -278,6 +278,7 @@ under the License.
         <attribute name="processedAgreementCount" type="Long" mode="OUT" optional="true"/>
         <attribute name="createdInvoiceCount" type="Long" mode="OUT" optional="true"/>
         <attribute name="createdRecognitionCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="createdDepreciationCount" type="Long" mode="OUT" optional="true"><description>STEP L12: depreciation periods of operating leases</description></attribute>
     </service>
     <service name="runLeaseAgreementMonthlyAccounting" engine="java" export="false" require-new-transaction="true" transaction-timeout="1800"
             location="org.apache.ofbiz.finance.lease.LeaseAccountingServices" invoke="runLeaseAgreementMonthlyAccounting" auth="true">
@@ -287,6 +288,7 @@ under the License.
         <attribute name="processingDate" type="Timestamp" mode="IN" optional="true"/>
         <attribute name="createdInvoiceCount" type="Long" mode="OUT" optional="true"/>
         <attribute name="createdRecognitionCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="createdDepreciationCount" type="Long" mode="OUT" optional="true"><description>STEP L12: depreciation periods of operating leases</description></attribute>
     </service>    <service name="receiveLeasePayment" engine="java"
             location="org.apache.ofbiz.finance.lease.LeaseAccountingServices" invoke="receiveLeasePayment" auth="true">
         <description>Receive a customer payment (PMNT_RECEIVED) for an ACTIVE lease and apply it to the given lease invoice,
@@ -323,6 +325,9 @@ under the License.
         <attribute name="unbilledLeaseAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="recognizedProfitAmount" type="BigDecimal" mode="OUT" optional="true"/>
         <attribute name="deferredProfitBalance" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="leasedAssetCost" type="BigDecimal" mode="OUT" optional="true"><description>STEP L12 (operating): acquisition cost of the leased assets</description></attribute>
+        <attribute name="accumulatedDepreciation" type="BigDecimal" mode="OUT" optional="true"><description>STEP L12 (operating)</description></attribute>
+        <attribute name="leasedAssetBookValue" type="BigDecimal" mode="OUT" optional="true"><description>STEP L12 (operating): cost - accumulated depreciation</description></attribute>
     </service>
     <!-- ============================================================= -->
     <!-- STEP L7: expiry (tasks, notice, return, disposal, transfer)   -->
@@ -470,6 +475,22 @@ under the License.
         <attribute name="ratesMigrated" type="Long" mode="OUT" optional="true"/>
         <attribute name="declarationsMigrated" type="Long" mode="OUT" optional="true"/>
         <attribute name="declarationConflicts" type="Long" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- STEP L12: operating lease                                     -->
+    <!-- ============================================================= -->
+    <service name="depreciateLeaseAssets" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseDepreciationServices" invoke="depreciateLeaseAssets" auth="true">
+        <description>Depreciate the leased assets of an ACTIVE operating lease (lease-term straight-line to the residual value)
+            for every lease month ending on or before depreciationDate not yet depreciated: Dr depreciation of leased assets /
+            Cr accumulated depreciation. Idempotent per asset x month. Also run by the monthly accounting batch.</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="depreciationDate" type="Timestamp" mode="IN" optional="true"><description>defaults to today</description></attribute>
+        <attribute name="createdCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="depreciatedAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="accumulatedDepreciation" type="BigDecimal" mode="OUT" optional="true"/>
     </service>
 
     <!-- ============================================================= -->

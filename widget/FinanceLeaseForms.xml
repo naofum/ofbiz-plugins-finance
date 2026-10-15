@@ -608,7 +608,27 @@ under the License.
         <field name="unbilledLeaseAmount" title="${uiLabelMap.FinanceLeaseUnbilledAmount}"><display type="currency" currency="${currencyUomId}"/></field>
         <field name="recognizedProfitAmount" title="${uiLabelMap.FinanceLeaseRecognizedProfit}"><display type="currency" currency="${currencyUomId}"/></field>
         <field name="deferredProfitBalance" title="${uiLabelMap.FinanceLeaseDeferredProfitBalance}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="accumulatedDepreciation" title="${uiLabelMap.FinanceLeaseAccumulatedDepreciation}" use-when="${bsh:context.get(&quot;isOperating&quot;)}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="leasedAssetBookValue" title="${uiLabelMap.FinanceLeaseAssetBookValue}" use-when="${bsh:context.get(&quot;isOperating&quot;)}"><display type="currency" currency="${currencyUomId}"/></field>
     </form>
+
+    <!-- STEP L12: depreciation of operating lease assets -->
+    <form name="DepreciateLeaseAssets" type="single" target="depreciateLeaseAssets">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="depreciationDate" title="${uiLabelMap.FinanceLeaseRecognitionDate}" tooltip="${uiLabelMap.FinanceLeaseDefaultToday}"><date-time type="date"/></field>
+        <field name="runButton" title="${uiLabelMap.FinanceLeaseDepreciate}"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListLeaseAssetDepreciation" list-name="depreciations" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="periodNumber" title="${uiLabelMap.FinanceLeasePeriodNumber}"><display/></field>
+        <field name="assetSeqId" title="${uiLabelMap.FinanceLeaseAssetSeqId}"><display/></field>
+        <field name="thruDate" title="${uiLabelMap.CommonThruDate}"><display type="date"/></field>
+        <field name="amount" title="${uiLabelMap.FinanceLeaseDepreciation}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="cumulativeAmount" title="${uiLabelMap.FinanceLeaseAccumulatedDepreciation}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="bookValue" title="${uiLabelMap.FinanceLeaseAssetBookValue}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="acctgTransId"><display/></field>
+    </grid>
 
     <form name="CreateLeaseInstallmentInvoice" type="single" target="createLeaseInstallmentInvoice">
         <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>

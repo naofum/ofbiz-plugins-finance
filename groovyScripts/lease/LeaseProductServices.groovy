@@ -22,6 +22,7 @@
 import org.apache.ofbiz.base.util.UtilProperties
 import org.apache.ofbiz.entity.GenericValue
 import org.apache.ofbiz.finance.lease.LeaseProductHelper
+import org.apache.ofbiz.finance.lease.LeaseTaxHelper
 
 String label(String key, Map args = [:]) {
     return UtilProperties.getMessage('FinanceUiLabels', key, args, parameters.locale)
@@ -61,8 +62,14 @@ String validateTerms(GenericValue terms) {
             return label('FinanceLeaseEnumInvalid', [field: entry.key, value: enumId])
         }
     }
-    if (LeaseProductHelper.CLASS_OPERATING == terms.leaseClassEnumId) {
-        return label('FinanceLeaseOperatingNotSupported')
+    // STEP L12: operating leases use their own revenue method and per-installment tax only.
+    boolean operating = LeaseProductHelper.CLASS_OPERATING == terms.leaseClassEnumId
+    if (operating != (LeaseProductHelper.REV_OPERATING == terms.revenueMethodEnumId)) {
+        return label('FinanceLeaseRevenueMethodClassMismatch', [revenueMethodEnumId: terms.revenueMethodEnumId,
+                                                                leaseClassEnumId: terms.leaseClassEnumId])
+    }
+    if (operating && terms.taxTimingEnumId == LeaseTaxHelper.TIMING_AT_START) {
+        return label('FinanceLeaseOperatingTaxTimingInvalid')
     }
     if (!(terms.taxable in ['Y', 'N'])) {
         return label('FinanceLeaseEnumInvalid', [field: 'taxable', value: terms.taxable])
@@ -109,7 +116,7 @@ Map createFinancialProductLease() {
     editableFields().each { String f -> terms.set(f, param(f)) }
     terms.leaseClassEnumId = leaseClass.leaseClassEnumId
     terms.paymentTimingEnumId = terms.paymentTimingEnumId ?: LeaseProductHelper.TIMING_ADVANCE
-    terms.revenueMethodEnumId = terms.revenueMethodEnumId ?: LeaseProductHelper.REV_AT_START
+    terms.revenueMethodEnumId = terms.revenueMethodEnumId ?: LeaseProductHelper.defaultRevenueMethod(terms.leaseClassEnumId)
     terms.taxable = terms.taxable ?: 'Y'
     if (terms.residualValueRate == null && LeaseProductHelper.CLASS_FIN_NON_TRANSFER == terms.leaseClassEnumId) {
         terms.residualValueRate = BigDecimal.ZERO

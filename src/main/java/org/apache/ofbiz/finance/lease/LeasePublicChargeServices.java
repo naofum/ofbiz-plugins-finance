@@ -38,6 +38,8 @@ import org.apache.ofbiz.base.util.UtilValidate;
 import org.apache.ofbiz.entity.Delegator;
 import org.apache.ofbiz.entity.GenericEntityException;
 import org.apache.ofbiz.entity.GenericValue;
+import org.apache.ofbiz.entity.condition.EntityCondition;
+import org.apache.ofbiz.entity.condition.EntityOperator;
 import org.apache.ofbiz.entity.util.EntityQuery;
 import org.apache.ofbiz.finance.common.FinanceGlHelper;
 import org.apache.ofbiz.finance.common.FinanceInterestCalculator;
@@ -460,10 +462,13 @@ public final class LeasePublicChargeServices {
                 types = EntityQuery.use(delegator).from("LeasePublicChargeType").orderBy("sequenceNum").queryList();
             }
 
-            // Lessor-owned non-transfer assets still leased.
+            // Lessor-owned assets still leased: non-transfer finance leases and (STEP L12) operating leases.
             List<GenericValue[]> candidates = new ArrayList<>();
             for (GenericValue agreement : EntityQuery.use(delegator).from("LeaseAgreement")
-                    .where("leaseClassEnumId", CLASS_NON_TRANSFER, "organizationPartyId", organizationPartyId).queryList()) {
+                    .where(EntityCondition.makeCondition(UtilMisc.toList(
+                            EntityCondition.makeCondition("leaseClassEnumId", EntityOperator.IN,
+                                    UtilMisc.toList(CLASS_NON_TRANSFER, LeaseProductHelper.CLASS_OPERATING)),
+                            EntityCondition.makeCondition("organizationPartyId", organizationPartyId)))).queryList()) {
                 String status = agreement.getString("statusId");
                 if (!"LEASEAGR_ACTIVE".equals(status) && !"LEASEAGR_COMPLETED".equals(status)) {
                     continue;

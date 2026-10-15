@@ -385,6 +385,21 @@ under the License.
                                         <screenlet title="${uiLabelMap.FinanceLeaseProfitRecognitions}">
                                             <include-grid name="ListLeaseProfitRecognitions" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                         </screenlet>
+                                        <!-- STEP L12: depreciation of operating lease assets -->
+                                        <section>
+                                            <condition><if-compare field="isOperating" operator="equals" value="true" type="Boolean"/></condition>
+                                            <widgets>
+                                                <screenlet title="${uiLabelMap.FinanceLeaseDepreciation}">
+                                                    <section>
+                                                        <condition><if-compare field="isActive" operator="equals" value="true" type="Boolean"/></condition>
+                                                        <widgets>
+                                                            <include-form name="DepreciateLeaseAssets" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                        </widgets>
+                                                    </section>
+                                                    <include-grid name="ListLeaseAssetDepreciation" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </screenlet>
+                                            </widgets>
+                                        </section>
                                         <screenlet title="${uiLabelMap.FinanceLeasePaymentReceipts}">
                                             <include-grid name="ListLeasePaymentReceipts" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                         </screenlet>

@@ -46,6 +46,18 @@ public final class LeaseProductHelper {
 
     public static final String TIMING_ADVANCE = "LEASE_PAY_ADVANCE";
     public static final String REV_AT_START = "LEASE_REV_AT_START";
+    /** STEP L12: operating lease (lease revenue at billing, depreciation of the leased asset). */
+    public static final String REV_OPERATING = "LEASE_REV_OPERATING";
+
+    /** Default revenue method of a lease class. */
+    public static String defaultRevenueMethod(String leaseClassEnumId) {
+        return CLASS_OPERATING.equals(leaseClassEnumId) ? REV_OPERATING : REV_AT_START;
+    }
+
+    /** True for an operating lease agreement / terms. */
+    public static boolean isOperating(GenericValue leaseValue) {
+        return leaseValue != null && CLASS_OPERATING.equals(leaseValue.getString("leaseClassEnumId"));
+    }
 
     /** Product type -> lease class. The root type LEASE has no class. */
     private static final Map<String, String> CLASS_BY_TYPE = UtilMisc.toMap(

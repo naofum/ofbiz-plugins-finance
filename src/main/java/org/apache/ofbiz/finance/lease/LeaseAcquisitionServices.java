@@ -424,6 +424,10 @@ public final class LeaseAcquisitionServices {
                 asset.set("assetStatusId", ASSET_LEASED);
                 asset.store();
             }
+            // STEP L12: the operating lease asset is the lessor's depreciable fixed asset.
+            if (strategy.depreciatesAsset()) {
+                LeaseDepreciationServices.initFixedAssets(delegator, agreement);
+            }
 
             String acctgTransId = FinanceGlHelper.postTransaction(delegator, dispatcher,
                     "Lease start " + leaseAgreementId, start, agreement.getString("organizationPartyId"),

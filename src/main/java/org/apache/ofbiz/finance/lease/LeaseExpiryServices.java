@@ -230,6 +230,29 @@ public final class LeaseExpiryServices {
                 agreement.getString("organizationPartyId"), partyId, agreement.getString("currencyUomId"), lines, userLogin);
     }
 
+    /**
+     * STEP L12: disposal of an operating lease asset at its book value: Dr disposal
+     * receivable (proceeds), Dr accumulated depreciation, Cr leased asset (cost),
+     * Cr gain / Dr loss (proceeds - book value).
+     */
+    private static String postOperatingDisposal(Delegator delegator, LocalDispatcher dispatcher, GenericValue agreement,
+            String assetSeqId, BigDecimal cost, BigDecimal accumulated, BigDecimal proceeds, Timestamp date, String partyId,
+            GenericValue userLogin) throws GenericEntityException, GenericServiceException {
+        List<FinanceGlHelper.Line> lines = new ArrayList<>();
+        lines.add(new FinanceGlHelper.Line(GL_DISPOSAL_RECV, true, proceeds));
+        lines.add(new FinanceGlHelper.Line(LeaseRevenueStrategy.GL_OPER_ACCUM_DEPR, true, accumulated));
+        lines.add(new FinanceGlHelper.Line(LeaseRevenueStrategy.GL_OPER_ASSET, false, cost));
+        BigDecimal diff = proceeds.subtract(cost.subtract(accumulated));
+        if (diff.signum() > 0) {
+            lines.add(new FinanceGlHelper.Line(GL_DISPOSAL_GAIN, false, diff));
+        } else if (diff.signum() < 0) {
+            lines.add(new FinanceGlHelper.Line(GL_DISPOSAL_LOSS, true, diff.negate()));
+        }
+        return FinanceGlHelper.postTransaction(delegator, dispatcher,
+                "Leased asset disposal " + agreement.getString("leaseAgreementId") + "/" + assetSeqId, date,
+                agreement.getString("organizationPartyId"), partyId, agreement.getString("currencyUomId"), lines, userLogin);
+    }
+
     private static void setFixedAssetEnd(Delegator delegator, GenericValue asset, Timestamp date, String newOwner)
             throws GenericEntityException {
         if (UtilValidate.isEmpty(asset.getString("fixedAssetId"))) {
@@ -271,6 +294,11 @@ public final class LeaseExpiryServices {
                 "leaseAgreementId", leaseAgreementId, "recognitionDate", agreement.getTimestamp("leaseEndDate"),
                 "userLogin", userLogin, "locale", locale));
         check(released);
+        if (LeaseProductHelper.isOperating(agreement)) {
+            // STEP L12: depreciation through the lease end before completion.
+            check(LeaseDepreciationServices.depreciateLeaseAssets(dctx, UtilMisc.toMap("leaseAgreementId", leaseAgreementId,
+                    "depreciationDate", agreement.getTimestamp("leaseEndDate"), "userLogin", userLogin, "locale", locale)));
+        }
         GenericValue fresh = findAgreement(delegator, leaseAgreementId);
         fresh.set("statusId", "LEASEAGR_COMPLETED");
         fresh.set("completedDate", completionDate);
@@ -439,10 +467,23 @@ public final class LeaseExpiryServices {
                 return error("FinanceLeaseAssetNotLeased", UtilMisc.toMap("assetSeqId", assetSeqId), locale);
             }
             BigDecimal residual = allocateResidual(delegator, agreement, agreement.getBigDecimal("residualValue")).get(assetSeqId);
+            BigDecimal operatingCost = null;
+            BigDecimal operatingAccum = null;
+            if (LeaseProductHelper.isOperating(agreement)) {
+                // STEP L12: depreciate through the lease end; the asset stays at its book value.
+                check(LeaseDepreciationServices.depreciateLeaseAssets(dctx, UtilMisc.toMap("leaseAgreementId",
+                        leaseAgreementId, "depreciationDate", agreement.getTimestamp("leaseEndDate"),
+                        "userLogin", userLogin, "locale", locale)));
+                operatingCost = nz(asset.getBigDecimal("acquisitionCost"));
+                operatingAccum = LeaseDepreciationServices.accumulatedDepreciation(delegator, leaseAgreementId, assetSeqId);
+                residual = operatingCost.subtract(operatingAccum);
+            }
             GenericValue settlement = delegator.makeValue("LeaseAssetSettlement");
             settlement.set("leaseAgreementId", leaseAgreementId);
             settlement.set("assetSeqId", assetSeqId);
             settlement.set("residualValue", residual);
+            settlement.set("acquisitionCost", operatingCost);
+            settlement.set("accumulatedDepreciation", operatingAccum);
             settlement.set("returnDate", returnDate);
             settlement.set("returnComments", context.get("comments"));
             settlement.set("createdDate", UtilDateTime.nowTimestamp());
@@ -503,8 +544,13 @@ public final class LeaseExpiryServices {
             }
             BigDecimal residual = nz(settlement.getBigDecimal("residualValue"));
             String buyer = (String) context.get("disposalPartyId");
-            String acctgTransId = postSettlement(delegator, dispatcher, agreement, assetSeqId, residual, proceeds,
-                    disposalDate, UtilValidate.isNotEmpty(buyer) ? buyer : agreement.getString("lesseePartyId"), userLogin);
+            String partyId = UtilValidate.isNotEmpty(buyer) ? buyer : agreement.getString("lesseePartyId");
+            String acctgTransId = LeaseProductHelper.isOperating(agreement)
+                    ? postOperatingDisposal(delegator, dispatcher, agreement, assetSeqId,
+                            nz(settlement.getBigDecimal("acquisitionCost")), nz(settlement.getBigDecimal("accumulatedDepreciation")),
+                            proceeds, disposalDate, partyId, userLogin)
+                    : postSettlement(delegator, dispatcher, agreement, assetSeqId, residual, proceeds,
+                            disposalDate, partyId, userLogin);
             settlement.set("disposalTypeEnumId", disposalType);
             settlement.set("disposalDate", disposalDate);
             settlement.set("disposalPartyId", buyer);

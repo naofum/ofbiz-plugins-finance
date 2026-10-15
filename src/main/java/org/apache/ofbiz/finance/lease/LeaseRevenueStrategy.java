@@ -47,6 +47,11 @@ public interface LeaseRevenueStrategy {
     String GL_TAX_PAYABLE = "LEASE_TAX_PAYABLE";
     String GL_TAX_RECEIVABLE = "LEASE_TAX_RECEIVABLE";
     String GL_COMPONENT_REVENUE = "LEASE_COMP_REVENUE";
+    /** STEP L12: operating lease accounts. */
+    String GL_OPER_ASSET = "LEASE_OPER_ASSET";
+    String GL_OPER_ACCUM_DEPR = "LEASE_OPER_ACCUM_DEP";
+    String GL_OPER_DEPRECIATION = "LEASE_OPER_DEPR";
+    String GL_OPER_REVENUE = "LEASE_OPER_REVENUE";
 
     /** GL lines booked at the lease start (acceptance date). */
     List<FinanceGlHelper.Line> startEntries(GenericValue agreement);
@@ -63,12 +68,72 @@ public interface LeaseRevenueStrategy {
      */
     List<FinanceGlHelper.Line> recognitionEntries(GenericValue agreement, BigDecimal amount);
 
+    /** True when the method defers the interest equivalent and releases it (finance leases). */
+    default boolean defersProfit() {
+        return true;
+    }
+
+    /** True when the lessor keeps the leased asset as its own depreciable fixed asset (operating lease). */
+    default boolean depreciatesAsset() {
+        return false;
+    }
+
     /** Strategies by revenue method enumId. */
     Map<String, LeaseRevenueStrategy> REGISTRY = UtilMisc.toMap(
-            LeaseProductHelper.REV_AT_START, new AtStart());
+            LeaseProductHelper.REV_AT_START, new AtStart(),
+            LeaseProductHelper.REV_OPERATING, new Operating());
 
-    /** The asset account of the lease: receivable (ownership transfer) or investment (no transfer). */
+    /**
+     * Operating lease (STEP L12): the asset is the lessor's leased fixed asset
+     * (賃貸資産), depreciated with the lease-term straight-line method to the
+     * residual value ({@link LeaseDepreciationServices}); the lease payment is lease
+     * revenue (受取リース料) at billing. No sales, no deferred profit.
+     *
+     * <pre>
+     *   start:   Dr leased asset (賃貸資産)        cost   Cr lease asset (suspense)
+     *   billing: Dr accounts receivable (core)            Cr lease revenue (受取リース料)
+     * </pre>
+     */
+    final class Operating implements LeaseRevenueStrategy {
+        @Override
+        public List<FinanceGlHelper.Line> startEntries(GenericValue agreement) {
+            BigDecimal cost = agreement.getBigDecimal("acquisitionCost") == null
+                    ? BigDecimal.ZERO : agreement.getBigDecimal("acquisitionCost");
+            List<FinanceGlHelper.Line> lines = new ArrayList<>();
+            lines.add(new FinanceGlHelper.Line(GL_OPER_ASSET, true, cost));
+            lines.add(new FinanceGlHelper.Line(GL_ASSET_SUSPENSE, false, cost));
+            return lines;
+        }
+
+        @Override
+        public String billingCreditAccountType(GenericValue agreement) {
+            return GL_OPER_REVENUE;
+        }
+
+        @Override
+        public List<FinanceGlHelper.Line> recognitionEntries(GenericValue agreement, BigDecimal amount) {
+            return new ArrayList<>();
+        }
+
+        @Override
+        public boolean defersProfit() {
+            return false;
+        }
+
+        @Override
+        public boolean depreciatesAsset() {
+            return true;
+        }
+    }
+
+    /**
+     * The asset account of the lease: receivable (ownership transfer), investment (no
+     * transfer) or the leased fixed asset (operating, STEP L12).
+     */
     static String assetAccountType(GenericValue agreement) {
+        if (LeaseProductHelper.isOperating(agreement)) {
+            return GL_OPER_ASSET;
+        }
         return LeaseProductHelper.CLASS_FIN_TRANSFER.equals(agreement.getString("leaseClassEnumId"))
                 ? GL_RECEIVABLE : GL_INVESTMENT;
     }

@@ -37,6 +37,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L10 | 固定資産税（償却資産税） | 完了（tests=134 / errors=0 / failures=0） |
 | L10b | 公租公課への一般化（税目・物件種別・所有持分、テーブル名の変更と移行。12 章） | 完了（tests=143 / errors=0 / failures=0） |
 | L11 | メンテナンスリース（保守料の別収益計上、保守計画・予定・実績、保守原価。13 章） | 完了（tests=150 / errors=0 / failures=0） |
+| L12 | オペレーティングリース（賃貸資産のリース期間定額法による減価償却、受取リース料の請求時計上。14 章） | 完了（tests=166 / errors=0 / failures=0） |
 
 前提：STEP L0（共通層の切り出し、`SPEC_COMMON.md`）の完了後に着手する。
 
@@ -46,7 +47,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 
 | 種別 | 配置 |
 |------|------|
-| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`、L10：`PropertyTaxValuation`、L10b：`LeasePublicChargeCalculator` / `LeasePublicChargeServices`、L11：`LeaseComponentSettings` / `LeaseMaintenanceServices`） |
+| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`、L10：`PropertyTaxValuation`、L10b：`LeasePublicChargeCalculator` / `LeasePublicChargeServices`、L11：`LeaseComponentSettings` / `LeaseMaintenanceServices`、L12：`LeaseRevenueStrategy.Operating` / `LeaseDepreciationServices`） |
 | Groovy | `groovyScripts/lease/`（`LeaseProductServices` / `LeaseApplicationServices` / `PrepareLeaseApplication`） |
 | entitydef | `entitymodel_lease.xml` |
 | servicedef | `services_lease.xml` |
@@ -1039,6 +1040,114 @@ L9 の `testBillingSeparateAndIncludedComponents` は「含める」の例を保
 - **中途解約・満了**：解約（L14）や満了で計画を自動終了しない。満了時は `endLeaseMaintPlan` を使う。L14 で連動させる。
 - **メーター（走行距離・稼働時間）による保守**：月の間隔だけ。core の `FixedAssetMeter` による保守間隔は後続（L19 の車検・点検で検討）。
 - **保守業者への支払**：仕入請求書の支払・消込は core の画面・サービスで行う。finance 側に支払画面は作っていない。
+
+---
+
+## 14. STEP L12 — オペレーティングリース
+
+物件を貸手の固定資産（賃貸資産）として計上し、リース期間定額法で減価償却する。受取リース料は請求時に収益に計上する。
+ファイナンスリースの売上高・売上原価・繰延リース利益は使わない。申込・審査・見積・契約・検収・請求・入金・延滞・満了の流れは
+L1〜L11 と同じで、契約の収益計上方法（`LeaseRevenueStrategy`）で会計だけを切り替える。
+
+実装：`LeaseRevenueStrategy.Operating`（開始・請求の仕訳）、`LeaseDepreciationServices`（減価償却）。
+`LeaseProductServices.groovy`・`LeaseTaxHelper`・`LeaseAcquisitionServices`・`LeaseAccountingServices`・`LeaseContractAdapter`・
+`LeaseExpiryServices`・`LeasePublicChargeServices` に分岐を追加した。
+
+### 14.1 決定事項（2026-10-15）
+
+| 項目 | 決定 |
+|------|------|
+| 減価償却の方法 | **リース期間定額法**：償却期間＝リース期間、残存価額＝契約の見積残価（取得価額で物件に按分）。月ごとに償却し、最終月で端数を調整して帳簿価額を残価に一致させる |
+| 受取リース料の収益計上 | **請求時に計上**（借 売掛金 ／ 貸 受取リース料 404000）。毎月の請求が 1 か月分の賃貸に対応する前提 |
+| core の償却サービス | 使わない。`calculateFixedAssetDepreciation` は現在日からの年単位の計算で仕訳を作らないため。core の `FixedAsset` は償却の結果に合わせて更新する（`salvageValue`・`expectedEndOfLife`・`depreciation`） |
+| 消費税 | 資産の貸付けとして**各回のみ**（開始時一括は不可。商品の設定で拒否し、検収時も各回に固定） |
+
+### 14.2 商品・契約
+
+- 商品種別 `LEASE_OPERATING` → リース区分 `LEASE_CLS_OPERATING`（L1 で「未対応」として拒否していたのを解除）。
+- 収益計上方法 `LEASE_REV_OPERATING` を追加。オペレーティングの商品は既定でこの方法になり、他の方法は指定できない。ファイナンスリースの商品にこの方法は指定できない（`FinanceLeaseRevenueMethodClassMismatch`）。
+- 見積は L2 と同じ計算（月額＝取得価額 × 料率、計算利子率で残価を回収）。リース料表の元本・利息相当額の内訳は保持するが、オペレーティングの会計では使わない（下記）。
+
+### 14.3 会計
+
+| 時点 | 借方 | 貸方 | 金額 |
+|------|------|------|------|
+| 検収（開始） | 賃貸資産（165500） | リース物件仮勘定（147500） | 取得価額 |
+| 請求 | 売掛金（core） | 受取リース料（404000） | リース料 |
+| 請求 | 売掛金（core） | 仮受消費税（224500）／ core 税当局科目 | 消費税 |
+| 減価償却（月次） | 賃貸資産減価償却費（503800） | 賃貸資産減価償却累計額（165900） | 月の償却額 |
+| 処分（売却・廃棄） | 物件売却未収金（128900）・減価償却累計額（165900） | 賃貸資産（165500）・処分益（403700）／処分損（503700） | 売却額・累計額・取得価額・差額 |
+
+- 売上高（403500）・売上原価（503500）・繰延リース利益（128700）は計上しない。繰延リース利益の戻入（`recognizeLeaseProfit`）は何もしない（0 件）。
+- 構成要素（L9）・保守料（L11）の請求はファイナンスリースと同じ。
+
+### 14.4 減価償却（`LeaseDepreciationServices`）
+
+- 償却額：物件ごとに 償却対象額＝取得価額 − 按分した残価。k か月目までの累計＝償却対象額 × k / 期間（通貨別端数処理）、月の償却額＝累計の差。最終月は残りの全額。
+- `depreciateLeaseAssets`：有効なオペレーティングリースについて、指定日（既定は今日）までに終わったリース月のうち未償却の月を償却する。物件×月で 1 件の `LeaseAssetDepreciation`、月ごとに 1 件の仕訳。物件×月で冪等。core の `FixedAsset.depreciation` に加算する。
+- 月次バッチ（`runLeaseAgreementMonthlyAccounting`）が請求・戻入の後に償却を行う（`createdDepreciationCount`）。
+- 検収時に core `FixedAsset` の `salvageValue`（按分した残価）・`expectedEndOfLife`（リース終了日）・`depreciation`（0）を設定する。
+
+### 14.5 回収状況・延滞
+
+- 回収状況（`computeBalance`）：リース料はすべて受取リース料として扱い、元本回収額は 0、未回収元本・繰延リース利益残高は 0。入金の充当は「消費税 → 構成要素 → リース料」。オペレーティングでは `leasedAssetCost`・`accumulatedDepreciation`・`leasedAssetBookValue` を返す。
+- 延滞（`LeaseContractAdapter`）：未払のリース料は利息相当額のバケット（＝受取リース料）に入れ、元本は 0。遅延損害金の計算基礎はファイナンスリースと同じ（リース料、`lease.latefee.base` で消費税の算入を切替）。
+
+### 14.6 満了
+
+- 所有権移転はできない（`transferLeaseOwnership` は L7 のとおり移転リース以外を拒否）。
+- 返還（`returnLeaseAsset`）：リース終了日まで償却を済ませてから、精算記録に取得価額・減価償却累計額を記録する。`residualValue` は帳簿価額（＝残価）。
+- 処分（`disposeLeaseAsset`）：帳簿価額で処分する（14.3 の仕訳）。売却額 − 帳簿価額が処分損益。
+- 契約の完了（`tryComplete`）でもリース終了日までの償却を済ませる。
+- `LeaseAssetSettlement` に `acquisitionCost`・`accumulatedDepreciation` の列を追加した（オペレーティングのみ使用）。
+
+### 14.7 公租公課（L10b）
+
+- 申告の対象にオペレーティングリースの物件（貸手所有）を加えた（所有権移転外ファイナンスリースと同じ扱い）。
+- 会計上の減価償却（本 STEP）と償却資産税の評価額（L10）は独立して計算する。
+
+### 14.8 データモデル・seed
+
+| 種類 | 値 |
+|------|----|
+| エンティティ | `LeaseAssetDepreciation`（leaseAgreementId + assetSeqId + periodNumber：期間、償却額、累計、帳簿価額、仕訳）。`LeaseAssetSettlement` に 2 列追加 |
+| 収益計上方法 | `LEASE_REV_OPERATING` |
+| GL 科目タイプ | `LEASE_OPER_ASSET`（165500 賃貸資産、`FIXED_ASSET` 配下）、`LEASE_OPER_ACCUM_DEP`（165900 減価償却累計額）、`LEASE_OPER_DEPR`（503800 減価償却費、`COGS_ACCOUNT` 配下）、`LEASE_OPER_REVENUE`（404000 受取リース料、`SALES_ACCOUNT` 配下）。Company への割当は demo・テストデータに追加 |
+| テストデータ | USD のオペレーティングリース商品 `TEST_LEASEPROD_OPER`（料率 0.016、残価率 20%） |
+
+### 14.9 画面
+
+- `ManageLeaseAgreement`：回収状況にオペレーティングのときだけ減価償却累計額・帳簿価額を表示。「賃貸資産の減価償却」のスクリーンレット（実行フォーム・償却の一覧）を追加した。
+
+### 14.10 テスト（`LeaseOperatingTests`）
+
+| テスト | 内容 |
+|--------|------|
+| `testOperatingProductRules` | オペレーティングの商品は既定で `LEASE_REV_OPERATING`、第1法・開始時一括の消費税は拒否。ファイナンスリースに `LEASE_REV_OPERATING` は拒否 |
+| `testOperatingStartAndBilling` | 開始仕訳（借 165500 ／ 貸 147500、売上・原価・繰延利益なし、一括消費税なし）、`FixedAsset` の設定、請求で 404000 と 224500、戻入 0 件、入金後の元本回収 0・未回収元本 0 |
+| `testDepreciation` | 定額の月額と最終月の調整、月次バッチで 3 か月分、期間・累計・帳簿価額、仕訳（借 503800 ／ 貸 165900）、`FixedAsset.depreciation`、冪等、ファイナンスリースでは拒否 |
+| `testExpiryReturnAndDisposal` | 12 か月で残価まで償却、所有権移転の拒否、返還時の精算記録（帳簿価額・取得価額・累計額）、売却で 128900・165900・165500・403700、貸借一致 |
+| `testOperatingAssetDeclared` | オペレーティングの物件が償却資産税の申告に含まれる |
+
+### 14.11 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| XML の整形式 | 変更した 10 ファイルで OK |
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 新規 1 テーブル（`LEASE_ASSET_DEPRECIATION`）、`LEASE_ASSET_SETTLEMENT` に 2 列、333 行を変更 |
+| `gradlew "ofbiz --test component=finance"` | tests=166 / errors=0 / failures=0（L12 の 5 件を含む、18.7 分。開発 DB を `cleanAll loadAll` で作り直した後） |
+| demo 投入 | BUILD SUCCESSFUL |
+| 画面 | 未確認（定義のみ） |
+
+### 14.12 要確認・制約
+
+- **会計基準**：新リース会計基準（2027 年 4 月以降開始の事業年度から適用）は借手側の改正が中心で、貸手のオペレーティングリースの会計（賃貸資産の計上・減価償却・受取リース料）は従来と同じと判断した。適用時に貸手側の開示・判定基準を確認する（要確認）。
+- **リース区分の判定**：ファイナンス／オペレーティングの判定（現在価値基準・経済的耐用年数基準）はしていない。商品種別で区分を決める（L1 と同じ）。
+- **税務上の償却**：会計上はリース期間定額法。税務上の減価償却（法定耐用年数）との差異（申告調整）は扱わない。
+- **受取リース料の期間対応**：請求時に計上するため、前払・後払で請求の期間と会計期間がずれる場合の前受・未収は計上しない。期末に期間対応が必要なら按分方式を追加する。
+- **減損・中途解約**：減損や中途解約（L14）による償却の打切り・残存簿価の処理は扱わない。
+- **再リース**：満了後の再リース（L13）では、残価（帳簿価額）を再リース期間で償却するかを L13 で決める。
 
 ---
 

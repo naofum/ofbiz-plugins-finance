@@ -545,6 +545,8 @@ under the License.
         <field name="proceedsAmount" type="currency-amount"><description>sale / transfer price (tax excluded)</description></field>
         <field name="gainLossAmount" type="currency-amount"><description>proceeds - residual (positive = gain)</description></field>
         <field name="acctgTransId" type="id"><description>settlement of the residual value (none when residual and proceeds are 0)</description></field>
+        <field name="acquisitionCost" type="currency-amount"><description>STEP L12 (operating): acquisition cost of the leased asset removed at disposal</description></field>
+        <field name="accumulatedDepreciation" type="currency-amount"><description>STEP L12 (operating): accumulated depreciation removed at disposal; residualValue = book value</description></field>
         <field name="createdDate" type="date-time"></field>
         <prim-key field="leaseAgreementId"/>
         <prim-key field="assetSeqId"/>
@@ -1107,5 +1109,41 @@ under the License.
             <index-field name="maintPlanSeqId"/>
             <index-field name="scheduledDate"/>
         </index>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- STEP L12: operating lease. The leased asset is the         -->
+    <!-- lessor's fixed asset (賃貸資産), depreciated monthly with   -->
+    <!-- the lease-term straight-line method to the residual value. -->
+    <!-- ========================================================= -->
+
+    <!-- Depreciation of one agreement asset for one lease month (idempotent per asset x period). -->
+    <entity entity-name="LeaseAssetDepreciation" package-name="org.apache.ofbiz.finance.lease"
+            title="Operating lease asset depreciation (賃貸資産の減価償却)">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="assetSeqId" type="id"></field>
+        <field name="periodNumber" type="numeric"><description>lease month 1..term</description></field>
+        <field name="fixedAssetId" type="id"></field>
+        <field name="fromDate" type="date-time"><description>first day of the lease month</description></field>
+        <field name="thruDate" type="date-time"><description>last day of the lease month (booking date)</description></field>
+        <field name="amount" type="currency-amount"><description>depreciation of the month</description></field>
+        <field name="cumulativeAmount" type="currency-amount"><description>accumulated depreciation after the month</description></field>
+        <field name="bookValue" type="currency-amount"><description>acquisition cost - accumulated depreciation (ends at the residual value)</description></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="acctgTransId" type="id"><description>Dr depreciation of leased assets / Cr accumulated depreciation (one transaction per agreement x month)</description></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseAgreementId"/>
+        <prim-key field="assetSeqId"/>
+        <prim-key field="periodNumber"/>
+        <relation type="one" fk-name="LEASEADEP_ASSET" rel-entity-name="LeaseAgreementAsset">
+            <key-map field-name="leaseAgreementId"/>
+            <key-map field-name="assetSeqId"/>
+        </relation>
+        <relation type="one-nofk" rel-entity-name="FixedAsset">
+            <key-map field-name="fixedAssetId"/>
+        </relation>
+        <relation type="one-nofk" rel-entity-name="AcctgTrans">
+            <key-map field-name="acctgTransId"/>
+        </relation>
     </entity>
 </entitymodel>

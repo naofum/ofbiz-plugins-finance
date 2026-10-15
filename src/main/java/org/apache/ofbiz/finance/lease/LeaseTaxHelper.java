@@ -142,6 +142,10 @@ public final class LeaseTaxHelper {
     /** Tax timing of a lease product (product, then lease.tax.timing, then per installment). */
     public static String resolveTiming(Delegator delegator, String productId) throws GenericEntityException {
         GenericValue terms = LeaseProductHelper.findLeaseProduct(delegator, productId);
+        // STEP L12: an operating lease is a rental of the asset (資産の貸付け), taxed per installment.
+        if (LeaseProductHelper.isOperating(terms)) {
+            return TIMING_INSTALLMENT;
+        }
         if (terms != null && UtilValidate.isNotEmpty(terms.getString("taxTimingEnumId"))) {
             return terms.getString("taxTimingEnumId");
         }

@@ -107,7 +107,15 @@ under the License.
             currencyUomId="USD" minTermMonths="12" maxTermMonths="60"/>
     <FinancialProductLease productId="TEST_LEASEPROD_USD" leaseClassEnumId="LEASE_CLS_FIN_NONTR"
             defaultMonthlyRateFactor="0.018000" paymentTimingEnumId="LEASE_PAY_ADVANCE"
-            residualValueRate="0" revenueMethodEnumId="LEASE_REV_AT_START" taxable="Y"/>    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_INVESTMENT" glAccountId="128500"/>
+            residualValueRate="0" revenueMethodEnumId="LEASE_REV_AT_START" taxable="Y"/>
+    <!-- STEP L12: USD operating lease product (residual 20%). -->
+    <Product productId="TEST_LEASEPROD_OPER" productTypeId="SERVICE" internalName="Test Operating Lease USD" productName="Test Operating Lease USD"/>
+    <FinancialProduct productId="TEST_LEASEPROD_OPER" financialProductTypeId="LEASE_OPERATING"
+            currencyUomId="USD" minTermMonths="12" maxTermMonths="60"/>
+    <FinancialProductLease productId="TEST_LEASEPROD_OPER" leaseClassEnumId="LEASE_CLS_OPERATING"
+            defaultMonthlyRateFactor="0.016000" paymentTimingEnumId="LEASE_PAY_ADVANCE"
+            residualValueRate="0.2" revenueMethodEnumId="LEASE_REV_OPERATING" taxable="Y"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_INVESTMENT" glAccountId="128500"/>
     <GlAccountOrganization glAccountId="128500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_RECEIVABLE" glAccountId="128600"/>
     <GlAccountOrganization glAccountId="128600" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
@@ -150,6 +158,15 @@ under the License.
     <GlAccountOrganization glAccountId="403900" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_MAINT_COST" glAccountId="503900"/>
     <GlAccountOrganization glAccountId="503900" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <!-- STEP L12: operating lease accounts -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_OPER_ASSET" glAccountId="165500"/>
+    <GlAccountOrganization glAccountId="165500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_OPER_ACCUM_DEP" glAccountId="165900"/>
+    <GlAccountOrganization glAccountId="165900" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_OPER_DEPR" glAccountId="503800"/>
+    <GlAccountOrganization glAccountId="503800" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_OPER_REVENUE" glAccountId="404000"/>
+    <GlAccountOrganization glAccountId="404000" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <Party partyId="TEST_TAXAUTH_JP" partyTypeId="PARTY_GROUP"/>
     <PartyGroup partyId="TEST_TAXAUTH_JP" groupName="Test Consumption Tax Authority"/>
     <PartyRole partyId="TEST_TAXAUTH_JP" roleTypeId="TAX_AUTHORITY"/>
