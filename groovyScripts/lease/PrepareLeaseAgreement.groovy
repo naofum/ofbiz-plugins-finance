@@ -132,3 +132,13 @@ context.maintMonthsAhead = LeaseMaintenanceServices.scheduleMonthsOf(delegator)
 Map summary = dispatcher.runSync('getLeaseMaintenanceSummary', [leaseAgreementId: leaseAgreement.leaseAgreementId,
         userLogin: userLogin])
 context.maintSummary = summary
+
+// STEP L13: re-lease periods.
+context.reLeases = from('LeaseReLease').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
+        .orderBy('reLeaseSeqId').queryList().collect { GenericValue r ->
+    Map row = new LinkedHashMap(r.getAllFields())
+    row.canBill = context.isActive && r.statusId == 'LSREL_CONTRACTED'
+    row.canCancel = r.statusId == 'LSREL_CONTRACTED'
+    return row
+}
+context.canCreateReLease = context.isActive && !context.isTransferLease && context.assetLines.every { it.assetStatusId == 'LSAST_LEASED' }

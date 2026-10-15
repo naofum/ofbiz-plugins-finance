@@ -249,11 +249,11 @@ public final class LeaseMaintenanceServices {
     // ------------------------------------------------------------------
 
     /** Due dates of a plan up to {@code horizon} (inclusive), within the lease and the plan period. */
-    static List<Timestamp> dueDates(GenericValue agreement, GenericValue plan, Timestamp horizon) {
+    static List<Timestamp> dueDates(GenericValue agreement, GenericValue plan, Timestamp horizon, Timestamp leaseEnd) {
         List<Timestamp> dates = new ArrayList<>();
         int interval = plan.getLong("intervalMonths").intValue();
         Timestamp start = agreement.getTimestamp("leaseStartDate");
-        Timestamp end = agreement.getTimestamp("leaseEndDate");
+        Timestamp end = leaseEnd;
         Timestamp thru = plan.getTimestamp("thruDate");
         Timestamp d = plan.getTimestamp("firstDueDate") != null ? plan.getTimestamp("firstDueDate")
                 : (start == null ? null : addMonths(UtilDateTime.getDayStart(start), interval));
@@ -357,7 +357,8 @@ public final class LeaseMaintenanceServices {
                         skipped++;
                         continue;
                     }
-                    for (Timestamp due : dueDates(agreement, plan, horizon)) {
+                    for (Timestamp due : dueDates(agreement, plan, horizon,
+                            LeaseReLeaseServices.effectiveEndDate(delegator, agreement))) {
                         if (EntityQuery.use(delegator).from("LeaseMaintRecord").where("leaseAgreementId", leaseAgreementId,
                                 "maintPlanSeqId", plan.getString("maintPlanSeqId"), "scheduledDate", due).queryFirst() != null) {
                             continue;

@@ -46,6 +46,7 @@
 - 貸手所有物件の公租公課（償却資産税・自動車税・重量税 等）は `LeasePublicCharge*` で扱う（STEP L10b、`SPEC_LEASE.md` 12 章）。税目ごとの規則（計算方法・課税団体・賦課期日・免税点・GL 科目）は `LeasePublicChargeType`、物件種別ごとの対象税目は `LeasePublicChargeAssetType`、計算方式は `LeasePublicChargeCalculator` に置く。申告は物件の所有持分（`LeaseAgreementAsset.ownershipShare`）で按分する。旧 `LeasePropertyTax*` は移行（`migrateLeasePropertyTaxData`）のためだけに残しており、業務ロジックで使わない。
 - メンテナンスリース（STEP L11、`SPEC_LEASE.md` 13 章）：保守料は構成要素 `LSCMP_MAINTENANCE` で、必ず区分として請求時に保守料収益（`LEASE_MAINT_REVENUE`）へ計上する。構成要素の種類ごとの収益科目は `LeaseComponentRevenueAccount` に置く。保守の予定・実績は `LeaseMaintRecord`（業務STATUS `LSMNT_*`）が正で、core `FixedAssetMaint` とタスク（`FINWE_MAINTENANCE`）はそれに合わせて更新する。保守原価は保守業者の仕入請求書で計上する。
 - オペレーティングリース（STEP L12、`SPEC_LEASE.md` 14 章）：収益計上方法は `LEASE_REV_OPERATING`（リース区分 `LEASE_CLS_OPERATING` と 1:1）。物件は賃貸資産として計上し、`LeaseDepreciationServices` がリース期間定額法（残存価額＝見積残価）で月次償却する（core の `calculateFixedAssetDepreciation` は使わない）。受取リース料は請求時に計上し、売上高・繰延リース利益は使わない。消費税は各回のみ。会計の違いは `LeaseRevenueStrategy` の実装（`defersProfit` / `depreciatesAsset`）で分岐させ、区分の文字列比較を増やさない。
+- 再リース（STEP L13、`SPEC_LEASE.md` 15 章）：元の契約に `LeaseReLease`（業務STATUS `LSREL_*`）を追加し、契約は ACTIVE のまま。リースの終了日を使う判定（返還・完了・満了の返還タスク・保守予定）は `LeaseReLeaseServices.effectiveEndDate` を使う。再リース料は前受（224700）で請求し月次で受取再リース料へ按分、残存簿価は再リース期間で償却する。再リースの請求書は回収状況・入金・延滞の対象に含める。
 
 ## Data Rules
 - `data/*TypeData.xml` はseed、`data/*DemoData.xml` はdemo、`testdef/data/*` はテスト専用。用途を混在させない。

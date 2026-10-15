@@ -36,7 +36,7 @@ Object param(String name) {
 
 List<String> editableFields() {
     return ['defaultMonthlyRateFactor', 'defaultCalcInterestRate', 'paymentTimingEnumId',
-            'residualValueRate', 'revenueMethodEnumId', 'taxable', 'taxTimingEnumId']
+            'residualValueRate', 'revenueMethodEnumId', 'taxable', 'taxTimingEnumId', 'reLeaseAnnualFactor']
 }
 
 /** Validate rates and enumerations of a lease terms value; returns an error message or null. */
@@ -48,6 +48,10 @@ String validateTerms(GenericValue terms) {
     BigDecimal factor = terms.getBigDecimal('defaultMonthlyRateFactor')
     if (factor != null && factor.signum() <= 0) {
         return label('FinanceLeaseRateFactorInvalid')
+    }
+    BigDecimal reLeaseFactor = terms.getBigDecimal('reLeaseAnnualFactor')
+    if (reLeaseFactor != null && reLeaseFactor.signum() < 0) {
+        return label('FinanceLeaseReLeaseAmountInvalid', [amount: reLeaseFactor])
     }
     BigDecimal calcRate = terms.getBigDecimal('defaultCalcInterestRate')
     if (calcRate != null && calcRate.signum() < 0) {

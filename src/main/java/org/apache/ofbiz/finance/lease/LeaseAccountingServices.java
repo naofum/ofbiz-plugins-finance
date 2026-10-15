@@ -589,13 +589,19 @@ public final class LeaseAccountingServices {
                     }
                     depreciations = (Long) dep.get("createdCount");
                 }
+                // STEP L13: re-lease periods (start / billing, monthly fee recognition, depreciation).
+                if (agreement != null && "LEASEAGR_ACTIVE".equals(agreement.getString("statusId"))) {
+                    long[] rel = LeaseReLeaseServices.processReLeases(dctx, agreement, processingDate, userLogin);
+                    invoices += rel[0];
+                    depreciations += rel[2];
+                }
                 Map<String, Object> result = ServiceUtil.returnSuccess();
                 result.put("createdInvoiceCount", invoices);
                 result.put("createdRecognitionCount", rec.get("createdCount"));
                 result.put("createdDepreciationCount", depreciations);
                 return result;
             }
-        } catch (GenericEntityException e) {
+        } catch (GenericEntityException | GenericServiceException e) {
             Debug.logError(e, MODULE);
             return ServiceUtil.returnError(e.getMessage());
         }
@@ -641,21 +647,31 @@ public final class LeaseAccountingServices {
             String currency = agreement.getString("currencyUomId");
 
             // Target invoices and the amount applied to each (oldest due first).
-            List<GenericValue> links = UtilValidate.isNotEmpty(invoiceId)
-                    ? EntityQuery.use(delegator).from("LeaseInstallmentInvoice")
-                            .where("leaseAgreementId", leaseAgreementId, "invoiceId", invoiceId).queryList()
-                    : EntityQuery.use(delegator).from("LeaseInstallmentInvoice")
-                            .where("leaseAgreementId", leaseAgreementId).orderBy("dueDate", "installmentNumber").queryList();
-            if (UtilValidate.isNotEmpty(invoiceId) && links.isEmpty()) {
+            // STEP L13: the re-lease invoices are lease invoices too.
+            List<Object[]> targets = new ArrayList<>();
+            for (GenericValue link : EntityQuery.use(delegator).from("LeaseInstallmentInvoice")
+                    .where("leaseAgreementId", leaseAgreementId).orderBy("dueDate", "installmentNumber").queryList()) {
+                targets.add(new Object[] {link.getString("invoiceId"), link.getTimestamp("dueDate")});
+            }
+            targets.addAll(LeaseReLeaseServices.reLeaseInvoices(delegator, leaseAgreementId));
+            targets.sort((a, b) -> {
+                Timestamp x = (Timestamp) a[1];
+                Timestamp y = (Timestamp) b[1];
+                return x == null ? (y == null ? 0 : 1) : (y == null ? -1 : x.compareTo(y));
+            });
+            if (UtilValidate.isNotEmpty(invoiceId)) {
+                targets.removeIf(t -> !invoiceId.equals(t[0]));
+            }
+            if (UtilValidate.isNotEmpty(invoiceId) && targets.isEmpty()) {
                 return error("FinanceLeasePaymentInvoiceMismatch", UtilMisc.toMap("invoiceId", invoiceId,
                         "leaseAgreementId", leaseAgreementId), locale);
             }
             List<Object[]> applications = new ArrayList<>();
             BigDecimal remaining = amount;
             BigDecimal open = BigDecimal.ZERO;
-            for (GenericValue link : links) {
+            for (Object[] target : targets) {
                 GenericValue invoice = EntityQuery.use(delegator).from("Invoice")
-                        .where("invoiceId", link.getString("invoiceId")).cache(false).queryOne();
+                        .where("invoiceId", target[0]).cache(false).queryOne();
                 String status = invoice == null ? null : invoice.getString("statusId");
                 boolean usable = invoice != null && !"INVOICE_CANCELLED".equals(status) && !"INVOICE_WRITEOFF".equals(status)
                         && lessee.equals(invoice.getString("partyId")) && currency.equals(invoice.getString("currencyUomId"));
@@ -796,7 +812,12 @@ public final class LeaseAccountingServices {
             recognized = recognized.add(nz(rec.getBigDecimal("amount")));
         }
         BigDecimal billed = billedLease.add(billedTax).add(billedComponent).add(billedComponentTax);
+        // STEP L13: re-lease invoices (fee + tax) are part of the billed / applied totals.
+        Map<String, BigDecimal> reLease = LeaseReLeaseServices.balance(delegator, leaseAgreementId);
+        billed = billed.add(reLease.get("billedReLeaseAmount")).add(reLease.get("billedReLeaseTaxAmount"));
+        applied = applied.add(reLease.get("reLeaseAppliedAmount"));
         Map<String, Object> balance = new HashMap<>();
+        balance.putAll(reLease);
         balance.put("billedCount", billedCount);
         balance.put("billedLeaseAmount", billedLease);
         balance.put("billedTaxAmount", billedTax);

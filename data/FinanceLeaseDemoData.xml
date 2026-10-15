@@ -113,6 +113,11 @@ under the License.
     <GlAccountOrganization glAccountId="503800" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_OPER_REVENUE" glAccountId="404000"/>
     <GlAccountOrganization glAccountId="404000" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <!-- STEP L13: re-lease -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_RELEASE_UNEARN" glAccountId="224700"/>
+    <GlAccountOrganization glAccountId="224700" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_RELEASE_REV" glAccountId="404100"/>
+    <GlAccountOrganization glAccountId="404100" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <Party partyId="DEMO_TAXAUTH_JP" partyTypeId="PARTY_GROUP"/>
     <PartyGroup partyId="DEMO_TAXAUTH_JP" groupName="消費税（デモ税務当局）"/>
     <PartyRole partyId="DEMO_TAXAUTH_JP" roleTypeId="TAX_AUTHORITY"/>

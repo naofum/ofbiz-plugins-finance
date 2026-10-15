@@ -328,6 +328,13 @@ under the License.
         <attribute name="leasedAssetCost" type="BigDecimal" mode="OUT" optional="true"><description>STEP L12 (operating): acquisition cost of the leased assets</description></attribute>
         <attribute name="accumulatedDepreciation" type="BigDecimal" mode="OUT" optional="true"><description>STEP L12 (operating)</description></attribute>
         <attribute name="leasedAssetBookValue" type="BigDecimal" mode="OUT" optional="true"><description>STEP L12 (operating): cost - accumulated depreciation</description></attribute>
+        <attribute name="billedReLeaseAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L13</description></attribute>
+        <attribute name="billedReLeaseTaxAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L13</description></attribute>
+        <attribute name="reLeaseAppliedAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L13</description></attribute>
+        <attribute name="collectedReLeaseAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L13</description></attribute>
+        <attribute name="collectedReLeaseTaxAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L13</description></attribute>
+        <attribute name="recognizedReLeaseAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L13</description></attribute>
+        <attribute name="unearnedReLeaseAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L13</description></attribute>
     </service>
     <!-- ============================================================= -->
     <!-- STEP L7: expiry (tasks, notice, return, disposal, transfer)   -->
@@ -475,6 +482,55 @@ under the License.
         <attribute name="ratesMigrated" type="Long" mode="OUT" optional="true"/>
         <attribute name="declarationsMigrated" type="Long" mode="OUT" optional="true"/>
         <attribute name="declarationConflicts" type="Long" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- STEP L13: re-lease (再リース)                                   -->
+    <!-- ============================================================= -->
+    <service name="createLeaseReLease" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseReLeaseServices" invoke="createLeaseReLease" auth="true">
+        <description>Register the next re-lease period of an ACTIVE lease without ownership transfer (every asset still leased):
+            it starts the day after the previous end (lease end or previous re-lease). The fee defaults to the monthly lease
+            amount x reLeaseAnnualFactor x months / 12.</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="months" type="Long" mode="IN" optional="true"><description>defaults to lease.release.months (12)</description></attribute>
+        <attribute name="reLeaseAmount" type="BigDecimal" mode="IN" optional="true"><description>fee of the period (tax excluded)</description></attribute>
+        <attribute name="comments" type="String" mode="IN" optional="true"/>
+        <attribute name="reLeaseSeqId" type="String" mode="OUT" optional="true"/>
+        <attribute name="fromDate" type="Timestamp" mode="OUT" optional="true"/>
+        <attribute name="thruDate" type="Timestamp" mode="OUT" optional="true"/>
+        <attribute name="reLeaseAmount" type="BigDecimal" mode="OUT" optional="true"/>
+    </service>
+    <service name="cancelLeaseReLease" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseReLeaseServices" invoke="cancelLeaseReLease" auth="true">
+        <description>Cancel the last re-lease period while it is contracted (not billed).</description>
+        <permission-service service-name="financeGenericPermission" main-action="UPDATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="reLeaseSeqId" type="String" mode="IN" optional="false"/>
+    </service>
+    <service name="billLeaseReLease" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseReLeaseServices" invoke="billLeaseReLease" auth="true">
+        <description>Start a contracted re-lease: bill the fee in advance (due at the period start, Cr unearned re-lease fees, tax
+            at the rate of the period start); at the first re-lease of a finance lease move the residual value to leased assets.
+            Idempotent. The monthly accounting batch does this when the period starts.</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="reLeaseSeqId" type="String" mode="IN" optional="false"/>
+        <attribute name="invoiceId" type="String" mode="OUT" optional="true"/>
+        <attribute name="invoiceCreated" type="Boolean" mode="OUT" optional="true"/>
+    </service>
+    <service name="processLeaseReLeases" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseReLeaseServices" invoke="processLeaseReLeases" auth="true">
+        <description>Re-lease accounting of an ACTIVE lease through processingDate: start the periods begun, recognize the fee
+            (Dr unearned / Cr re-lease revenue) and depreciate the book value of the assets for every month ended. Idempotent.
+            Also run by the monthly accounting batch.</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="processingDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="startedCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="recognizedCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="depreciatedCount" type="Long" mode="OUT" optional="true"/>
     </service>
 
     <!-- ============================================================= -->

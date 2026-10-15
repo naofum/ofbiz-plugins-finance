@@ -38,6 +38,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L10b | 公租公課への一般化（税目・物件種別・所有持分、テーブル名の変更と移行。12 章） | 完了（tests=143 / errors=0 / failures=0） |
 | L11 | メンテナンスリース（保守料の別収益計上、保守計画・予定・実績、保守原価。13 章） | 完了（tests=150 / errors=0 / failures=0） |
 | L12 | オペレーティングリース（賃貸資産のリース期間定額法による減価償却、受取リース料の請求時計上。14 章） | 完了（tests=166 / errors=0 / failures=0） |
+| L13 | 再リース（元の契約に再リース期間を追加、年額の前払請求と月次の収益按分、残存簿価の償却。15 章） | 完了（tests=174 / errors=0 / failures=0） |
 
 前提：STEP L0（共通層の切り出し、`SPEC_COMMON.md`）の完了後に着手する。
 
@@ -47,7 +48,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 
 | 種別 | 配置 |
 |------|------|
-| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`、L10：`PropertyTaxValuation`、L10b：`LeasePublicChargeCalculator` / `LeasePublicChargeServices`、L11：`LeaseComponentSettings` / `LeaseMaintenanceServices`、L12：`LeaseRevenueStrategy.Operating` / `LeaseDepreciationServices`） |
+| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`、L10：`PropertyTaxValuation`、L10b：`LeasePublicChargeCalculator` / `LeasePublicChargeServices`、L11：`LeaseComponentSettings` / `LeaseMaintenanceServices`、L12：`LeaseRevenueStrategy.Operating` / `LeaseDepreciationServices`、L13：`LeaseReLeaseServices`） |
 | Groovy | `groovyScripts/lease/`（`LeaseProductServices` / `LeaseApplicationServices` / `PrepareLeaseApplication`） |
 | entitydef | `entitymodel_lease.xml` |
 | servicedef | `services_lease.xml` |
@@ -1147,7 +1148,106 @@ L1〜L11 と同じで、契約の収益計上方法（`LeaseRevenueStrategy`）�
 - **税務上の償却**：会計上はリース期間定額法。税務上の減価償却（法定耐用年数）との差異（申告調整）は扱わない。
 - **受取リース料の期間対応**：請求時に計上するため、前払・後払で請求の期間と会計期間がずれる場合の前受・未収は計上しない。期末に期間対応が必要なら按分方式を追加する。
 - **減損・中途解約**：減損や中途解約（L14）による償却の打切り・残存簿価の処理は扱わない。
-- **再リース**：満了後の再リース（L13）では、残価（帳簿価額）を再リース期間で償却するかを L13 で決める。
+- **再リース**：満了後の再リース（L13）では、残価（帳簿価額）を再リース期間で償却するかを L13 で決める。→ L13 で「再リース期間で 0 まで償却する」と決定（15 章）。
+
+---
+
+## 15. STEP L13 — 再リース
+
+満了した所有権移転外のリース（ファイナンスリース・オペレーティングリース）を、同じ契約のまま再リース期間（既定 12 か月）で更新する。
+再リース料は期間の初めに年額を前払いで請求し、前受再リース料から毎月按分して収益に計上する。再リース開始時に残っている物件の簿価は、
+再リース期間で 0 まで償却する。
+
+実装：`LeaseReLeaseServices`。`LeaseAccountingServices`（月次バッチ・回収状況・入金）、`LeaseContractAdapter`（延滞・未決済請求書）、
+`LeaseExpiryServices`（返還・完了・満了バッチ）、`LeaseMaintenanceServices`（保守予定の期限）に連動を追加した。
+
+### 15.1 決定事項（2026-10-15）
+
+| 項目 | 決定 |
+|------|------|
+| 再リースの持ち方 | **元の契約に再リース期間（`LeaseReLease`）を追加する**。契約は再リース中も `LEASEAGR_ACTIVE`。返還・完了は最後の再リース期間の終了後（`effectiveEndDate`）。物件・保守計画・公租公課・延滞の仕組みはそのまま使う |
+| 再リース料の収益計上 | **前受→月次で按分**：請求時は前受再リース料（224700）に計上し、経過した月の分を受取再リース料（404100）へ振り替える（毎月同額、最終月で端数調整） |
+| 残存簿価 | **再リース期間で償却**：ファイナンスリースは最初の再リース開始時に見積残価をリース投資資産（128500）から賃貸資産（165500）へ振り替える。オペレーティングリースは賃貸資産の帳簿価額（＝残価）のまま。どちらも再リース期間で 0 まで定額償却する（L12 の科目・`LeaseAssetDepreciation` を使う）。残価が 0 なら仕訳なし |
+| 再リース料の既定値 | **元の月額リース料 × 年額係数 × 月数 / 12**。係数は商品の `FinancialProductLease.reLeaseAnnualFactor`、なければ `lease.release.annual.factor`（既定 1.0＝年額が月額 1 か月分）。登録時に金額を指定すればそれを使う |
+
+### 15.2 データモデル
+
+| エンティティ | 主キー | 内容 |
+|--------------|--------|------|
+| `LeaseReLease` | leaseAgreementId + reLeaseSeqId | 再リース期間：開始日（前の終了日の翌日）・終了日・月数・再リース料（税抜）・消費税（率・額・税当局）・状態（`LEASE_RELEASE_STATUS`）・請求書・残価振替の仕訳・収益計上済額 |
+| `LeaseReLeaseRecognition` | leaseAgreementId + reLeaseSeqId + monthNumber | 月ごとの収益計上（金額・累計・仕訳）。冪等 |
+| `FinancialProductLease`（追加列） | — | `reLeaseAnnualFactor` |
+| `LeaseAgreementAsset`（追加列） | — | `reclassifiedResidual`（ファイナンスリース：賃貸資産へ振り替えた残価） |
+| `LeaseAssetDepreciation`（追加列） | — | `reLeaseSeqId`。再リースの月は `periodNumber`＝リース期間＋それまでの再リースの月数＋月 |
+
+状態：`LSREL_CONTRACTED`（登録）→ `LSREL_ACTIVE`（請求・開始）→ `LSREL_COMPLETED`（全月計上）、`LSREL_CONTRACTED` → `LSREL_CANCELLED`。状態は再リースのサービスだけが変える。
+
+### 15.3 会計
+
+| 時点 | 借方 | 貸方 | 金額 |
+|------|------|------|------|
+| 開始（請求） | 売掛金（core） | 前受再リース料（224700） | 再リース料 |
+| 開始（請求） | 売掛金（core） | 仮受消費税（224500）／ core 税当局科目 | 消費税（開始日の税率） |
+| 開始（ファイナンス・最初の再リース） | 賃貸資産（165500） | リース投資資産（128500） | 見積残価 |
+| 毎月 | 前受再リース料（224700） | 受取再リース料（404100） | 再リース料 × 1 / 月数 |
+| 毎月 | 賃貸資産減価償却費（503800） | 減価償却累計額（165900） | 開始時の簿価 × 1 / 月数 |
+| 返還後の処分 | 物件売却未収金（128900）・減価償却累計額（165900） | 賃貸資産（165500）・処分益（403700）／処分損（503700） | L12 と同じ（帳簿価額で処分） |
+
+- 開始の前に、元のリースの繰延リース利益の戻入（ファイナンス）・減価償却（オペレーティング）をリース終了日まで済ませる。
+- 再リース料の消費税は、再リースを新たな貸付けとみなし、開始日に有効な税率で各回（年 1 回）計上する。
+
+### 15.4 サービス
+
+| サービス | 内容 |
+|----------|------|
+| `createLeaseReLease` | 有効な所有権移転外の契約（物件がすべて貸出中）に次の再リース期間を登録する。開始日は前の終了日（リース終了日または前の再リース）の翌日。月数（既定 `lease.release.months`=12）・再リース料（既定は 15.1）を指定できる。所有権移転リースは拒否 |
+| `cancelLeaseReLease` | 未請求（`LSREL_CONTRACTED`）の最後の期間だけ取り消せる |
+| `billLeaseReLease` | 再リースを開始する：請求（期日＝開始日）、ファイナンスの残価振替、`LSREL_ACTIVE`。冪等。期間前でも請求できる |
+| `processLeaseReLeases` | 処理日までに始まった期間を開始し、終わった月の収益計上と償却を行う。全月を計上した期間は `LSREL_COMPLETED`。冪等。月次バッチ（`runLeaseAgreementMonthlyAccounting`）が請求・戻入・償却の後に呼ぶ（開始した件数は `createdInvoiceCount`、償却した月数は `createdDepreciationCount` に含める） |
+
+### 15.5 既存処理との連動
+
+- **回収状況**（`computeBalance`）：再リースの請求額・消込額を `billedAmount`・`appliedAmount`（＝未払額）に含め、`billedReLeaseAmount`・`collectedReLeaseAmount`（消費税を先に充当）・`recognizedReLeaseAmount`・`unearnedReLeaseAmount` を返す。
+- **入金**（`receiveLeasePayment`）：再リースの請求書も消込の対象（期日の古い順）。
+- **延滞**（`LeaseContractAdapter`）：未払の再リース請求書を延滞額に含める（再リース料は利息相当額のバケット、元本 0）。未決済の請求書（完了の条件）にも含める。
+- **返還・完了**：返還日・完了日は最後の再リース終了日以降。返還時に再リースの計上・償却を終了日まで済ませ、ファイナンスの振替済み残価は帳簿価額で精算記録に残す（`acquisitionCost`＝振替額、`accumulatedDepreciation`）。処分は L12 と同じく帳簿価額で行う。
+- **満了バッチ**：返還タスクは最後の再リース終了日以降に作る（満了通知は元のリース終了日のまま）。
+- **保守計画**（L11）：予定日は最後の再リース終了日まで作る。
+- **公租公課**（L10b）：契約が有効なので、再リース中の物件も申告の対象（変更なし）。
+
+### 15.6 画面
+
+- `ManageLeaseAgreement` に「再リース」のスクリーンレット（登録フォーム、期間の一覧と請求・取消のリンク）を追加。商品条件の画面に年額係数を追加。
+
+### 15.7 テスト（`LeaseReLeaseTests`。USD の `TEST_LEASEPROD_USD`（残価 120,000、料率 0.08）と `TEST_LEASEPROD_OPER`（残価 850,000、料率 0.016）、12 か月）
+
+| テスト | 内容 |
+|--------|------|
+| `testReLeaseRegistration` | 不正な月数・金額の拒否、開始日・終了日、既定の再リース料＝月額、2 期目の連続、最後でない期間の取消の拒否と最後の期間の取消、再リース中の返還の拒否 |
+| `testReLeaseBillingAndRecognition` | 月次バッチで開始：請求（224700・224500、期日＝開始日、税率 10%）、残価振替（借 165500 ／ 貸 128500）、1 か月分の収益計上（224700 → 404100）と償却（10,000、`periodNumber`=13）、冪等、満了バッチで返還タスクを作らない、延滞に再リース請求書（元本 0）、回収状況と全額入金 |
+| `testOperatingReLeaseReturnAndDisposal` | 再リース満了：12 か月の計上・償却（償却 24 件）、帳簿価額 0、前受 0、返還で契約完了、売却（165900・165500・403700） |
+| `testFinanceReLeaseReturn` | ファイナンスの再リース満了後の返還：精算記録（振替額 120,000・累計 120,000・簿価 0）、契約完了、廃棄（借 165900 ／ 貸 165500、損益なし） |
+
+### 15.8 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| XML の整形式 | 変更した 10 ファイルで OK |
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 新規 2 テーブル（`LEASE_RE_LEASE` / `LEASE_RE_LEASE_RECOGNITION`）、3 列追加、347 行を変更 |
+| `gradlew "ofbiz --test component=finance"` | tests=174 / errors=0 / failures=0（L13 の 4 件を含む）。所要 45 分（L12 時点の DB 再構築から 2 回の全体テスト＋単体実行で DB が増えたため） |
+| demo 投入 | BUILD SUCCESSFUL |
+| 画面 | 未確認（定義のみ） |
+
+`--test case=lease-release-tests` の単体実行は、テストデータ（`FinanceTestData.xml`）を投入する最初のテストケースが走らないため、DB 再構築直後は商品がなく失敗する（L12 では直前の全体テストのデータが残っていたため単体で通った）。単体実行は全体テストを一度流した後に行う。
+
+### 15.9 要確認・制約
+
+- **会計処理の根拠**：再リース料を期間按分で収益計上し、ファイナンスリースの残価を賃貸資産に振り替えて再リース期間で償却する処理は、リース会計の実務（再リース期間を解約不能期間に含めない場合）に沿ったものとして選んだ。採用する会計方針（振替の要否、備忘価額の残し方）は確認する（要確認）。
+- **与信額**：再リース中も `FinanceContract` は有効のままで、与信の合算（`sumExposurePrincipal`）には元の取得価額が含まれ続ける。再リースの与信の扱いは要確認。
+- **満了通知**：再リース期間の終了に対する満了通知（`LeaseExpiryNotice` は契約に 1 件）は作らない。再リースの更新案内は運用で行う。
+- **期間途中の解約**：再リース期間中の解約（前受の返金・未償却簿価の処理）は L14（中途解約）で扱う。
+- **月数**：再リース期間は月単位（既定 12 か月）。日割りはしない。
 
 ---
 

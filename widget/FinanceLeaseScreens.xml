@@ -452,6 +452,16 @@ under the License.
                                             </section>
                                             <include-grid name="ListLeaseAssetSettlements" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                         </screenlet>
+                                        <!-- STEP L13: re-lease -->
+                                        <screenlet title="${uiLabelMap.FinanceLeaseReLease}">
+                                            <section>
+                                                <condition><if-compare field="canCreateReLease" operator="equals" value="true" type="Boolean"/></condition>
+                                                <widgets>
+                                                    <include-form name="CreateLeaseReLease" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </widgets>
+                                            </section>
+                                            <include-grid name="ListLeaseReLeases" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
                                         <!-- STEP L11: maintenance -->
                                         <screenlet title="${uiLabelMap.FinanceLeaseMaintenance}">
                                             <include-form name="ViewLeaseMaintSummary" location="component://finance/widget/FinanceLeaseForms.xml"/>

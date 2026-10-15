@@ -188,6 +188,8 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
                     "interestAmount", unpaidInterest, "componentAmount", unpaidComponent, "taxAmount", unpaidTax,
                     "leaseAmount", unpaidPrincipal.add(unpaidInterest)));
         }
+        // STEP L13: overdue re-lease invoices (fee + tax, no principal).
+        rows.addAll(LeaseReLeaseServices.overdue(delegator, agreement, asOfDate));
         return rows;
     }
 
@@ -233,6 +235,12 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
                     .where("invoiceId", link.getString("invoiceId")).cache(false).queryOne();
             if (invoice != null && !isSettled(invoice)) {
                 invoiceIds.add(link.getString("invoiceId"));
+            }
+        }
+        for (Object[] inv : LeaseReLeaseServices.reLeaseInvoices(delegator, agreement.getString("leaseAgreementId"))) {
+            GenericValue invoice = EntityQuery.use(delegator).from("Invoice").where("invoiceId", inv[0]).cache(false).queryOne();
+            if (invoice != null && !isSettled(invoice)) {
+                invoiceIds.add((String) inv[0]);
             }
         }
         return invoiceIds;

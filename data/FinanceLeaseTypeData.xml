@@ -276,4 +276,19 @@ under the License.
     <GlAccount glAccountId="165500" accountCode="165500" glAccountClassId="LONGTERM_ASSET" glAccountTypeId="LEASE_OPER_ASSET" glResourceTypeId="MONEY" accountName="LEASED ASSETS (OPERATING LEASE)"/>
     <GlAccount glAccountId="165900" accountCode="165900" glAccountClassId="ACCUM_DEPRECIATION" glAccountTypeId="LEASE_OPER_ACCUM_DEP" glResourceTypeId="MONEY" accountName="ACCUMULATED DEPRECIATION - LEASED ASSETS"/>
     <GlAccount glAccountId="503800" accountCode="503800" glAccountClassId="COGS_EXPENSE" glAccountTypeId="LEASE_OPER_DEPR" glResourceTypeId="MONEY" accountName="DEPRECIATION OF LEASED ASSETS"/>
-    <GlAccount glAccountId="404000" accountCode="404000" glAccountClassId="REVENUE" glAccountTypeId="LEASE_OPER_REVENUE" glResourceTypeId="MONEY" accountName="OPERATING LEASE REVENUE"/></entity-engine-xml>
+    <GlAccount glAccountId="404000" accountCode="404000" glAccountClassId="REVENUE" glAccountTypeId="LEASE_OPER_REVENUE" glResourceTypeId="MONEY" accountName="OPERATING LEASE REVENUE"/>    <!-- ============ STEP L13: re-lease (再リース) ============ -->
+    <StatusType description="Lease Re-lease" hasTable="N" statusTypeId="LEASE_RELEASE_STATUS"/>
+    <StatusItem description="Contracted" sequenceId="01" statusCode="CONTRACTED" statusId="LSREL_CONTRACTED" statusTypeId="LEASE_RELEASE_STATUS"/>
+    <StatusItem description="Active (billed)" sequenceId="02" statusCode="ACTIVE" statusId="LSREL_ACTIVE" statusTypeId="LEASE_RELEASE_STATUS"/>
+    <StatusItem description="Completed" sequenceId="03" statusCode="COMPLETED" statusId="LSREL_COMPLETED" statusTypeId="LEASE_RELEASE_STATUS"/>
+    <StatusItem description="Cancelled" sequenceId="99" statusCode="CANCELLED" statusId="LSREL_CANCELLED" statusTypeId="LEASE_RELEASE_STATUS"/>
+    <StatusValidChange statusId="LSREL_CONTRACTED" statusIdTo="LSREL_ACTIVE" transitionName="Start (bill)"/>
+    <StatusValidChange statusId="LSREL_CONTRACTED" statusIdTo="LSREL_CANCELLED" transitionName="Cancel"/>
+    <StatusValidChange statusId="LSREL_ACTIVE" statusIdTo="LSREL_COMPLETED" transitionName="Complete"/>
+    <!-- The annual re-lease fee is billed in advance to unearned re-lease fees and recognized monthly. -->
+    <InvoiceItemType description="Re-lease fee (再リース料)" hasTable="N" invoiceItemTypeId="LEASE_RELEASE"/>
+    <InvoiceItemTypeMap invoiceTypeId="SALES_INVOICE" invoiceItemMapKey="LEASE_RELEASE" invoiceItemTypeId="LEASE_RELEASE"/>
+    <GlAccountType description="Unearned re-lease fees (前受再リース料)" glAccountTypeId="LEASE_RELEASE_UNEARN" hasTable="N" parentTypeId="CURRENT_LIABILITY"/>
+    <GlAccountType description="Re-lease revenue (受取再リース料)" glAccountTypeId="LEASE_RELEASE_REV" hasTable="N" parentTypeId="SALES_ACCOUNT"/>
+    <GlAccount glAccountId="224700" accountCode="224700" glAccountClassId="CURRENT_LIABILITY" glAccountTypeId="LEASE_RELEASE_UNEARN" glResourceTypeId="MONEY" accountName="UNEARNED RE-LEASE FEES"/>
+    <GlAccount glAccountId="404100" accountCode="404100" glAccountClassId="REVENUE" glAccountTypeId="LEASE_RELEASE_REV" glResourceTypeId="MONEY" accountName="RE-LEASE REVENUE"/></entity-engine-xml>

@@ -44,6 +44,7 @@ under the License.
         <field name="revenueMethodEnumId" type="id"><description>LEASE_REV_METHOD: revenue recognition method; initially LEASE_REV_AT_START</description></field>
         <field name="taxable" type="indicator"><description>Y when lease payments are subject to consumption tax (default Y)</description></field>
         <field name="taxTimingEnumId" type="id"><description>LEASE_TAX_TIMING: taxable sale per installment or lump sum at the lease start (STEP L5); empty = lease.tax.timing</description></field>
+        <field name="reLeaseAnnualFactor" type="fixed-point"><description>STEP L13: default annual re-lease fee / original monthly lease amount (e.g. 1.0 = one month per year); empty = lease.release.annual.factor</description></field>
         <prim-key field="productId"/>
         <relation type="one" fk-name="FINPRODLS_PROD" rel-entity-name="FinancialProduct">
             <key-map field-name="productId"/>
@@ -348,6 +349,7 @@ under the License.
         <field name="usefulLifeYears" type="numeric"><description>STEP L10: useful life in years for the property tax valuation (empty = finance.properties default)</description></field>
         <field name="municipalityGeoId" type="id"><description>STEP L10: municipality (core Geo, MUNICIPALITY) where the asset is located; defaults from the FixedAsset facility address</description></field>
         <field name="ownershipShare" type="fixed-point"><description>STEP L10b: lessor's ownership share of the asset (0 &lt; share &lt;= 1, e.g. a co-owned asset of a syndicated lease); empty = 1 (sole owner). Public charges are declared pro rata</description></field>
+        <field name="reclassifiedResidual" type="currency-amount"><description>STEP L13 (finance lease): residual value moved from the lease investment to leased assets (165500) at the first re-lease; depreciated over the re-lease</description></field>
         <prim-key field="leaseAgreementId"/>
         <prim-key field="assetSeqId"/>
         <relation type="one" fk-name="LEASEAGRAS_AGR" rel-entity-name="LeaseAgreement">
@@ -1131,6 +1133,7 @@ under the License.
         <field name="bookValue" type="currency-amount"><description>acquisition cost - accumulated depreciation (ends at the residual value)</description></field>
         <field name="currencyUomId" type="id"></field>
         <field name="acctgTransId" type="id"><description>Dr depreciation of leased assets / Cr accumulated depreciation (one transaction per agreement x month)</description></field>
+        <field name="reLeaseSeqId" type="id"><description>STEP L13: re-lease period of the month (empty = original lease term)</description></field>
         <field name="createdDate" type="date-time"></field>
         <prim-key field="leaseAgreementId"/>
         <prim-key field="assetSeqId"/>
@@ -1144,6 +1147,67 @@ under the License.
         </relation>
         <relation type="one-nofk" rel-entity-name="AcctgTrans">
             <key-map field-name="acctgTransId"/>
+        </relation>
+    </entity>
+
+    <!-- ========================================================= -->
+    <!-- STEP L13: re-lease (再リース). One renewal period of an    -->
+    <!-- expired lease (usually 12 months), billed once in advance -->
+    <!-- to unearned re-lease fees and recognized monthly; the     -->
+    <!-- remaining book value of the assets is depreciated over    -->
+    <!-- the re-lease period.                                      -->
+    <!-- ========================================================= -->
+    <entity entity-name="LeaseReLease" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease re-lease period (再リース)">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="reLeaseSeqId" type="id"><description>00001, 00002, ... in date order</description></field>
+        <field name="fromDate" type="date-time"><description>day after the previous end (lease end or previous re-lease)</description></field>
+        <field name="thruDate" type="date-time"></field>
+        <field name="months" type="numeric"></field>
+        <field name="reLeaseAmount" type="currency-amount"><description>re-lease fee of the period (tax excluded)</description></field>
+        <field name="taxRate" type="fixed-point"><description>consumption tax rate at the re-lease start</description></field>
+        <field name="taxAmount" type="currency-amount"></field>
+        <field name="taxAuthPartyId" type="id"></field>
+        <field name="taxAuthGeoId" type="id"></field>
+        <field name="taxAuthorityRateSeqId" type="id"></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="statusId" type="id"><description>LEASE_RELEASE_STATUS: contracted / active (billed) / completed / cancelled; changed only by the re-lease services</description></field>
+        <field name="invoiceId" type="id"><description>sales invoice of the re-lease fee (Cr unearned re-lease fees)</description></field>
+        <field name="reclassAcctgTransId" type="id"><description>finance lease, first re-lease: Dr leased assets / Cr lease investment (residual)</description></field>
+        <field name="recognizedAmount" type="currency-amount"><description>re-lease fee recognized as revenue so far</description></field>
+        <field name="comments" type="comment"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseAgreementId"/>
+        <prim-key field="reLeaseSeqId"/>
+        <relation type="one" fk-name="LEASEREL_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEREL_STTS" rel-entity-name="StatusItem">
+            <key-map field-name="statusId"/>
+        </relation>
+        <relation type="one-nofk" rel-entity-name="Invoice">
+            <key-map field-name="invoiceId"/>
+        </relation>
+    </entity>
+
+    <!-- Monthly recognition of a re-lease fee (idempotent per re-lease x month). -->
+    <entity entity-name="LeaseReLeaseRecognition" package-name="org.apache.ofbiz.finance.lease"
+            title="Re-lease fee recognition">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="reLeaseSeqId" type="id"></field>
+        <field name="monthNumber" type="numeric"></field>
+        <field name="fromDate" type="date-time"></field>
+        <field name="thruDate" type="date-time"></field>
+        <field name="amount" type="currency-amount"></field>
+        <field name="cumulativeAmount" type="currency-amount"></field>
+        <field name="acctgTransId" type="id"><description>Dr unearned re-lease fees / Cr re-lease revenue</description></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseAgreementId"/>
+        <prim-key field="reLeaseSeqId"/>
+        <prim-key field="monthNumber"/>
+        <relation type="one" fk-name="LEASERELR_REL" rel-entity-name="LeaseReLease">
+            <key-map field-name="leaseAgreementId"/>
+            <key-map field-name="reLeaseSeqId"/>
         </relation>
     </entity>
 </entitymodel>

@@ -287,6 +287,9 @@ public final class LeaseExpiryServices {
                 return "FinanceLeaseCompleteAssetsPending";
             }
         }
+        // STEP L13: the re-lease periods are accounted through the last re-lease end.
+        Timestamp effectiveEnd = LeaseReLeaseServices.effectiveEndDate(delegator, agreement);
+        LeaseReLeaseServices.processReLeases(dctx, agreement, effectiveEnd, userLogin);
         if (!allBilledAndSettled(delegator, agreement)) {
             return "FinanceLeaseCompleteOpenBalance";
         }
@@ -348,7 +351,10 @@ public final class LeaseExpiryServices {
                         assignee, null, userLogin).isCreated()) {
                     created++;
                 }
-                if (!day(end).isAfter(day(processingDate))) {
+                // STEP L13: a re-leased asset is returned after the last re-lease end.
+                Timestamp returnFrom = LeaseReLeaseServices.effectiveEndDate(delegator, agreement);
+                if (isTransfer(agreement) ? !day(end).isAfter(day(processingDate))
+                        : !day(returnFrom).isAfter(day(processingDate))) {
                     if (isTransfer(agreement)) {
                         if (allBilledAndSettled(delegator, agreement) && FinanceWorkEffortHelper.ensureTask(delegator,
                                 dispatcher, contractId, FinanceWorkEffortHelper.TYPE_OWNERSHIP_TRANSFER, TRIGGER_TRANSFER,
@@ -457,15 +463,19 @@ public final class LeaseExpiryServices {
             if (isTransfer(agreement)) {
                 return error("FinanceLeaseReturnNotForTransfer", UtilMisc.toMap("leaseAgreementId", leaseAgreementId), locale);
             }
-            if (day(returnDate).isBefore(day(agreement.getTimestamp("leaseEndDate")))) {
+            // STEP L13: a re-leased asset is returned after the last re-lease end.
+            Timestamp effectiveEnd = LeaseReLeaseServices.effectiveEndDate(delegator, agreement);
+            if (day(returnDate).isBefore(day(effectiveEnd))) {
                 return error("FinanceLeaseBeforeExpiry", UtilMisc.toMap("leaseAgreementId", leaseAgreementId,
-                        "leaseEndDate", agreement.getTimestamp("leaseEndDate")), locale);
+                        "leaseEndDate", effectiveEnd), locale);
             }
             GenericValue asset = EntityQuery.use(delegator).from("LeaseAgreementAsset")
                     .where("leaseAgreementId", leaseAgreementId, "assetSeqId", assetSeqId).queryOne();
             if (asset == null || !ASSET_LEASED.equals(asset.getString("assetStatusId"))) {
                 return error("FinanceLeaseAssetNotLeased", UtilMisc.toMap("assetSeqId", assetSeqId), locale);
             }
+            LeaseReLeaseServices.processReLeases(dctx, agreement, effectiveEnd, userLogin);
+            asset.refresh();
             BigDecimal residual = allocateResidual(delegator, agreement, agreement.getBigDecimal("residualValue")).get(assetSeqId);
             BigDecimal operatingCost = null;
             BigDecimal operatingAccum = null;
@@ -475,6 +485,11 @@ public final class LeaseExpiryServices {
                         leaseAgreementId, "depreciationDate", agreement.getTimestamp("leaseEndDate"),
                         "userLogin", userLogin, "locale", locale)));
                 operatingCost = nz(asset.getBigDecimal("acquisitionCost"));
+                operatingAccum = LeaseDepreciationServices.accumulatedDepreciation(delegator, leaseAgreementId, assetSeqId);
+                residual = operatingCost.subtract(operatingAccum);
+            } else if (asset.getBigDecimal("reclassifiedResidual") != null) {
+                // STEP L13: the residual of a re-leased finance lease is a leased asset at its book value.
+                operatingCost = asset.getBigDecimal("reclassifiedResidual");
                 operatingAccum = LeaseDepreciationServices.accumulatedDepreciation(delegator, leaseAgreementId, assetSeqId);
                 residual = operatingCost.subtract(operatingAccum);
             }
@@ -545,7 +560,7 @@ public final class LeaseExpiryServices {
             BigDecimal residual = nz(settlement.getBigDecimal("residualValue"));
             String buyer = (String) context.get("disposalPartyId");
             String partyId = UtilValidate.isNotEmpty(buyer) ? buyer : agreement.getString("lesseePartyId");
-            String acctgTransId = LeaseProductHelper.isOperating(agreement)
+            String acctgTransId = LeaseProductHelper.isOperating(agreement) || settlement.getBigDecimal("acquisitionCost") != null
                     ? postOperatingDisposal(delegator, dispatcher, agreement, assetSeqId,
                             nz(settlement.getBigDecimal("acquisitionCost")), nz(settlement.getBigDecimal("accumulatedDepreciation")),
                             proceeds, disposalDate, partyId, userLogin)
@@ -680,9 +695,10 @@ public final class LeaseExpiryServices {
             if (!"LEASEAGR_ACTIVE".equals(agreement.getString("statusId"))) {
                 return error("FinanceLeaseAccountingRequiresActive", UtilMisc.toMap("leaseAgreementId", leaseAgreementId), locale);
             }
-            if (day(completionDate).isBefore(day(agreement.getTimestamp("leaseEndDate"))) && !isTransfer(agreement)) {
+            Timestamp effectiveEnd = LeaseReLeaseServices.effectiveEndDate(delegator, agreement);
+            if (day(completionDate).isBefore(day(effectiveEnd)) && !isTransfer(agreement)) {
                 return error("FinanceLeaseBeforeExpiry", UtilMisc.toMap("leaseAgreementId", leaseAgreementId,
-                        "leaseEndDate", agreement.getTimestamp("leaseEndDate")), locale);
+                        "leaseEndDate", effectiveEnd), locale);
             }
             String missing = tryComplete(dctx, agreement, completionDate, userLogin, locale);
             if (missing != null) {

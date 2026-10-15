@@ -1142,7 +1142,54 @@ under the License.
         <value xml:lang="en">Default monthly lease rate factor (0.018 = 1.8%)</value>
         <value xml:lang="ja">標準月額リース料率（0.018 = 1.8%）</value>
     </property>
-    <property key="FinanceLeaseRevenueMethodClassMismatch">
+    <property key="FinanceLeaseReLeaseNotForTransfer">
+        <value xml:lang="en">Lease ${leaseAgreementId} transfers the ownership to the lessee; it cannot be re-leased.</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} は所有権移転リースのため、再リースできません。</value>
+    </property>
+    <property key="FinanceLeaseReLeaseMonthsInvalid">
+        <value xml:lang="en">The re-lease period ${months} must be a positive number of months.</value>
+        <value xml:lang="ja">再リース期間 ${months} は 1 か月以上で指定してください。</value>
+    </property>
+    <property key="FinanceLeaseReLeaseAmountInvalid">
+        <value xml:lang="en">The re-lease fee (or factor) ${amount} must not be negative.</value>
+        <value xml:lang="ja">再リース料（または係数）${amount} に負の値は指定できません。</value>
+    </property>
+    <property key="FinanceLeaseReLeaseNotCancellable">
+        <value xml:lang="en">Re-lease ${reLeaseSeqId} cannot be changed (${statusId}); only the last contracted (unbilled) period can be cancelled.</value>
+        <value xml:lang="ja">再リース ${reLeaseSeqId} は変更できません（${statusId}）。取り消せるのは未請求の最後の期間だけです。</value>
+    </property>
+    <property key="FinanceLeaseReLease">
+        <value xml:lang="en">Re-lease</value>
+        <value xml:lang="ja">再リース</value>
+    </property>
+    <property key="FinanceLeaseReLeaseCreate">
+        <value xml:lang="en">Register re-lease</value>
+        <value xml:lang="ja">再リースの登録</value>
+    </property>
+    <property key="FinanceLeaseReLeaseBill">
+        <value xml:lang="en">Bill / start</value>
+        <value xml:lang="ja">請求・開始</value>
+    </property>
+    <property key="FinanceLeaseReLeaseMonths">
+        <value xml:lang="en">Months</value>
+        <value xml:lang="ja">期間（月）</value>
+    </property>
+    <property key="FinanceLeaseReLeaseAmount">
+        <value xml:lang="en">Re-lease fee</value>
+        <value xml:lang="ja">再リース料</value>
+    </property>
+    <property key="FinanceLeaseReLeaseAmountDefault">
+        <value xml:lang="en">Empty = monthly lease amount x annual factor x months / 12</value>
+        <value xml:lang="ja">空欄＝月額リース料 × 年額係数 × 月数 / 12</value>
+    </property>
+    <property key="FinanceLeaseReLeaseRecognized">
+        <value xml:lang="en">Recognized</value>
+        <value xml:lang="ja">収益計上済</value>
+    </property>
+    <property key="FinanceLeaseReLeaseAnnualFactor">
+        <value xml:lang="en">Re-lease annual factor (x monthly lease amount)</value>
+        <value xml:lang="ja">再リース料の年額係数（月額リース料に対する倍率）</value>
+    </property>    <property key="FinanceLeaseRevenueMethodClassMismatch">
         <value xml:lang="en">Revenue method ${revenueMethodEnumId} does not match lease class ${leaseClassEnumId} (operating leases use LEASE_REV_OPERATING, finance leases do not).</value>
         <value xml:lang="ja">収益計上方法 ${revenueMethodEnumId} はリース区分 ${leaseClassEnumId} と合いません（オペレーティングリースは LEASE_REV_OPERATING、ファイナンスリースはそれ以外）。</value>
     </property>

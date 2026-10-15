@@ -822,6 +822,37 @@ under the License.
         <response name="success" type="request-redirect" value="FindLeaseExpiry"/>
         <response name="error" type="request-redirect" value="FindLeaseExpiry"/>
     </request-map>
+    <!-- STEP L13: re-lease -->
+    <request-map uri="createLeaseReLease">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="createLeaseReLease"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="billLeaseReLease">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="billLeaseReLease"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="cancelLeaseReLease">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="cancelLeaseReLease"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
     <!-- STEP L12: operating lease depreciation -->
     <request-map uri="depreciateLeaseAssets">
         <security https="true" auth="true"/>

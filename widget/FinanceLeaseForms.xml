@@ -42,6 +42,7 @@ under the License.
             </drop-down>
         </field>
         <field name="residualValueRate" title="${uiLabelMap.FinanceLeaseResidualValueRate}"><text size="12"/></field>
+        <field name="reLeaseAnnualFactor" title="${uiLabelMap.FinanceLeaseReLeaseAnnualFactor}"><text size="12"/></field>
         <field name="revenueMethodEnumId" title="${uiLabelMap.FinanceLeaseRevenueMethod}">
             <drop-down allow-empty="false">
                 <entity-options entity-name="Enumeration" key-field-name="enumId" description="${description}">
@@ -811,8 +812,40 @@ under the License.
         <field name="actualCompletionDate" title="${uiLabelMap.FinanceLeaseCompletedOn}"><display type="date"/></field>
     </grid>
 
-    <!-- STEP L11: maintenance lease -->
-    <form name="ViewLeaseMaintSummary" type="single" default-map-name="maintSummary">
+    <!-- STEP L13: re-lease -->
+    <form name="CreateLeaseReLease" type="single" target="createLeaseReLease">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="months" title="${uiLabelMap.FinanceLeaseReLeaseMonths}"><text size="4" default-value="12"/></field>
+        <field name="reLeaseAmount" title="${uiLabelMap.FinanceLeaseReLeaseAmount}" tooltip="${uiLabelMap.FinanceLeaseReLeaseAmountDefault}"><text size="15"/></field>
+        <field name="comments" title="${uiLabelMap.CommonComments}"><text size="40"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceLeaseReLeaseCreate}"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListLeaseReLeases" list-name="reLeases" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="reLeaseSeqId" title="#"><display/></field>
+        <field name="fromDate" title="${uiLabelMap.CommonFromDate}"><display type="date"/></field>
+        <field name="thruDate" title="${uiLabelMap.CommonThruDate}"><display type="date"/></field>
+        <field name="reLeaseAmount" title="${uiLabelMap.FinanceLeaseReLeaseAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="taxAmount" title="${uiLabelMap.FinanceLeaseTaxAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="recognizedAmount" title="${uiLabelMap.FinanceLeaseReLeaseRecognized}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem" key-field-name="statusId"/></field>
+        <field name="invoiceId" title="${uiLabelMap.FinanceInvoiceId}"><display/></field>
+        <field name="bill" title=" " use-when="${bsh:context.get(&quot;canBill&quot;)}">
+            <hyperlink target="billLeaseReLease" description="${uiLabelMap.FinanceLeaseReLeaseBill}" also-hidden="false" request-confirmation="true">
+                <parameter param-name="leaseAgreementId"/>
+                <parameter param-name="reLeaseSeqId"/>
+            </hyperlink>
+        </field>
+        <field name="cancel" title=" " use-when="${bsh:context.get(&quot;canCancel&quot;)}">
+            <hyperlink target="cancelLeaseReLease" description="${uiLabelMap.FinanceLeaseMaintCancel}" also-hidden="false" request-confirmation="true">
+                <parameter param-name="leaseAgreementId"/>
+                <parameter param-name="reLeaseSeqId"/>
+            </hyperlink>
+        </field>
+    </grid>
+
+    <!-- STEP L11: maintenance lease -->    <form name="ViewLeaseMaintSummary" type="single" default-map-name="maintSummary">
         <field name="contractedMaintenanceAmount" title="${uiLabelMap.FinanceLeaseMaintContracted}"><display type="currency" currency="${currencyUomId}"/></field>
         <field name="billedMaintenanceRevenue" title="${uiLabelMap.FinanceLeaseMaintBilledRevenue}"><display type="currency" currency="${currencyUomId}"/></field>
         <field name="maintenanceCost" title="${uiLabelMap.FinanceLeaseMaintCost}"><display type="currency" currency="${currencyUomId}"/></field>
