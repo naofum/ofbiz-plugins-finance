@@ -1171,7 +1171,7 @@ SystemProperty / finance.properties キー
 | `testReversePrepayment` | 一部繰上返済の取消（入金の取消、手数料の逆仕訳、返済表の revision 3 が revision 1 と一致）、二重取消の拒否、全額繰上返済の取消で契約・共通台帳が有効に戻る |
 | `testReverseModification` | 最新でない変更の取消の拒否、新しいものから順に取消（利率・期間・返済表が戻る）、利息計上後の取消の拒否 |
 
-結果は `SPEC_LEASE.md` 18.6 を参照（取消の 3 件は成功）。
+結果：全体テスト tests=192 / errors=0 / failures=0（`SPEC_LEASE.md` 18.6）。
 
 ### 27.5 要確認・制約
 

@@ -41,7 +41,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L13 | 再リース（元の契約に再リース期間を追加、年額の前払請求と月次の収益按分、残存簿価の償却。15 章） | 完了（tests=174 / errors=0 / failures=0） |
 | L14 | 中途解約（規定損害金＝未経過リース料の現在価値、リース投資資産の精算、物件の引揚。16 章） | 完了（tests=182 / errors=0 / failures=0） |
 | L15 | 条件変更（期間・月額・計算利子率、確定リース料表の新 revision、投資資産と繰延利益の調整。17 章） | 完了（tests=186 / errors=0 / failures=0） |
-| L15a | 誤操作の取消（検収・中途解約・条件変更。18 章。共通部品は `SPEC_COMMON.md` 11 章） | 完了（tests=192、取消の 6 件は成功。既知の残存データによるローンの 3 件のエラーあり。18.6） |
+| L15a | 誤操作の取消（検収・中途解約・条件変更。18 章。共通部品は `SPEC_COMMON.md` 11 章） | 完了（tests=192 / errors=0 / failures=0） |
 
 前提：STEP L0（共通層の切り出し、`SPEC_COMMON.md`）の完了後に着手する。
 
@@ -1493,7 +1493,7 @@ L1〜L11 と同じで、契約の収益計上方法（`LeaseRevenueStrategy`）�
 | XML の整形式 | 変更したすべてのファイルで OK |
 | `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
 | seed 投入 | 新規 1 テーブル（`FINANCE_REVERSAL`）、`LOAN_PREPAYMENT` / `LOAN_MODIFICATION` / `LEASE_MODIFICATION` に列を追加、370 行を変更 |
-| `gradlew "ofbiz --test component=finance"` | tests=192 / errors=3 / failures=0（24.7 分）。取消のテスト 6 件（リース 3・ローン 3）はすべて成功。エラーの 3 件は `LoanLifecycleTests.testCreateAgreementWithConfirmedSchedule`・`LoanBusinessLoanTests` の与信 2 件で、直前の全体テストを途中で止めたために残ったテストデータ（`SPEC_COMMON.md` 運用メモの既知の症状）。DB を作り直した後に再確認が必要 |
+| `gradlew "ofbiz --test component=finance"` | tests=192 / errors=0 / failures=0（21 分、`cleanAll loadAll` で DB を作り直した後）。作り直す前は、途中で止めた全体テストの残存データにより `LoanLifecycleTests.testCreateAgreementWithConfirmedSchedule`・`LoanBusinessLoanTests` の与信 2 件がエラーになった（`SPEC_COMMON.md` 運用メモの既知の症状） |
 | demo 投入 | BUILD SUCCESSFUL |
 | 画面 | 未確認（定義のみ） |
 
