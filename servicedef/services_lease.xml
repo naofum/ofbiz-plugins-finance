@@ -487,6 +487,41 @@ under the License.
     </service>
 
     <!-- ============================================================= -->
+    <!-- STEP L15a: reversal of mistaken operations (取消, FINANCE_ADMIN) -->
+    <!-- ============================================================= -->
+    <service name="reverseLeaseAcceptance" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseReversalServices" invoke="reverseLeaseAcceptance" auth="true">
+        <description>Reverse a mistaken acceptance (lease start) when nothing was processed after it (billing, deferred profit
+            release, depreciation, payment, re-lease, change of terms, maintenance, expiry, public charges, delinquency): reverse
+            the start entries, restore the pre-acceptance schedule as a new revision, back to LEASEAGR_CONTRACTED.</description>
+        <permission-service service-name="financeAdminPermission" main-action="UPDATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="reason" type="String" mode="IN" optional="false"/>
+        <attribute name="financeReversalId" type="String" mode="OUT" optional="true"/>
+    </service>
+    <service name="reverseLeaseTermination" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseReversalServices" invoke="reverseLeaseTermination" auth="true">
+        <description>Reverse a mistaken early termination when nothing was processed after it (payment of the damages, other
+            payments, asset recovery, delinquency): cancel the damages invoice, reverse the settlement, restore the re-leases and
+            maintenance plans, cancel the recovery tasks, back to LEASEAGR_ACTIVE.</description>
+        <permission-service service-name="financeAdminPermission" main-action="UPDATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="reason" type="String" mode="IN" optional="false"/>
+        <attribute name="financeReversalId" type="String" mode="OUT" optional="true"/>
+    </service>
+    <service name="reverseLeaseModification" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseReversalServices" invoke="reverseLeaseModification" auth="true">
+        <description>Reverse the latest change of terms when nothing was processed after it (billing of the changed installments,
+            deferred profit release, depreciation): reverse the adjustment entry, restore the previous schedule as a new revision and
+            the previous terms.</description>
+        <permission-service service-name="financeAdminPermission" main-action="UPDATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="reason" type="String" mode="IN" optional="false"/>
+        <attribute name="financeReversalId" type="String" mode="OUT" optional="true"/>
+        <attribute name="scheduleRevisionNumber" type="Long" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
     <!-- STEP L15: change of terms (条件変更)                            -->
     <!-- ============================================================= -->
     <service name="calculateLeaseModification" engine="java"

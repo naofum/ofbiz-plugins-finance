@@ -63,6 +63,13 @@ if (oldStatusId == newStatusId) {
     return result
 }
 
+// STEP L15a: reversal-only transitions of a loan agreement (reverseLoanAgreement / reverseLoanPrepayment).
+if ('LoanAgreement'.equals(entityName) && ((oldStatusId == 'LOANAGR_ACTIVE' && newStatusId == 'LOANAGR_CANCELLED')
+        || (oldStatusId == 'LOANAGR_CLOSED' && newStatusId == 'LOANAGR_ACTIVE'))) {
+    return error(UtilProperties.getMessage('FinanceUiLabels', 'FinanceReversalRequiresService',
+            [statusId: newStatusId], context.locale))
+}
+
 if (oldStatusId != null) {
     GenericValue validChange = from('StatusValidChange')
             .where('statusId', oldStatusId, 'statusIdTo', newStatusId)

@@ -473,7 +473,7 @@ public final class LeaseModificationServices {
 
             // The expiry notice task of the old end date no longer applies.
             if (!oldEnd.equals(p.newLeaseEnd)) {
-                FinanceWorkEffortHelper.cancelTask(delegator, dispatcher, agreement.getString("financeContractId"),
+                FinanceWorkEffortHelper.cancelAndUnlinkTask(delegator, dispatcher, agreement.getString("financeContractId"),
                         FinanceWorkEffortHelper.TYPE_EXPIRY_NOTICE, oldEnd.toLocalDateTime().toLocalDate().toString(), userLogin);
             }
             Map<String, Object> result = planResult(p);

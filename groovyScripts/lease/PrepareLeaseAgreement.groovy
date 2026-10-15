@@ -176,3 +176,9 @@ if (context.canModify && (parameters.modNewTermMonths || parameters.modNewMonthl
             userLogin: userLogin])
     context.modificationQuote = org.apache.ofbiz.service.ServiceUtil.isSuccess(quote) ? quote : null
 }
+
+// STEP L15a: reversals (FINANCE_ADMIN; the services check whether the operation can still be reversed).
+context.financeReversals = from('FinanceReversal').where('financeContractId', leaseAgreement.financeContractId)
+        .orderBy('-financeReversalId').queryList()
+context.canReverseAcceptance = context.isActive && context.leaseAcceptance != null
+context.canReverseModification = context.isActive && context.leaseModifications.any { it.reversedDate == null }

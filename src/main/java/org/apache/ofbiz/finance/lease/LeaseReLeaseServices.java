@@ -86,6 +86,8 @@ public final class LeaseReLeaseServices {
     public static final String GL_REVENUE = "LEASE_RELEASE_REV";
     public static final String ITEM_RELEASE = "LEASE_RELEASE";
     private static final String ASSET_LEASED = "LSAST_LEASED";
+    /** STEP L15a: comment of the contracted re-leases cancelled by an early termination (restored by its reversal). */
+    public static final String TERMINATION_CANCEL_MARK = "Cancelled by early termination";
 
     private LeaseReLeaseServices() {
     }
@@ -640,6 +642,7 @@ public final class LeaseReLeaseServices {
             String status = r.getString("statusId");
             if (STATUS_CONTRACTED.equals(status)) {
                 r.set("statusId", STATUS_CANCELLED);
+                r.set("comments", TERMINATION_CANCEL_MARK);
                 r.store();
                 continue;
             }

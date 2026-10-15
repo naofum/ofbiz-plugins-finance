@@ -147,9 +147,12 @@ public final class FinancePrepaymentServices {
             prepayment.set("comments", context.get("comments"));
             prepayment.create();
 
+            long fromRevision = FinanceAccountingServices.currentScheduleRevision(delegator, loanAgreementId);
+            prepayment.set("fromRevisionNumber", fromRevision);
             if (fee.compareTo(BigDecimal.ZERO) > 0) {
-                postFeeIncome(delegator, dispatcher, agreement, fee, prepaymentDate,
-                        organizationPartyId, userLogin);
+                // STEP L15a: keep the fee transaction for a reversal.
+                prepayment.set("feeAcctgTransId", postFeeIncome(delegator, dispatcher, agreement, fee, prepaymentDate,
+                        organizationPartyId, userLogin));
             }
 
             if ("PREPAY_FULL".equals(prepaymentTypeEnumId)) {
@@ -162,7 +165,9 @@ public final class FinancePrepaymentServices {
             } else {
                 regenerateAfterPrepayment(delegator, agreement, outstanding.subtract(prepaidPrincipal),
                         prepaymentTypeEnumId, prepaymentDate);
+                prepayment.set("toRevisionNumber", FinanceAccountingServices.currentScheduleRevision(delegator, loanAgreementId));
             }
+            prepayment.store();
 
             Map<String, Object> result = ServiceUtil.returnSuccess();
             result.put("loanPrepaymentId", loanPrepaymentId);
@@ -227,6 +232,7 @@ public final class FinancePrepaymentServices {
             modification.set("newTermMonths", term);
             modification.set("reason", context.get("reason"));
             modification.set("comments", context.get("comments"));
+            modification.set("fromRevisionNumber", FinanceAccountingServices.currentScheduleRevision(delegator, loanAgreementId));
             modification.create();
 
             agreement.set("annualInterestRate", rate);
@@ -234,6 +240,9 @@ public final class FinancePrepaymentServices {
             agreement.store();
 
             regenerateAfterModification(delegator, agreement, rate, term, effectiveDate);
+            // STEP L15a: the revision created (for a reversal).
+            modification.set("toRevisionNumber", FinanceAccountingServices.currentScheduleRevision(delegator, loanAgreementId));
+            modification.store();
 
             Map<String, Object> result = ServiceUtil.returnSuccess();
             result.put("loanModificationId", modification.getString("loanModificationId"));
@@ -519,13 +528,13 @@ public final class FinancePrepaymentServices {
         return UtilValidate.isEmpty(method) ? "LOAN_RPM_EQUAL_PAY" : method;
     }
 
-    private static void postFeeIncome(Delegator delegator, LocalDispatcher dispatcher,
+    private static String postFeeIncome(Delegator delegator, LocalDispatcher dispatcher,
             GenericValue agreement, BigDecimal fee, Timestamp transactionDate, String organizationPartyId,
             GenericValue userLogin) throws GenericEntityException, GenericServiceException {
         String debitGlAccountId = findGlAccountId(delegator, organizationPartyId, "ACCOUNTS_RECEIVABLE");
         String creditGlAccountId = findGlAccountId(delegator, organizationPartyId, "INTEREST_INCOME");
         if (debitGlAccountId == null || creditGlAccountId == null) {
-            return;
+            return null;
         }
         Map<String, Object> glInput = new HashMap<>();
         glInput.put("acctgTransTypeId", "OTHER_INTERNAL");
@@ -551,6 +560,7 @@ public final class FinancePrepaymentServices {
         if (ServiceUtil.isError(postResult)) {
             throw new GenericServiceException(ServiceUtil.getErrorMessage(postResult));
         }
+        return (String) glResult.get("acctgTransId");
     }
 
     private static GenericValue lockAgreement(Delegator delegator, String loanAgreementId)

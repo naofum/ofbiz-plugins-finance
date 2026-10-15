@@ -193,6 +193,22 @@ public final class FinanceWorkEffortHelper {
         return workEffortId;
     }
 
+    /**
+     * STEP L15a: cancel the open task of a contract for a work type and trigger key and
+     * remove its link, so the same trigger can create a new task later (the cancelled
+     * WorkEffort stays for the history).
+     */
+    public static String cancelAndUnlinkTask(Delegator delegator, LocalDispatcher dispatcher, String financeContractId,
+            String workTypeEnumId, String triggerKey, GenericValue userLogin)
+            throws GenericEntityException, GenericServiceException {
+        String workEffortId = cancelTask(delegator, dispatcher, financeContractId, workTypeEnumId, triggerKey, userLogin);
+        GenericValue link = findLink(delegator, financeContractId, workTypeEnumId, triggerKey);
+        if (link != null) {
+            link.remove();
+        }
+        return workEffortId;
+    }
+
     /** Tasks of a contract (link fields + WorkEffort name, status, dates). */
     public static List<GenericValue> listTasks(Delegator delegator, String financeContractId)
             throws GenericEntityException {

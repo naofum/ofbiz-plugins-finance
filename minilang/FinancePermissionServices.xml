@@ -47,4 +47,17 @@ under the License.
             </else>
         </if-has-permission>
     </simple-method>
+    <!-- STEP L15a: reversal of a mistaken operation requires FINANCE_ADMIN (no other permission is enough). -->
+    <simple-method method-name="financeAdminPermission" short-description="Finance administrator permission">
+        <if-has-permission permission="FINANCE" action="_ADMIN">
+            <set field="hasPermission" type="Boolean" value="true"/>
+            <field-to-result field="hasPermission"/>
+            <else>
+                <property-to-field resource="FinanceUiLabels" property="FinanceReversalPermissionError" field="failMessage"/>
+                <set field="hasPermission" type="Boolean" value="false"/>
+                <field-to-result field="hasPermission"/>
+                <field-to-result field="failMessage"/>
+            </else>
+        </if-has-permission>
+    </simple-method>
 </simple-methods>

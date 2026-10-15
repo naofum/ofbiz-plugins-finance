@@ -1142,7 +1142,62 @@ under the License.
         <value xml:lang="en">Default monthly lease rate factor (0.018 = 1.8%)</value>
         <value xml:lang="ja">標準月額リース料率（0.018 = 1.8%）</value>
     </property>
-    <property key="FinanceLeaseModificationNoChange">
+    <property key="FinanceReversalPermissionError">
+        <value xml:lang="en">Only a finance administrator (FINANCE_ADMIN) can reverse an operation.</value>
+        <value xml:lang="ja">取消は財務管理者（FINANCE_ADMIN）だけが実行できます。</value>
+    </property>
+    <property key="FinanceReversalReasonRequired">
+        <value xml:lang="en">A reason is required to reverse an operation.</value>
+        <value xml:lang="ja">取消には理由の入力が必要です。</value>
+    </property>
+    <property key="FinanceReversalNotApplicable">
+        <value xml:lang="en">${id} has no operation that can be reversed here (status ${statusId}).</value>
+        <value xml:lang="ja">${id} には取り消せる操作がありません（状態 ${statusId}）。</value>
+    </property>
+    <property key="FinanceReversalBlocked">
+        <value xml:lang="en">The operation cannot be reversed because it was followed by: ${what}.</value>
+        <value xml:lang="ja">後続の処理（${what}）があるため取り消せません。</value>
+    </property>
+    <property key="FinanceReversalRequiresService">
+        <value xml:lang="en">The change to ${statusId} is done only by the reversal services (FINANCE_ADMIN).</value>
+        <value xml:lang="ja">${statusId} への変更は取消のサービス（FINANCE_ADMIN）でだけ行えます。</value>
+    </property>
+    <property key="FinanceReversal">
+        <value xml:lang="en">Reversal (administrator)</value>
+        <value xml:lang="ja">取消（管理者）</value>
+    </property>
+    <property key="FinanceReversalReason">
+        <value xml:lang="en">Reason for the reversal</value>
+        <value xml:lang="ja">取消の理由</value>
+    </property>
+    <property key="FinanceReverseLeaseAcceptance">
+        <value xml:lang="en">Reverse the acceptance</value>
+        <value xml:lang="ja">検収を取り消す</value>
+    </property>
+    <property key="FinanceReverseLeaseTermination">
+        <value xml:lang="en">Reverse the termination</value>
+        <value xml:lang="ja">中途解約を取り消す</value>
+    </property>
+    <property key="FinanceReverseLeaseModification">
+        <value xml:lang="en">Reverse the latest change of terms</value>
+        <value xml:lang="ja">最新の条件変更を取り消す</value>
+    </property>
+    <property key="FinanceReverseLoanAgreement">
+        <value xml:lang="en">Reverse the contract</value>
+        <value xml:lang="ja">契約を取り消す</value>
+    </property>
+    <property key="FinanceReverseLoanPrepayment">
+        <value xml:lang="en">Reverse the prepayment</value>
+        <value xml:lang="ja">繰上返済を取り消す</value>
+    </property>
+    <property key="FinanceReverseLoanModification">
+        <value xml:lang="en">Reverse the change of terms</value>
+        <value xml:lang="ja">条件変更を取り消す</value>
+    </property>
+    <property key="FinanceReversalHistory">
+        <value xml:lang="en">Reversals</value>
+        <value xml:lang="ja">取消の履歴</value>
+    </property>    <property key="FinanceLeaseModificationNoChange">
         <value xml:lang="en">No change of terms is given for lease ${leaseAgreementId} (term, monthly amount or calculation rate).</value>
         <value xml:lang="ja">リース契約 ${leaseAgreementId} の変更内容（期間・月額・計算利子率）がありません。</value>
     </property>

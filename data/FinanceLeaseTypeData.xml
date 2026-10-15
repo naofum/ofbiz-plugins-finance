@@ -303,4 +303,9 @@ under the License.
     <GlAccountType description="Lease termination income (解約益・解約損害金収入)" glAccountTypeId="LEASE_TERM_INCOME" hasTable="N" parentTypeId="SALES_ACCOUNT"/>
     <GlAccountType description="Lease termination loss (解約損失)" glAccountTypeId="LEASE_TERM_LOSS" hasTable="N" parentTypeId="COGS_ACCOUNT"/>
     <GlAccount glAccountId="404200" accountCode="404200" glAccountClassId="REVENUE" glAccountTypeId="LEASE_TERM_INCOME" glResourceTypeId="MONEY" accountName="LEASE TERMINATION INCOME"/>
-    <GlAccount glAccountId="504200" accountCode="504200" glAccountClassId="COGS_EXPENSE" glAccountTypeId="LEASE_TERM_LOSS" glResourceTypeId="MONEY" accountName="LEASE TERMINATION LOSS"/></entity-engine-xml>
+    <GlAccount glAccountId="504200" accountCode="504200" glAccountClassId="COGS_EXPENSE" glAccountTypeId="LEASE_TERM_LOSS" glResourceTypeId="MONEY" accountName="LEASE TERMINATION LOSS"/>    <!-- STEP L15a: reversals (only the reversal services, FINANCE_ADMIN). -->
+    <StatusValidChange statusId="LEASEAGR_ACTIVE" statusIdTo="LEASEAGR_CONTRACTED" transitionName="Reverse acceptance"/>
+    <StatusValidChange statusId="LEASEAGR_TERMINATED" statusIdTo="LEASEAGR_ACTIVE" transitionName="Reverse termination"/>
+    <StatusValidChange statusId="LSREL_CANCELLED" statusIdTo="LSREL_CONTRACTED" transitionName="Reverse termination"/>
+    <StatusValidChange statusId="LSREL_COMPLETED" statusIdTo="LSREL_ACTIVE" transitionName="Reverse termination"/>
+</entity-engine-xml>

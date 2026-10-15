@@ -40,6 +40,12 @@ if (oldStatusId == newStatusId) {
     return result
 }
 
+// STEP L15a: CONTRACTED -> APPROVED only by the activation reversal (reverseLoanAgreement).
+if (oldStatusId == 'LOANAPP_CONTRACTED' && newStatusId == 'LOANAPP_APPROVED') {
+    return error(UtilProperties.getMessage('FinanceUiLabels', 'FinanceReversalRequiresService',
+            [statusId: newStatusId], context.locale))
+}
+
 // Validate the transition against StatusValidChange (only when there is a current status).
 if (oldStatusId != null) {
     GenericValue validChange = from('StatusValidChange')

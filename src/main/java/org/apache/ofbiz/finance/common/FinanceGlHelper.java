@@ -219,6 +219,65 @@ public final class FinanceGlHelper {
         return acctgTransId;
     }
 
+    /**
+     * STEP L15a: post the reversing transaction of an accounting transaction: the same
+     * GL accounts and amounts with debit and credit swapped (the original stays).
+     *
+     * @return the reversing acctgTransId, or null when the source is empty / missing
+     */
+    public static String reverseTransaction(Delegator delegator, LocalDispatcher dispatcher, String acctgTransId,
+            String description, Timestamp transactionDate, GenericValue userLogin)
+            throws GenericEntityException, GenericServiceException {
+        if (UtilValidate.isEmpty(acctgTransId)) {
+            return null;
+        }
+        GenericValue source = EntityQuery.use(delegator).from("AcctgTrans").where("acctgTransId", acctgTransId)
+                .cache(false).queryOne();
+        if (source == null) {
+            return null;
+        }
+        List<GenericValue> entries = new ArrayList<>();
+        for (GenericValue e : EntityQuery.use(delegator).from("AcctgTransEntry").where("acctgTransId", acctgTransId)
+                .cache(false).queryList()) {
+            GenericValue entry = delegator.makeValue("AcctgTransEntry");
+            for (String f : UtilMisc.toList("acctgTransEntryTypeId", "glAccountId", "glAccountTypeId", "amount",
+                    "origAmount", "currencyUomId", "origCurrencyUomId", "organizationPartyId", "partyId")) {
+                entry.set(f, e.get(f));
+            }
+            entry.set("debitCreditFlag", "D".equals(e.getString("debitCreditFlag")) ? "C" : "D");
+            entry.set("description", description);
+            entries.add(entry);
+        }
+        if (entries.isEmpty()) {
+            return null;
+        }
+        Map<String, Object> input = new HashMap<>();
+        input.put("acctgTransTypeId", "OTHER_INTERNAL");
+        input.put("glFiscalTypeId", source.get("glFiscalTypeId") == null ? "ACTUAL" : source.get("glFiscalTypeId"));
+        input.put("description", description);
+        input.put("transactionDate", transactionDate);
+        input.put("organizationPartyId", entries.get(0).get("organizationPartyId"));
+        input.put("partyId", source.get("partyId"));
+        input.put("isPosted", "N");
+        input.put("acctgTransEntries", entries);
+        input.put("userLogin", userLogin);
+        Map<String, Object> created = dispatcher.runSync("createAcctgTransAndEntries", input);
+        if (ServiceUtil.isError(created)) {
+            throw new GenericServiceException(ServiceUtil.getErrorMessage(created));
+        }
+        String reversingId = (String) created.get("acctgTransId");
+        GenericValue trans = EntityQuery.use(delegator).from("AcctgTrans").where("acctgTransId", reversingId)
+                .cache(false).queryOne();
+        if (trans != null && !"Y".equals(trans.getString("isPosted"))) {
+            Map<String, Object> posted = dispatcher.runSync("postAcctgTrans",
+                    UtilMisc.toMap("acctgTransId", reversingId, "userLogin", userLogin));
+            if (ServiceUtil.isError(posted) || ServiceUtil.isFailure(posted)) {
+                throw new GenericServiceException(ServiceUtil.getErrorMessage(posted));
+            }
+        }
+        return reversingId;
+    }
+
     /** Post every unposted AcctgTrans that references the given field (e.g. invoiceId / paymentId). */
     public static void postUnposted(Delegator delegator, LocalDispatcher dispatcher, String fieldName, String value,
             GenericValue userLogin) throws GenericEntityException, GenericServiceException {

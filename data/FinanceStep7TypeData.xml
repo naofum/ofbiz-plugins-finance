@@ -29,4 +29,8 @@ under the License.
     <EnumerationType description="Loan Modification Type" enumTypeId="LOAN_MOD_TYPE" hasTable="N"/>
     <Enumeration description="Interest Rate Change (金利変更)" enumCode="RATE" enumId="MOD_RATE" sequenceId="01" enumTypeId="LOAN_MOD_TYPE"/>
     <Enumeration description="Term Change (期間変更)" enumCode="TERM" enumId="MOD_TERM" sequenceId="02" enumTypeId="LOAN_MOD_TYPE"/>
+    <!-- STEP L15a: reversals (only the reversal services, FINANCE_ADMIN). -->
+    <StatusValidChange statusId="LOANAGR_ACTIVE" statusIdTo="LOANAGR_CANCELLED" transitionName="Reverse activation"/>
+    <StatusValidChange statusId="LOANAGR_CLOSED" statusIdTo="LOANAGR_ACTIVE" transitionName="Reverse full prepayment"/>
+    <StatusValidChange statusId="LOANAPP_CONTRACTED" statusIdTo="LOANAPP_APPROVED" transitionName="Reverse activation"/>
 </entity-engine-xml>

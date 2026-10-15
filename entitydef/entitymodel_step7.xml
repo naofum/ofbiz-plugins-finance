@@ -42,6 +42,11 @@ under the License.
         <field name="penaltyAmount" type="currency-amount"><description>prepayment fee charged</description></field>
         <field name="paymentId" type="id"><description>optional link to the settlement Payment</description></field>
         <field name="comments" type="comment"></field>
+        <field name="feeAcctgTransId" type="id"><description>STEP L15a: GL transaction of the prepayment fee</description></field>
+        <field name="fromRevisionNumber" type="numeric"><description>STEP L15a: schedule revision before the prepayment</description></field>
+        <field name="toRevisionNumber" type="numeric"><description>STEP L15a: schedule revision created (empty for a full prepayment)</description></field>
+        <field name="reversedDate" type="date-time"><description>STEP L15a: reversed (not a principal event any more)</description></field>
+        <field name="financeReversalId" type="id"></field>
         <prim-key field="loanPrepaymentId"/>
         <relation type="one" fk-name="LOANPREP_AGR" rel-entity-name="LoanAgreement">
             <key-map field-name="loanAgreementId"/>
@@ -70,6 +75,10 @@ under the License.
         <field name="newTermMonths" type="numeric"></field>
         <field name="reason" type="description"></field>
         <field name="comments" type="comment"></field>
+        <field name="fromRevisionNumber" type="numeric"><description>STEP L15a: schedule revision before the change</description></field>
+        <field name="toRevisionNumber" type="numeric"><description>STEP L15a: schedule revision created</description></field>
+        <field name="reversedDate" type="date-time"><description>STEP L15a: reversed</description></field>
+        <field name="financeReversalId" type="id"></field>
         <prim-key field="loanModificationId"/>
         <relation type="one" fk-name="LOANMOD_AGR" rel-entity-name="LoanAgreement">
             <key-map field-name="loanAgreementId"/>

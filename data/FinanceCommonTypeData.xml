@@ -53,4 +53,12 @@ under the License.
     <RoleType description="Head lessor of a sublease (元リースの貸手)" hasTable="N" parentTypeId="FIN_CTR_ROLE" roleTypeId="FIN_HEAD_LESSOR"/>
     <RoleType description="Vendor / dealer (販売店)" hasTable="N" parentTypeId="FIN_CTR_ROLE" roleTypeId="FIN_VENDOR"/>
     <RoleType description="Recourse party (リコース先)" hasTable="N" parentTypeId="FIN_CTR_ROLE" roleTypeId="FIN_RECOURSE"/>
+    <!-- STEP L15a: reversal of a mistaken operation (FinanceReversal). Only FINANCE_ADMIN may reverse. -->
+    <EnumerationType description="Finance Reversal Type" enumTypeId="FINANCE_REV_TYPE" hasTable="N"/>
+    <Enumeration description="Lease acceptance (検収の取消)" enumCode="LEASE_ACCEPT" enumId="FINREV_LEASE_ACCEPT" sequenceId="01" enumTypeId="FINANCE_REV_TYPE"/>
+    <Enumeration description="Lease early termination (中途解約の取消)" enumCode="LEASE_TERM" enumId="FINREV_LEASE_TERM" sequenceId="02" enumTypeId="FINANCE_REV_TYPE"/>
+    <Enumeration description="Lease change of terms (条件変更の取消)" enumCode="LEASE_MOD" enumId="FINREV_LEASE_MOD" sequenceId="03" enumTypeId="FINANCE_REV_TYPE"/>
+    <Enumeration description="Loan agreement activation (契約・有効化の取消)" enumCode="LOAN_ACTIVATE" enumId="FINREV_LOAN_ACTIVATE" sequenceId="11" enumTypeId="FINANCE_REV_TYPE"/>
+    <Enumeration description="Loan prepayment (繰上返済の取消)" enumCode="LOAN_PREPAY" enumId="FINREV_LOAN_PREPAY" sequenceId="12" enumTypeId="FINANCE_REV_TYPE"/>
+    <Enumeration description="Loan change of terms (条件変更の取消)" enumCode="LOAN_MOD" enumId="FINREV_LOAN_MOD" sequenceId="13" enumTypeId="FINANCE_REV_TYPE"/>
 </entity-engine-xml>

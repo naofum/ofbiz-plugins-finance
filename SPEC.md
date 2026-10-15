@@ -1138,3 +1138,42 @@ SystemProperty / finance.properties キー
 | Java / Groovy | `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
 | finance テスト | `gradlew "ofbiz --test component=finance"` | tests=48 / errors=0 / failures=0 |
 
+---
+
+## 27. STEP L15a — 誤操作の取消（ローン）
+
+方針・共通部品は `SPEC_COMMON.md` 11 章。実装：`LoanReversalServices`（`servicedef/services_step7.xml`）。すべて FINANCE_ADMIN だけが実行でき、理由が必須。
+
+### 27.1 記録の追加（取消に必要な情報）
+
+- `LoanPrepayment`：`feeAcctgTransId`（繰上返済手数料の仕訳）、`fromRevisionNumber` / `toRevisionNumber`（返済表の変更前後の revision）、`reversedDate`、`financeReversalId`。
+- `LoanModification`：`fromRevisionNumber` / `toRevisionNumber`、`reversedDate`、`financeReversalId`。
+- 取消済みの繰上返済は、残元本の計算（`getPrincipalPaymentEvents`）で元本の支払として数えない。
+- 取消サービスの追加前に作られた繰上返済・条件変更は revision の記録がないため、取り消せない。
+
+### 27.2 サービス
+
+| サービス | 条件 | 処理 |
+|----------|------|------|
+| `reverseLoanAgreement`（契約・有効化の取消） | `LOANAGR_ACTIVE` で、請求・利息計上・繰上返済・条件変更・延滞の記録がない | 契約を `LOANAGR_CANCELLED`、共通台帳を `FINCTR_CANCELLED`、ローン口座（FinAccount）を `FNACT_CANCELLED`、担保の設定を解除（thruDate）、申込を `LOANAPP_APPROVED` に戻す（状態履歴も残す）。同じ見積からは契約できないため、契約し直すときは新しい見積を作る |
+| `reverseLoanPrepayment`（繰上返済の取消） | 取消していない最新の事象（繰上返済・条件変更）で、その後に請求・利息計上・延滞の記録がない。一部は `LOANAGR_ACTIVE`、全額は `LOANAGR_CLOSED` | 精算の入金を core の `voidPayment` で取り消し（core が入金の仕訳を逆仕訳）、手数料の仕訳を逆仕訳。一部：変更前の返済表を新しい revision として写す。全額：契約を `LOANAGR_ACTIVE`、共通台帳を `FINCTR_ACTIVE` に戻す |
+| `reverseLoanModification`（条件変更の取消） | 取消していない最新の事象で、その後に請求・利息計上・延滞の記録がない | 利率・期間を変更前に戻し、変更前の返済表を新しい revision として写す（仕訳はもともとない） |
+
+### 27.3 画面
+
+- `ManageLoanAgreement` に「取消（管理者）」のスクリーンレットを追加（FINANCE_ADMIN のときだけ表示）：契約・条件変更・繰上返済の取消フォーム（理由が必須）と取消の履歴。繰上返済・条件変更の一覧に取消日を表示する。
+
+### 27.4 テスト（`LoanReversalTests`）
+
+| テスト | 内容 |
+|--------|------|
+| `testReverseActivation` | 権限のない利用者・理由なし・汎用の状態変更の拒否、取消（契約・共通台帳・ローン口座・申込の状態、取消記録）、新しい見積から契約し直し、利息計上後の取消の拒否 |
+| `testReversePrepayment` | 一部繰上返済の取消（入金の取消、手数料の逆仕訳、返済表の revision 3 が revision 1 と一致）、二重取消の拒否、全額繰上返済の取消で契約・共通台帳が有効に戻る |
+| `testReverseModification` | 最新でない変更の取消の拒否、新しいものから順に取消（利率・期間・返済表が戻る）、利息計上後の取消の拒否 |
+
+結果は `SPEC_LEASE.md` 18.6 を参照（取消の 3 件は成功）。
+
+### 27.5 要確認・制約
+
+- **契約の取消と core の口座**：ローン口座は取消状態にするだけで消さない。担保は解除日を付けるだけ。
+- **請求・入金がある場合**：取り消せない。必要なら先に core で請求書・入金を取り消すが、利息計上（`LoanAccrual`）を戻すサービスはないため、計上後は取り消せない。

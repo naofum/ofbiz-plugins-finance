@@ -164,4 +164,34 @@ under the License.
             <index-field name="triggerKey"/>
         </index>
     </entity>
+    <!-- ========================================================= -->
+    <!-- STEP L15a: reversal of a mistaken operation (取消). One row -->
+    <!-- per reversal: what was reversed, why, by whom, and the      -->
+    <!-- reversing GL transactions. The original records stay (or a  -->
+    <!-- snapshot is kept here when the row had to be removed).      -->
+    <!-- ========================================================= -->
+    <entity entity-name="FinanceReversal" package-name="org.apache.ofbiz.finance.common"
+            title="Finance reversal (取消)">
+        <field name="financeReversalId" type="id"><description>primary sequenced ID</description></field>
+        <field name="financeContractId" type="id"></field>
+        <field name="reversalTypeEnumId" type="id"><description>FINANCE_REV_TYPE (FINREV_*)</description></field>
+        <field name="referenceId" type="id"><description>id of the reversed record (agreement, LeaseModification, LoanPrepayment, LoanModification)</description></field>
+        <field name="operationDate" type="date-time"><description>date of the reversed operation (acceptance, termination, ...)</description></field>
+        <field name="reason" type="description"><description>required reason</description></field>
+        <field name="reversalDate" type="date-time"></field>
+        <field name="reversedByUserLogin" type="id-vlong"></field>
+        <field name="reversingAcctgTransIds" type="very-long"><description>comma-separated reversing AcctgTrans ids (finance entries)</description></field>
+        <field name="snapshot" type="very-long"><description>key=value lines of the removed record (e.g. LeaseAcceptance, LeaseTermination)</description></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="financeReversalId"/>
+        <relation type="one" fk-name="FINREV_CTR" rel-entity-name="FinanceContract">
+            <key-map field-name="financeContractId"/>
+        </relation>
+        <relation type="one" fk-name="FINREV_TYPE" rel-entity-name="Enumeration">
+            <key-map field-name="reversalTypeEnumId" rel-field-name="enumId"/>
+        </relation>
+        <index name="FINREV_CTR_IDX">
+            <index-field name="financeContractId"/>
+        </index>
+    </entity>
 </entitymodel>

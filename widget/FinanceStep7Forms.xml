@@ -60,6 +60,7 @@ under the License.
         <field name="principalAmount" title="${uiLabelMap.FinancePrincipalAmount}"><display/></field>
         <field name="penaltyAmount" title="${uiLabelMap.FinancePenaltyAmount}"><display/></field>
         <field name="paymentId" title="${uiLabelMap.FinanceReceivePayment}"><display/></field>
+        <field name="reversedDate" title="${uiLabelMap.FinanceReversal}"><display type="date"/></field>
     </grid>
 
     <!-- Modifications for an agreement -->
@@ -80,6 +81,54 @@ under the License.
         </field>
         <field name="oldTermMonths" title="${uiLabelMap.FinanceRequestedTermMonths}"><display/></field>
         <field name="newTermMonths" title="${uiLabelMap.FinanceNewTermMonths}"><display/></field>
+        <field name="reversedDate" title="${uiLabelMap.FinanceReversal}"><display type="date"/></field>
+    </grid>
+
+    <!-- STEP L15a: reversal of mistaken operations (FINANCE_ADMIN) -->
+    <form name="ReverseLoanAgreement" type="single" target="reverseLoanAgreement">
+        <field name="loanAgreementId"><hidden/></field>
+        <field name="reason" title="${uiLabelMap.FinanceReversalReason}" required-field="true"><text size="40"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceReverseLoanAgreement}"><submit button-type="button"/></field>
+    </form>
+    <form name="ReverseLoanPrepayment" type="single" target="reverseLoanPrepayment">
+        <field name="loanAgreementId"><hidden/></field>
+        <field name="loanPrepaymentId" title="${uiLabelMap.FinancePrepayment}">
+            <drop-down allow-empty="false">
+                <entity-options entity-name="LoanPrepayment" key-field-name="loanPrepaymentId" description="${loanPrepaymentId} ${prepaymentDate}">
+                    <entity-constraint name="loanAgreementId" env-name="loanAgreementId"/>
+                    <entity-order-by field-name="-loanPrepaymentId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="reason" title="${uiLabelMap.FinanceReversalReason}" required-field="true"><text size="40"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceReverseLoanPrepayment}"><submit button-type="button"/></field>
+    </form>
+    <form name="ReverseLoanModification" type="single" target="reverseLoanModification">
+        <field name="loanAgreementId"><hidden/></field>
+        <field name="loanModificationId" title="${uiLabelMap.FinanceLoanModification}">
+            <drop-down allow-empty="false">
+                <entity-options entity-name="LoanModification" key-field-name="loanModificationId" description="${loanModificationId} ${modificationDate}">
+                    <entity-constraint name="loanAgreementId" env-name="loanAgreementId"/>
+                    <entity-order-by field-name="-loanModificationId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="reason" title="${uiLabelMap.FinanceReversalReason}" required-field="true"><text size="40"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceReverseLoanModification}"><submit button-type="button"/></field>
+    </form>
+    <grid name="ListFinanceReversals" list-name="financeReversals" paginate="false">
+        <actions>
+            <entity-condition entity-name="FinanceReversal" list="financeReversals">
+                <condition-expr field-name="financeContractId" from-field="financeContractId"/>
+                <order-by field-name="-financeReversalId"/>
+            </entity-condition>
+        </actions>
+        <field name="reversalDate" title="${uiLabelMap.FinanceReversal}"><display type="date"/></field>
+        <field name="reversalTypeEnumId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="Enumeration" key-field-name="enumId"/></field>
+        <field name="referenceId"><display/></field>
+        <field name="reason" title="${uiLabelMap.FinanceReversalReason}"><display/></field>
+        <field name="reversedByUserLogin"><display/></field>
+        <field name="reversingAcctgTransIds"><display/></field>
     </grid>
 
 </forms>

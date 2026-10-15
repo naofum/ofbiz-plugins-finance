@@ -452,6 +452,27 @@ under the License.
                                             </section>
                                             <include-grid name="ListLeaseAssetSettlements" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                         </screenlet>
+                                        <!-- STEP L15a: reversal of mistaken operations (FINANCE_ADMIN) -->
+                                        <section>
+                                            <condition><if-has-permission permission="FINANCE" action="_ADMIN"/></condition>
+                                            <widgets>
+                                                <screenlet title="${uiLabelMap.FinanceReversal}">
+                                                    <section>
+                                                        <condition><if-compare field="canReverseAcceptance" operator="equals" value="true" type="Boolean"/></condition>
+                                                        <widgets><include-form name="ReverseLeaseAcceptance" location="component://finance/widget/FinanceLeaseForms.xml"/></widgets>
+                                                    </section>
+                                                    <section>
+                                                        <condition><if-compare field="isTerminated" operator="equals" value="true" type="Boolean"/></condition>
+                                                        <widgets><include-form name="ReverseLeaseTermination" location="component://finance/widget/FinanceLeaseForms.xml"/></widgets>
+                                                    </section>
+                                                    <section>
+                                                        <condition><if-compare field="canReverseModification" operator="equals" value="true" type="Boolean"/></condition>
+                                                        <widgets><include-form name="ReverseLeaseModification" location="component://finance/widget/FinanceLeaseForms.xml"/></widgets>
+                                                    </section>
+                                                    <include-grid name="ListLeaseReversals" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </screenlet>
+                                            </widgets>
+                                        </section>
                                         <!-- STEP L15: change of terms -->
                                         <screenlet title="${uiLabelMap.FinanceLeaseModification}">
                                             <section>

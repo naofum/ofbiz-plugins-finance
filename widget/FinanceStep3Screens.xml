@@ -114,6 +114,26 @@ under the License.
                                     <include-grid name="ListDelinquencyActions" location="component://finance/widget/FinanceStep6Forms.xml"/>
                                 </screenlet>
 
+                                <!-- STEP L15a: reversal of mistaken operations (FINANCE_ADMIN) -->
+                                <section>
+                                    <condition><if-has-permission permission="FINANCE" action="_ADMIN"/></condition>
+                                    <actions>
+                                        <set field="financeContractId" from-field="loanAgreement.financeContractId"/>
+                                    </actions>
+                                    <widgets>
+                                        <screenlet title="${uiLabelMap.FinanceReversal}">
+                                            <section>
+                                                <condition><if-compare field="loanAgreement.statusId" operator="equals" value="LOANAGR_ACTIVE"/></condition>
+                                                <widgets>
+                                                    <include-form name="ReverseLoanAgreement" location="component://finance/widget/FinanceStep7Forms.xml"/>
+                                                    <include-form name="ReverseLoanModification" location="component://finance/widget/FinanceStep7Forms.xml"/>
+                                                </widgets>
+                                            </section>
+                                            <include-form name="ReverseLoanPrepayment" location="component://finance/widget/FinanceStep7Forms.xml"/>
+                                            <include-grid name="ListFinanceReversals" location="component://finance/widget/FinanceStep7Forms.xml"/>
+                                        </screenlet>
+                                    </widgets>
+                                </section>
                                 <screenlet title="${uiLabelMap.FinancePrepayment}">
                                     <include-form name="CreateLoanPrepayment" location="component://finance/widget/FinanceStep7Forms.xml"/>
                                     <include-grid name="ListLoanPrepayments" location="component://finance/widget/FinanceStep7Forms.xml"/>

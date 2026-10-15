@@ -200,7 +200,8 @@ public final class LeaseDepreciationServices {
             // STEP L15: after a change of the lease term the remaining depreciable amount is spread
             // straight-line over the remaining months from the last modification's base month.
             GenericValue modification = EntityQuery.use(delegator).from("LeaseModification")
-                    .where("leaseAgreementId", leaseAgreementId).orderBy("-leaseModificationId").cache(false).queryFirst();
+                    .where("leaseAgreementId", leaseAgreementId, "reversedDate", null).orderBy("-leaseModificationId")
+                    .cache(false).queryFirst();
             int baseMonth = modification == null || modification.getLong("depreciationBaseMonth") == null ? 0
                     : modification.getLong("depreciationBaseMonth").intValue();
             Map<String, BigDecimal> baseCumulative = new HashMap<>();

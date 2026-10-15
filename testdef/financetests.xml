@@ -106,6 +106,14 @@ under the License.
         <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseModificationTests"/>
     </test-case>
 
+    <test-case case-name="lease-reversal-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseReversalTests"/>
+    </test-case>
+
+    <test-case case-name="loan-reversal-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.LoanReversalTests"/>
+    </test-case>
+
     <test-case case-name="finance-contract-party-tests">
         <junit-test-suite class-name="org.apache.ofbiz.finance.test.FinanceContractPartyTests"/>
     </test-case>

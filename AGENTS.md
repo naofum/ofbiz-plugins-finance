@@ -17,6 +17,7 @@
 - 延滞判定・遅延損害金・督促・償却は共通層の `FinanceDelinquencyServices` が `FinanceContract` を起点に処理する。延滞関連レコードには `financeContractId` を必ず設定する（`loanAgreementId` は互換用）。契約種別ごとの延滞額（元本・利息・消費税）、遅延損害金の計算基礎、償却の貸方科目は `FinanceContractAdapter` が返す（リースは `LeaseContractAdapter`、計算基礎は `lease.latefee.base`）。
 - 審査は `LOANUW_IN_REVIEW` で作成し、承認・否決後は変更不可。承認・否決は状態、decision、reviewDateを一貫して確定する。審査には `applicationTypeId`（LOAN/LEASE）と `applicationId` を設定する。
 - entity-auto等の通常CRUDで業務STATUSを変更してはならない。対応する状態遷移サービスを使用する（全層共通）。
+- 誤操作の取消（STEP L15a、`SPEC_COMMON.md` 11 章）は操作ごとの専用サービス（`reverseLease*` / `reverseLoan*`）だけで行う。FINANCE_ADMIN（`financeAdminPermission`）と理由が必須で、後続の処理（請求・入金・計上・延滞・後続の変更）がある場合は取り消さない。元の記録は消さず、逆仕訳（`FinanceGlHelper.reverseTransaction`）と `FinanceReversal` を足す。取消用の状態遷移は汎用の状態サービスでは使えないようにする。
 - 人が行う作業（満了時の返還・引取り、督促活動、保守作業 等）は core の `WorkEffort` でタスク化し、共通層の `FinanceContractWorkEffort` で契約に紐付ける（STEP L7〜、`plugins/finance/REQUIREMENTS_LEASE.md` 3.5）。WorkEffort の状態は作業の完了だけを表し、業務STATUSを変えない（業務サービスの結果としてタスクを完了にする）。タスクの自動作成は契約×作業種別×きっかけごとに1件（冪等）。バッチの定期実行は WorkEffort ではなくジョブスケジューラで行う。
 - 契約の取引先（役割・持分・期間）は共通層の `FinanceContractParty`、基本契約と個別契約の関係は `FinanceContract.parentFinanceContractId` で表す（STEP L10a、`plugins/finance/SPEC_COMMON.md` 10 章）。契約作成時は `FinanceContractHelper.createContract` の貸手組織つきの版を使い、顧客と貸手組織を 100% で登録する。役割は `FIN_CTR_ROLE` 配下の `RoleType` だけを使い、契約種別ごとの役割は `FinanceContractAdapter` が返す。既存の業務処理（請求・与信・延滞・税）は各層の取引先列を読み続け、土台を読むように切り替えるときは、その STEP の仕様書に記録する。
 

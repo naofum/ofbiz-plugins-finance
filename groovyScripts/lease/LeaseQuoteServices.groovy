@@ -498,6 +498,10 @@ Map setLeaseAgreementStatus() {
     if (parameters.statusId == 'LEASEAGR_TERMINATED' && agreement.statusId != 'LEASEAGR_TERMINATED') {
         return error(label('FinanceLeaseTerminationRequiresService', [leaseAgreementId: agreement.leaseAgreementId]))
     }
+    // Back to CONTRACTED only by the acceptance reversal (STEP L15a).
+    if (parameters.statusId == 'LEASEAGR_CONTRACTED' && agreement.statusId != 'LEASEAGR_CONTRACTED') {
+        return error(label('FinanceReversalRequiresService', [statusId: parameters.statusId]))
+    }
     // A purchased asset cannot be left behind by a cancellation (disposal is out of scope).
     if (parameters.statusId == 'LEASEAGR_CANCELLED'
             && from('LeaseAssetPurchase').where('leaseAgreementId', agreement.leaseAgreementId).queryCount() > 0) {

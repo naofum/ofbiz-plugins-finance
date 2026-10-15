@@ -24,6 +24,15 @@ under the License.
     <vendor>OFBiz Finance</vendor>
     <version>1.0</version>
 
+    <!-- STEP L15a: permission of the reversal services (FINANCE_ADMIN only). -->
+    <service name="financeAdminPermission" engine="simple"
+            location="component://finance/minilang/FinancePermissionServices.xml" invoke="financeAdminPermission" auth="true">
+        <description>Finance administrator permission (FINANCE_ADMIN) for the reversal of mistaken operations</description>
+        <attribute name="mainAction" type="String" mode="IN" optional="true"/>
+        <attribute name="primaryPermission" type="String" mode="IN" optional="true"/>
+        <attribute name="hasPermission" type="Boolean" mode="OUT" optional="true"/>
+        <attribute name="failMessage" type="String" mode="OUT" optional="true"/>
+    </service>
     <service name="getFinanceCustomerSummary" engine="groovy"
             location="component://finance/groovyScripts/GetFinanceCustomerSummary.groovy" invoke="" auth="true">
         <description>Customer-level summary across loan and lease contracts: contracts, active exposure,

@@ -59,4 +59,35 @@ under the License.
         <attribute name="loanModificationId" type="String" mode="OUT" optional="true"/>
     </service>
 
+    <!-- STEP L15a: reversal of mistaken operations (取消, FINANCE_ADMIN) -->
+    <service name="reverseLoanAgreement" engine="java"
+            location="org.apache.ofbiz.finance.loan.LoanReversalServices" invoke="reverseLoanAgreement" auth="true">
+        <description>Reverse a mistaken contract activation when nothing was processed after it (billing, accrual, prepayment,
+            change of terms, delinquency): LOANAGR_CANCELLED, the loan account cancelled, the liens released, the application back
+            to LOANAPP_APPROVED (a new quote is needed: one agreement per quote).</description>
+        <permission-service service-name="financeAdminPermission" main-action="UPDATE"/>
+        <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="reason" type="String" mode="IN" optional="false"/>
+        <attribute name="financeReversalId" type="String" mode="OUT" optional="true"/>
+    </service>
+    <service name="reverseLoanPrepayment" engine="java"
+            location="org.apache.ofbiz.finance.loan.LoanReversalServices" invoke="reverseLoanPrepayment" auth="true">
+        <description>Reverse the latest prepayment when nothing was processed after it: void the settlement payment, reverse the
+            fee entry, restore the previous schedule as a new revision (partial) or reopen the agreement (full).</description>
+        <permission-service service-name="financeAdminPermission" main-action="UPDATE"/>
+        <attribute name="loanPrepaymentId" type="String" mode="IN" optional="false"/>
+        <attribute name="reason" type="String" mode="IN" optional="false"/>
+        <attribute name="financeReversalId" type="String" mode="OUT" optional="true"/>
+    </service>
+    <service name="reverseLoanModification" engine="java"
+            location="org.apache.ofbiz.finance.loan.LoanReversalServices" invoke="reverseLoanModification" auth="true">
+        <description>Reverse the latest change of terms when nothing was processed after it: restore the previous rate / term and
+            the previous schedule as a new revision.</description>
+        <permission-service service-name="financeAdminPermission" main-action="UPDATE"/>
+        <attribute name="loanModificationId" type="String" mode="IN" optional="false"/>
+        <attribute name="reason" type="String" mode="IN" optional="false"/>
+        <attribute name="financeReversalId" type="String" mode="OUT" optional="true"/>
+        <attribute name="scheduleRevisionNumber" type="Long" mode="OUT" optional="true"/>
+    </service>
+
 </services>

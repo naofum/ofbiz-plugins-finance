@@ -822,6 +822,67 @@ under the License.
         <response name="success" type="request-redirect" value="FindLeaseExpiry"/>
         <response name="error" type="request-redirect" value="FindLeaseExpiry"/>
     </request-map>
+    <!-- STEP L15a: reversal of mistaken operations (FINANCE_ADMIN) -->
+    <request-map uri="reverseLeaseAcceptance">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="reverseLeaseAcceptance"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="reverseLeaseTermination">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="reverseLeaseTermination"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="reverseLeaseModification">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="reverseLeaseModification"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="reverseLoanAgreement">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="reverseLoanAgreement"/>
+        <response name="success" type="request-redirect" value="ManageLoanAgreement">
+            <redirect-parameter name="loanAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLoanAgreement">
+            <redirect-parameter name="loanAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="reverseLoanPrepayment">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="reverseLoanPrepayment"/>
+        <response name="success" type="request-redirect" value="ManageLoanAgreement">
+            <redirect-parameter name="loanAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLoanAgreement">
+            <redirect-parameter name="loanAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="reverseLoanModification">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="reverseLoanModification"/>
+        <response name="success" type="request-redirect" value="ManageLoanAgreement">
+            <redirect-parameter name="loanAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLoanAgreement">
+            <redirect-parameter name="loanAgreementId"/>
+        </response>
+    </request-map>
     <!-- STEP L15: change of terms -->
     <request-map uri="createLeaseModification">
         <security https="true" auth="true"/>

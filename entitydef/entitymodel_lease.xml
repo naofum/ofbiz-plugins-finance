@@ -1275,6 +1275,8 @@ under the License.
         <field name="acctgTransId" type="id"><description>finance lease: Dr lease investment / Cr deferred lease profit (reversed for a decrease)</description></field>
         <field name="depreciationBaseMonth" type="numeric"><description>operating lease: months depreciated before the change; the remainder is spread over the remaining months</description></field>
         <field name="reason" type="description"></field>
+        <field name="reversedDate" type="date-time"><description>STEP L15a: reversed (the schedule was restored to fromRevisionNumber as a new revision)</description></field>
+        <field name="financeReversalId" type="id"></field>
         <field name="currencyUomId" type="id"></field>
         <field name="createdByUserLogin" type="id-vlong"></field>
         <field name="createdDate" type="date-time"></field>

@@ -120,7 +120,8 @@ public final class LeaseMaintenanceServices {
         return findAgreement(delegator, leaseAgreementId);
     }
 
-    private static String triggerKey(String maintPlanSeqId, Timestamp scheduledDate, String recordId) {
+    /** Task trigger key of a maintenance (package: used by the termination reversal, STEP L15a). */
+    static String triggerKey(String maintPlanSeqId, Timestamp scheduledDate, String recordId) {
         return maintPlanSeqId != null
                 ? "PLAN" + maintPlanSeqId + "-" + scheduledDate.toLocalDateTime().toLocalDate()
                 : "MAINT" + recordId;

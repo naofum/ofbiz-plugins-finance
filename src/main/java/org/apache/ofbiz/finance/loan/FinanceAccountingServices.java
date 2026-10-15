@@ -638,7 +638,8 @@ public final class FinanceAccountingServices {
         for (GenericValue prepayment : EntityQuery.use(delegator).from("LoanPrepayment")
                 .where("loanAgreementId", agreement.getString("loanAgreementId")).queryList()) {
             BigDecimal prepaidPrincipal = defaultZero(prepayment.getBigDecimal("principalAmount"));
-            if (prepaidPrincipal.compareTo(BigDecimal.ZERO) <= 0) {
+            // STEP L15a: a reversed prepayment is not a principal event.
+            if (prepaidPrincipal.compareTo(BigDecimal.ZERO) <= 0 || prepayment.get("reversedDate") != null) {
                 continue;
             }
             Timestamp prepaymentDate = prepayment.getTimestamp("prepaymentDate");

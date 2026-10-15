@@ -32,6 +32,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L2 | 与信額に CONTRACTED を算入、共通の与信枠チェック `financeValidateCustomerCreditLimit`、LEASE アダプタの登録 | 完了（tests=70 / errors=0 / failures=0） |
 | L6 | 延滞・督促へのリース用契約アダプタ登録（共通層側の変更） | 未着手 |
 | L10a | 契約×取引先×役割×持分率（`FinanceContractParty`）と契約の親子関係（10 章） | 完了（tests=138 / errors=0 / failures=0） |
+| L15a | 誤操作の取消（取消記録・逆仕訳・管理者権限。11 章。ローン・リースの各操作は `SPEC.md` 27 章・`SPEC_LEASE.md` 18 章） | 完了（tests=192、取消の 6 件はすべて成功。全体の結果は `SPEC_LEASE.md` 18.6 を参照） |
 
 L0 のコミット：L0-1 `6d46268`、L0-2 `fe644c8`、L0-3 `ae6fa2e`、L0-4 `2afe7f7`、L0-5 `beea390`、L0-6 `450b654`。
 
@@ -314,6 +315,48 @@ core の `Agreement` / `AgreementRole` は使わない（`FinanceContract` は c
 
 - 既存環境では seed 投入後に `backfillFinanceContractParties` を 1 回実行する（テスト `testBackfill` が開発 DB 全体に対して実行するため、開発 DB の既存契約は登録済み）。
 - 手動で追加した取引先（保証人・参加者等）は、現時点では業務処理に使われない（記録のみ）。
+
+---
+
+## 11. 誤操作の取消（STEP L15a）
+
+誤って実行した操作を取り消す。対象はリースの検収・中途解約・条件変更と、ローンの契約（有効化）・繰上返済・条件変更（各層の内容は `SPEC_LEASE.md` 18 章・`SPEC.md` 27 章）。
+
+### 11.1 方針（2026-10-15 決定）
+
+| 項目 | 決定 |
+|------|------|
+| 方式 | **操作ごとに専用の取消サービス**（案A）。元の記録は消さず、逆仕訳と取消記録を足す。行を消す必要があるもの（検収記録・解約記録）は取消記録に写し（スナップショット）を残す |
+| 取り消せる条件 | **その後の処理がない場合だけ**（請求・入金・戻入・償却・計上・延滞・後続の変更 等）。後続の処理がある場合はエラー（`FinanceReversalBlocked`、何があるかを示す） |
+| 権限 | **FINANCE_ADMIN だけ**（`financeAdminPermission`。他の finance 権限では不可） |
+| 理由 | **必須**（空白は不可） |
+| 対象 | リース：検収・中途解約・条件変更。ローン：有効化・繰上返済・条件変更 |
+
+### 11.2 共通部品
+
+| 部品 | 内容 |
+|------|------|
+| `FinanceReversal`（entity） | 契約、取消の種類（`FINANCE_REV_TYPE`：`FINREV_*`）、取り消した記録の ID、操作日、理由、取消日、取消者、逆仕訳の ID（カンマ区切り）、消した行の写し |
+| `FinanceReversalHelper` | 取消記録の作成、写しの作成、理由の検査、「ある時点より後に作られた行」の件数 |
+| `FinanceGlHelper.reverseTransaction` | 仕訳の借方・貸方を入れ替えた逆仕訳を作って転記する（元の仕訳は残す） |
+| `FinanceWorkEffortHelper.cancelAndUnlinkTask` | タスクを取り消し、紐付けを外す（同じきっかけで再びタスクを作れるようにする） |
+| `financeAdminPermission`（service / minilang） | FINANCE_ADMIN を持つ利用者だけを許可する |
+
+### 11.3 状態遷移
+
+取消用の遷移を `StatusValidChange` に追加したが、汎用の状態サービス（`setLeaseAgreementStatus` / `setLoanAgreementStatus` / `setLoanApplicationStatus`）では使えないようにしている（`FinanceReversalRequiresService`）。
+
+| 層 | 遷移 |
+|----|------|
+| リース | `LEASEAGR_ACTIVE` → `LEASEAGR_CONTRACTED`（検収の取消）、`LEASEAGR_TERMINATED` → `LEASEAGR_ACTIVE`（解約の取消）、再リースの戻し 2 本 |
+| ローン | `LOANAGR_ACTIVE` → `LOANAGR_CANCELLED`（有効化の取消）、`LOANAGR_CLOSED` → `LOANAGR_ACTIVE`（全額繰上返済の取消）、`LOANAPP_CONTRACTED` → `LOANAPP_APPROVED` |
+
+### 11.4 要確認・制約
+
+- **後続の処理がある場合**：まとめて戻す（請求の取消→入金の取消→…）ことはしない。先に後続の処理を core の機能（請求書の取消・入金の取消）で戻してから取消すること。ただし finance の計上記録（戻入・償却・計上）を戻すサービスはないため、計上後の取消はできない。
+- **取消の取消**：取り消した操作をもう一度行う（検収し直す 等）ことで対応する。取消そのものを戻すサービスはない。
+- **仕訳の日付**：逆仕訳は取消した日付で計上する（元の操作日ではない）。締めた会計期間の操作を取り消すと、当期に影響する。
+- **対象外の操作**：物件購入・支払、返還・処分・譲渡、再リースの開始、月次の計上、公租公課の申告・納付は対象外（必要なら同じ方式で追加する）。
 
 ---
 
