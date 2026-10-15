@@ -289,7 +289,7 @@ under the License.
         <attribute name="createdInvoiceCount" type="Long" mode="OUT" optional="true"/>
         <attribute name="createdRecognitionCount" type="Long" mode="OUT" optional="true"/>
         <attribute name="createdDepreciationCount" type="Long" mode="OUT" optional="true"><description>STEP L12: depreciation periods of operating leases</description></attribute>
-    </service>    <service name="receiveLeasePayment" engine="java"
+    </service>    <service name="receiveLeasePayment" engine="java" transaction-timeout="600"
             location="org.apache.ofbiz.finance.lease.LeaseAccountingServices" invoke="receiveLeasePayment" auth="true">
         <description>Receive a customer payment (PMNT_RECEIVED) for an ACTIVE lease and apply it to the given lease invoice,
             or to the open lease invoices oldest due first; the amount may not exceed the open amount</description>
@@ -335,6 +335,8 @@ under the License.
         <attribute name="collectedReLeaseTaxAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L13</description></attribute>
         <attribute name="recognizedReLeaseAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L13</description></attribute>
         <attribute name="unearnedReLeaseAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L13</description></attribute>
+        <attribute name="terminationDamagesAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L14</description></attribute>
+        <attribute name="collectedTerminationAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L14</description></attribute>
     </service>
     <!-- ============================================================= -->
     <!-- STEP L7: expiry (tasks, notice, return, disposal, transfer)   -->
@@ -482,6 +484,41 @@ under the License.
         <attribute name="ratesMigrated" type="Long" mode="OUT" optional="true"/>
         <attribute name="declarationsMigrated" type="Long" mode="OUT" optional="true"/>
         <attribute name="declarationConflicts" type="Long" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
+    <!-- STEP L14: early termination (中途解約)                          -->
+    <!-- ============================================================= -->
+    <service name="calculateLeaseTerminationDamages" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseTerminationServices" invoke="calculateLeaseTerminationDamages" auth="true">
+        <description>Termination damages (規定損害金) if an ACTIVE lease were terminated on terminationDate: present value of the
+            unbilled lease payments due after it at the calculation interest rate / 12 (optionally the residual value). No change.</description>
+        <permission-service service-name="financeGenericPermission" main-action="VIEW"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="terminationDate" type="Timestamp" mode="IN" optional="true"><description>defaults to today; between the lease start and today, not after the last re-lease end</description></attribute>
+        <attribute name="unbilledInstallmentCount" type="Long" mode="OUT" optional="true"/>
+        <attribute name="unbilledLeaseAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="monthlyDiscountRate" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="discountAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="damagesAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="residualIncluded" type="Boolean" mode="OUT" optional="true"/>
+    </service>
+    <service name="terminateLeaseAgreement" engine="java" transaction-timeout="1800"
+            location="org.apache.ofbiz.finance.lease.LeaseTerminationServices" invoke="terminateLeaseAgreement" auth="true">
+        <description>Terminate an ACTIVE lease early: bill the installments due through the termination date, account the lease
+            through it, settle the lease investment (finance) / keep the asset at book value (operating), recognize the unearned
+            re-lease fees (no refund), bill the damages (不課税), set LEASEAGR_TERMINATED, end the maintenance plans and create an
+            asset recovery task per asset. Idempotent (one termination per agreement).</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="terminationDate" type="Timestamp" mode="IN" optional="true"><description>defaults to today</description></attribute>
+        <attribute name="reason" type="String" mode="IN" optional="true"/>
+        <attribute name="assigneePartyId" type="String" mode="IN" optional="true"><description>assignee of the asset recovery tasks</description></attribute>
+        <attribute name="damagesAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="invoiceId" type="String" mode="OUT" optional="true"/>
+        <attribute name="acctgTransId" type="String" mode="OUT" optional="true"/>
+        <attribute name="gainLossAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="terminationCreated" type="Boolean" mode="OUT" optional="true"/>
     </service>
 
     <!-- ============================================================= -->

@@ -812,8 +812,39 @@ under the License.
         <field name="actualCompletionDate" title="${uiLabelMap.FinanceLeaseCompletedOn}"><display type="date"/></field>
     </grid>
 
-    <!-- STEP L13: re-lease -->
-    <form name="CreateLeaseReLease" type="single" target="createLeaseReLease">
+    <!-- STEP L14: early termination -->
+    <form name="CalculateLeaseTermination" type="single" target="ManageLeaseAgreement">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="terminationDate" title="${uiLabelMap.FinanceLeaseTerminationDate}" tooltip="${uiLabelMap.FinanceLeaseDefaultToday}"><date-time type="date"/></field>
+        <field name="calculateButton" title="${uiLabelMap.FinanceLeaseTerminationCalculate}"><submit button-type="button"/></field>
+    </form>
+
+    <form name="ViewLeaseTerminationQuote" type="single" default-map-name="terminationQuote">
+        <field name="unbilledInstallmentCount" title="${uiLabelMap.FinanceLeaseBilledCount}"><display/></field>
+        <field name="unbilledLeaseAmount" title="${uiLabelMap.FinanceLeaseTerminationUnbilled}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="discountAmount" title="${uiLabelMap.FinanceLeaseTerminationDiscount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="damagesAmount" title="${uiLabelMap.FinanceLeaseTerminationDamages}"><display type="currency" currency="${currencyUomId}"/></field>
+    </form>
+
+    <form name="TerminateLeaseAgreement" type="single" target="terminateLeaseAgreement">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="terminationDate" title="${uiLabelMap.FinanceLeaseTerminationDate}" tooltip="${uiLabelMap.FinanceLeaseDefaultToday}"><date-time type="date"/></field>
+        <field name="reason" title="${uiLabelMap.FinanceLeaseTerminationReason}"><text size="40"/></field>
+        <field name="assigneePartyId" title="${uiLabelMap.FinanceLeaseAssignee}"><lookup target-form-name="LookupPartyName"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceLeaseTerminate}"><submit button-type="button"/></field>
+    </form>
+
+    <form name="ViewLeaseTermination" type="single" default-map-name="leaseTermination">
+        <field name="terminationDate" title="${uiLabelMap.FinanceLeaseTerminationDate}"><display type="date"/></field>
+        <field name="reason" title="${uiLabelMap.FinanceLeaseTerminationReason}"><display/></field>
+        <field name="unbilledLeaseAmount" title="${uiLabelMap.FinanceLeaseTerminationUnbilled}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="discountAmount" title="${uiLabelMap.FinanceLeaseTerminationDiscount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="damagesAmount" title="${uiLabelMap.FinanceLeaseTerminationDamages}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="gainLossAmount" title="${uiLabelMap.FinanceLeaseTerminationGainLoss}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="invoiceId" title="${uiLabelMap.FinanceInvoiceId}"><display/></field>
+    </form>
+
+    <!-- STEP L13: re-lease -->    <form name="CreateLeaseReLease" type="single" target="createLeaseReLease">
         <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
         <field name="months" title="${uiLabelMap.FinanceLeaseReLeaseMonths}"><text size="4" default-value="12"/></field>
         <field name="reLeaseAmount" title="${uiLabelMap.FinanceLeaseReLeaseAmount}" tooltip="${uiLabelMap.FinanceLeaseReLeaseAmountDefault}"><text size="15"/></field>

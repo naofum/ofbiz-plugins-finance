@@ -142,3 +142,24 @@ context.reLeases = from('LeaseReLease').where('leaseAgreementId', leaseAgreement
     return row
 }
 context.canCreateReLease = context.isActive && !context.isTransferLease && context.assetLines.every { it.assetStatusId == 'LSAST_LEASED' }
+
+// STEP L14: early termination (the record, or a damages quote for the requested date).
+java.sql.Timestamp terminationDate(Object v) {
+    if (v instanceof java.sql.Timestamp) {
+        return (java.sql.Timestamp) v
+    }
+    String s = v.toString().trim()
+    return java.sql.Timestamp.valueOf(s.length() == 10 ? s + ' 00:00:00' : s)
+}
+context.leaseTermination = from('LeaseTermination').where('leaseAgreementId', leaseAgreement.leaseAgreementId).queryOne()
+context.isTerminated = leaseAgreement.statusId == 'LEASEAGR_TERMINATED'
+if (context.leaseTermination == null && context.isActive && parameters.terminationDate) {
+    Map quote = dispatcher.runSync('calculateLeaseTerminationDamages', [leaseAgreementId: leaseAgreement.leaseAgreementId,
+            terminationDate: terminationDate(parameters.terminationDate),
+            userLogin: userLogin])
+    context.terminationQuote = org.apache.ofbiz.service.ServiceUtil.isSuccess(quote) ? quote : null
+}
+// Assets of a terminated lease are recovered with the return form.
+if (context.isTerminated) {
+    context.assetLines.each { Map row -> row.canReturn = row.assetStatusId == 'LSAST_LEASED' }
+}

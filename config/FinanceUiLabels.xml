@@ -1142,7 +1142,50 @@ under the License.
         <value xml:lang="en">Default monthly lease rate factor (0.018 = 1.8%)</value>
         <value xml:lang="ja">標準月額リース料率（0.018 = 1.8%）</value>
     </property>
-    <property key="FinanceLeaseReLeaseNotForTransfer">
+    <property key="FinanceLeaseTerminationDateInvalid">
+        <value xml:lang="en">The termination date ${terminationDate} must be on or after the lease start, not in the future and not after the lease (or last re-lease) end of ${leaseAgreementId}.</value>
+        <value xml:lang="ja">解約日 ${terminationDate} はリース開始日以降・今日以前で、リース（または最後の再リース）の終了日以前にしてください（${leaseAgreementId}）。</value>
+    </property>
+    <property key="FinanceLeaseTerminationRequiresService">
+        <value xml:lang="en">Lease ${leaseAgreementId} can be terminated only by the early termination service (damages and settlement).</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} の解約は中途解約のサービス（損害金の算定と精算）で行ってください。</value>
+    </property>
+    <property key="FinanceLeaseTermination">
+        <value xml:lang="en">Early termination</value>
+        <value xml:lang="ja">中途解約</value>
+    </property>
+    <property key="FinanceLeaseTerminationCalculate">
+        <value xml:lang="en">Calculate damages</value>
+        <value xml:lang="ja">損害金の試算</value>
+    </property>
+    <property key="FinanceLeaseTerminate">
+        <value xml:lang="en">Terminate</value>
+        <value xml:lang="ja">解約する</value>
+    </property>
+    <property key="FinanceLeaseTerminationDate">
+        <value xml:lang="en">Termination date</value>
+        <value xml:lang="ja">解約日</value>
+    </property>
+    <property key="FinanceLeaseTerminationReason">
+        <value xml:lang="en">Reason</value>
+        <value xml:lang="ja">解約理由</value>
+    </property>
+    <property key="FinanceLeaseTerminationDamages">
+        <value xml:lang="en">Termination damages</value>
+        <value xml:lang="ja">規定損害金</value>
+    </property>
+    <property key="FinanceLeaseTerminationUnbilled">
+        <value xml:lang="en">Unbilled lease payments</value>
+        <value xml:lang="ja">未経過リース料</value>
+    </property>
+    <property key="FinanceLeaseTerminationDiscount">
+        <value xml:lang="en">Interest deducted</value>
+        <value xml:lang="ja">中間利息控除額</value>
+    </property>
+    <property key="FinanceLeaseTerminationGainLoss">
+        <value xml:lang="en">Termination gain / loss</value>
+        <value xml:lang="ja">解約損益</value>
+    </property>    <property key="FinanceLeaseReLeaseNotForTransfer">
         <value xml:lang="en">Lease ${leaseAgreementId} transfers the ownership to the lessee; it cannot be re-leased.</value>
         <value xml:lang="ja">リース契約 ${leaseAgreementId} は所有権移転リースのため、再リースできません。</value>
     </property>

@@ -90,7 +90,7 @@ under the License.
     <!-- ============================================================= -->
     <!-- Payment receipt / settlement (Java)                           -->
     <!-- ============================================================= -->
-    <service name="receiveLoanPayment" engine="java"
+    <service name="receiveLoanPayment" engine="java" transaction-timeout="600"
             location="org.apache.ofbiz.finance.loan.FinanceAccountingServices" invoke="receiveLoanPayment" auth="true">
         <description>Receive a loan payment and apply it to an installment invoice</description>
         <permission-service service-name="financePaymentPermission" main-action="CREATE"/>

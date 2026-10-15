@@ -291,4 +291,16 @@ under the License.
     <GlAccountType description="Unearned re-lease fees (前受再リース料)" glAccountTypeId="LEASE_RELEASE_UNEARN" hasTable="N" parentTypeId="CURRENT_LIABILITY"/>
     <GlAccountType description="Re-lease revenue (受取再リース料)" glAccountTypeId="LEASE_RELEASE_REV" hasTable="N" parentTypeId="SALES_ACCOUNT"/>
     <GlAccount glAccountId="224700" accountCode="224700" glAccountClassId="CURRENT_LIABILITY" glAccountTypeId="LEASE_RELEASE_UNEARN" glResourceTypeId="MONEY" accountName="UNEARNED RE-LEASE FEES"/>
-    <GlAccount glAccountId="404100" accountCode="404100" glAccountClassId="REVENUE" glAccountTypeId="LEASE_RELEASE_REV" glResourceTypeId="MONEY" accountName="RE-LEASE REVENUE"/></entity-engine-xml>
+    <GlAccount glAccountId="404100" accountCode="404100" glAccountClassId="REVENUE" glAccountTypeId="LEASE_RELEASE_REV" glResourceTypeId="MONEY" accountName="RE-LEASE REVENUE"/>    <!-- ============ STEP L14: early termination (中途解約) ============ -->
+    <!-- ACTIVE -> TERMINATED only by terminateLeaseAgreement; TERMINATED -> COMPLETED when the assets are
+         recovered and every invoice is settled (expiry services). -->
+    <StatusItem description="Terminated (assets being recovered)" sequenceId="05" statusCode="TERMINATED" statusId="LEASEAGR_TERMINATED" statusTypeId="LEASE_AGR_STATUS"/>
+    <StatusValidChange statusId="LEASEAGR_ACTIVE" statusIdTo="LEASEAGR_TERMINATED" transitionName="Terminate"/>
+    <StatusValidChange statusId="LEASEAGR_TERMINATED" statusIdTo="LEASEAGR_COMPLETED" transitionName="Complete"/>
+    <!-- Damages invoice item (不課税): credits the lease investment / receivable (finance) or termination income (operating). -->
+    <InvoiceItemType description="Lease termination damages (規定損害金)" hasTable="N" invoiceItemTypeId="LEASE_TERM_DAMAGES"/>
+    <InvoiceItemTypeMap invoiceTypeId="SALES_INVOICE" invoiceItemMapKey="LEASE_TERM_DAMAGES" invoiceItemTypeId="LEASE_TERM_DAMAGES"/>
+    <GlAccountType description="Lease termination income (解約益・解約損害金収入)" glAccountTypeId="LEASE_TERM_INCOME" hasTable="N" parentTypeId="SALES_ACCOUNT"/>
+    <GlAccountType description="Lease termination loss (解約損失)" glAccountTypeId="LEASE_TERM_LOSS" hasTable="N" parentTypeId="COGS_ACCOUNT"/>
+    <GlAccount glAccountId="404200" accountCode="404200" glAccountClassId="REVENUE" glAccountTypeId="LEASE_TERM_INCOME" glResourceTypeId="MONEY" accountName="LEASE TERMINATION INCOME"/>
+    <GlAccount glAccountId="504200" accountCode="504200" glAccountClassId="COGS_EXPENSE" glAccountTypeId="LEASE_TERM_LOSS" glResourceTypeId="MONEY" accountName="LEASE TERMINATION LOSS"/></entity-engine-xml>

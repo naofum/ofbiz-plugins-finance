@@ -1210,4 +1210,39 @@ under the License.
             <key-map field-name="reLeaseSeqId"/>
         </relation>
     </entity>
+    <!-- ========================================================= -->
+    <!-- STEP L14: early termination (中途解約). One per agreement:  -->
+    <!-- the termination damages (規定損害金 = present value of the -->
+    <!-- unbilled lease payments at the calculation interest rate), -->
+    <!-- the GL settlement and the damages invoice (不課税).         -->
+    <!-- ========================================================= -->
+    <entity entity-name="LeaseTermination" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease early termination (中途解約)">
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="terminationDate" type="date-time"></field>
+        <field name="reason" type="description"></field>
+        <field name="unbilledInstallmentCount" type="numeric"></field>
+        <field name="unbilledLeaseAmount" type="currency-amount"><description>unbilled lease payments (tax and components excluded)</description></field>
+        <field name="monthlyDiscountRate" type="fixed-point"><description>calculation interest rate / 12 used to discount</description></field>
+        <field name="discountAmount" type="currency-amount"><description>interest deducted (中間利息) = unbilled - present value</description></field>
+        <field name="residualIncluded" type="indicator"><description>Y when the present value of the residual value is part of the damages (lease.termination.include.residual)</description></field>
+        <field name="damagesAmount" type="currency-amount"><description>termination damages (不課税)</description></field>
+        <field name="remainingDeferredProfit" type="currency-amount"><description>finance lease: deferred lease profit removed at termination</description></field>
+        <field name="netInvestment" type="currency-amount"><description>finance lease: lease investment net of deferred profit before the damages</description></field>
+        <field name="residualCarried" type="currency-amount"><description>finance lease: value of the returned assets kept in the lease investment / receivable (residual, or 0 when included in the damages)</description></field>
+        <field name="gainLossAmount" type="currency-amount"><description>finance lease: damages + residual carried - net investment (positive = gain); operating: the damages (income)</description></field>
+        <field name="reLeaseRecognizedAmount" type="currency-amount"><description>unearned re-lease fees recognized at termination (no refund)</description></field>
+        <field name="invoiceId" type="id"><description>sales invoice of the damages (none when 0)</description></field>
+        <field name="acctgTransId" type="id"><description>finance lease: Dr deferred lease profit / Cr lease investment, and the termination gain / loss</description></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="createdByUserLogin" type="id-vlong"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseAgreementId"/>
+        <relation type="one" fk-name="LEASETRM_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <relation type="one-nofk" rel-entity-name="Invoice">
+            <key-map field-name="invoiceId"/>
+        </relation>
+    </entity>
 </entitymodel>

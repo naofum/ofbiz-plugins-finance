@@ -623,6 +623,63 @@ public final class LeaseReLeaseServices {
         return new long[] {recognized, depreciated};
     }
 
+    /**
+     * STEP L14: early termination during / before re-leases. The started periods
+     * recognize the remaining unearned fee at the termination date (no refund) and
+     * are completed; the depreciation of the re-lease stops (the assets are disposed
+     * at their book value). Periods not started are cancelled.
+     *
+     * @return the unearned fee recognized at termination
+     */
+    public static BigDecimal terminateReLeases(DispatchContext dctx, GenericValue agreement, Timestamp terminationDate,
+            GenericValue userLogin) throws GenericEntityException, GenericServiceException {
+        Delegator delegator = dctx.getDelegator();
+        String leaseAgreementId = agreement.getString("leaseAgreementId");
+        BigDecimal total = BigDecimal.ZERO;
+        for (GenericValue r : reLeases(delegator, leaseAgreementId)) {
+            String status = r.getString("statusId");
+            if (STATUS_CONTRACTED.equals(status)) {
+                r.set("statusId", STATUS_CANCELLED);
+                r.store();
+                continue;
+            }
+            if (!STATUS_ACTIVE.equals(status)) {
+                continue;
+            }
+            BigDecimal remaining = nz(r.getBigDecimal("reLeaseAmount")).subtract(nz(r.getBigDecimal("recognizedAmount")));
+            String acctgTransId = null;
+            if (remaining.signum() > 0) {
+                List<FinanceGlHelper.Line> lines = new ArrayList<>();
+                lines.add(new FinanceGlHelper.Line(GL_UNEARNED, true, remaining));
+                lines.add(new FinanceGlHelper.Line(GL_REVENUE, false, remaining));
+                acctgTransId = FinanceGlHelper.postTransaction(delegator, dctx.getDispatcher(),
+                        "Re-lease revenue at termination " + leaseAgreementId + "/" + r.getString("reLeaseSeqId"),
+                        terminationDate, agreement.getString("organizationPartyId"), agreement.getString("lesseePartyId"),
+                        agreement.getString("currencyUomId"), lines, userLogin);
+            }
+            GenericValue last = EntityQuery.use(delegator).from("LeaseReLeaseRecognition")
+                    .where("leaseAgreementId", leaseAgreementId, "reLeaseSeqId", r.getString("reLeaseSeqId"))
+                    .orderBy("-monthNumber").cache(false).queryFirst();
+            long m = last == null ? 1 : last.getLong("monthNumber") + 1;
+            GenericValue rec = delegator.makeValue("LeaseReLeaseRecognition");
+            rec.set("leaseAgreementId", leaseAgreementId);
+            rec.set("reLeaseSeqId", r.getString("reLeaseSeqId"));
+            rec.set("monthNumber", m);
+            rec.set("fromDate", last == null ? r.getTimestamp("fromDate") : plusOneDay(last.getTimestamp("thruDate")));
+            rec.set("thruDate", terminationDate);
+            rec.set("amount", remaining);
+            rec.set("cumulativeAmount", r.getBigDecimal("reLeaseAmount"));
+            rec.set("acctgTransId", acctgTransId);
+            rec.set("createdDate", UtilDateTime.nowTimestamp());
+            rec.create();
+            r.set("recognizedAmount", r.getBigDecimal("reLeaseAmount"));
+            r.set("statusId", STATUS_COMPLETED);
+            r.store();
+            total = total.add(remaining);
+        }
+        return total;
+    }
+
     /** Service wrapper of {@link #processReLeases}. */
     public static Map<String, Object> processLeaseReLeases(DispatchContext dctx, Map<String, Object> context) {
         Delegator delegator = dctx.getDelegator();

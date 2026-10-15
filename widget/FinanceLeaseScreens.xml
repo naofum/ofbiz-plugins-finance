@@ -452,6 +452,30 @@ under the License.
                                             </section>
                                             <include-grid name="ListLeaseAssetSettlements" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                         </screenlet>
+                                        <!-- STEP L14: early termination -->
+                                        <screenlet title="${uiLabelMap.FinanceLeaseTermination}">
+                                            <section>
+                                                <condition><not><if-empty field="leaseTermination"/></not></condition>
+                                                <widgets>
+                                                    <include-form name="ViewLeaseTermination" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </widgets>
+                                                <fail-widgets>
+                                                    <section>
+                                                        <condition><if-compare field="isActive" operator="equals" value="true" type="Boolean"/></condition>
+                                                        <widgets>
+                                                            <include-form name="CalculateLeaseTermination" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                            <section>
+                                                                <condition><not><if-empty field="terminationQuote"/></not></condition>
+                                                                <widgets>
+                                                                    <include-form name="ViewLeaseTerminationQuote" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                                </widgets>
+                                                            </section>
+                                                            <include-form name="TerminateLeaseAgreement" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                        </widgets>
+                                                    </section>
+                                                </fail-widgets>
+                                            </section>
+                                        </screenlet>
                                         <!-- STEP L13: re-lease -->
                                         <screenlet title="${uiLabelMap.FinanceLeaseReLease}">
                                             <section>

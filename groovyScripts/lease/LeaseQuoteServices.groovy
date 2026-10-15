@@ -494,6 +494,10 @@ Map setLeaseAgreementStatus() {
     if (parameters.statusId == 'LEASEAGR_COMPLETED' && agreement.statusId != 'LEASEAGR_COMPLETED') {
         return error(label('FinanceLeaseCompleteRequiresExpiry', [leaseAgreementId: agreement.leaseAgreementId]))
     }
+    // The early termination is performed only by terminateLeaseAgreement (STEP L14).
+    if (parameters.statusId == 'LEASEAGR_TERMINATED' && agreement.statusId != 'LEASEAGR_TERMINATED') {
+        return error(label('FinanceLeaseTerminationRequiresService', [leaseAgreementId: agreement.leaseAgreementId]))
+    }
     // A purchased asset cannot be left behind by a cancellation (disposal is out of scope).
     if (parameters.statusId == 'LEASEAGR_CANCELLED'
             && from('LeaseAssetPurchase').where('leaseAgreementId', agreement.leaseAgreementId).queryCount() > 0) {

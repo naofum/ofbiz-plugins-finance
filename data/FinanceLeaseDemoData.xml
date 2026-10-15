@@ -118,6 +118,11 @@ under the License.
     <GlAccountOrganization glAccountId="224700" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_RELEASE_REV" glAccountId="404100"/>
     <GlAccountOrganization glAccountId="404100" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <!-- STEP L14: early termination -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_TERM_INCOME" glAccountId="404200"/>
+    <GlAccountOrganization glAccountId="404200" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_TERM_LOSS" glAccountId="504200"/>
+    <GlAccountOrganization glAccountId="504200" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <Party partyId="DEMO_TAXAUTH_JP" partyTypeId="PARTY_GROUP"/>
     <PartyGroup partyId="DEMO_TAXAUTH_JP" groupName="消費税（デモ税務当局）"/>
     <PartyRole partyId="DEMO_TAXAUTH_JP" roleTypeId="TAX_AUTHORITY"/>

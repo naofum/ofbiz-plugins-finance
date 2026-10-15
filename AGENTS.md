@@ -47,6 +47,7 @@
 - メンテナンスリース（STEP L11、`SPEC_LEASE.md` 13 章）：保守料は構成要素 `LSCMP_MAINTENANCE` で、必ず区分として請求時に保守料収益（`LEASE_MAINT_REVENUE`）へ計上する。構成要素の種類ごとの収益科目は `LeaseComponentRevenueAccount` に置く。保守の予定・実績は `LeaseMaintRecord`（業務STATUS `LSMNT_*`）が正で、core `FixedAssetMaint` とタスク（`FINWE_MAINTENANCE`）はそれに合わせて更新する。保守原価は保守業者の仕入請求書で計上する。
 - オペレーティングリース（STEP L12、`SPEC_LEASE.md` 14 章）：収益計上方法は `LEASE_REV_OPERATING`（リース区分 `LEASE_CLS_OPERATING` と 1:1）。物件は賃貸資産として計上し、`LeaseDepreciationServices` がリース期間定額法（残存価額＝見積残価）で月次償却する（core の `calculateFixedAssetDepreciation` は使わない）。受取リース料は請求時に計上し、売上高・繰延リース利益は使わない。消費税は各回のみ。会計の違いは `LeaseRevenueStrategy` の実装（`defersProfit` / `depreciatesAsset`）で分岐させ、区分の文字列比較を増やさない。
 - 再リース（STEP L13、`SPEC_LEASE.md` 15 章）：元の契約に `LeaseReLease`（業務STATUS `LSREL_*`）を追加し、契約は ACTIVE のまま。リースの終了日を使う判定（返還・完了・満了の返還タスク・保守予定）は `LeaseReLeaseServices.effectiveEndDate` を使う。再リース料は前受（224700）で請求し月次で受取再リース料へ按分、残存簿価は再リース期間で償却する。再リースの請求書は回収状況・入金・延滞の対象に含める。
+- 中途解約（STEP L14、`SPEC_LEASE.md` 16 章）：`terminateLeaseAgreement` だけが `LEASEAGR_ACTIVE` → `LEASEAGR_TERMINATED` に変える（汎用の状態サービスでは不可）。解約後は請求・戻入・償却を止めるが、入金・延滞・引揚（返還）は続ける（判定は `LeaseTerminationServices.isCollectible`）。共通台帳は回収完了まで `FINCTR_ACTIVE`。規定損害金は未経過リース料の現在価値（不課税）で、損害金の請求書も回収状況・入金・延滞の対象に含める。
 
 ## Data Rules
 - `data/*TypeData.xml` はseed、`data/*DemoData.xml` はdemo、`testdef/data/*` はテスト専用。用途を混在させない。

@@ -39,6 +39,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L11 | メンテナンスリース（保守料の別収益計上、保守計画・予定・実績、保守原価。13 章） | 完了（tests=150 / errors=0 / failures=0） |
 | L12 | オペレーティングリース（賃貸資産のリース期間定額法による減価償却、受取リース料の請求時計上。14 章） | 完了（tests=166 / errors=0 / failures=0） |
 | L13 | 再リース（元の契約に再リース期間を追加、年額の前払請求と月次の収益按分、残存簿価の償却。15 章） | 完了（tests=174 / errors=0 / failures=0） |
+| L14 | 中途解約（規定損害金＝未経過リース料の現在価値、リース投資資産の精算、物件の引揚。16 章） | 完了（tests=182 / errors=0 / failures=0） |
 
 前提：STEP L0（共通層の切り出し、`SPEC_COMMON.md`）の完了後に着手する。
 
@@ -48,7 +49,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 
 | 種別 | 配置 |
 |------|------|
-| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`、L10：`PropertyTaxValuation`、L10b：`LeasePublicChargeCalculator` / `LeasePublicChargeServices`、L11：`LeaseComponentSettings` / `LeaseMaintenanceServices`、L12：`LeaseRevenueStrategy.Operating` / `LeaseDepreciationServices`、L13：`LeaseReLeaseServices`） |
+| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`、L10：`PropertyTaxValuation`、L10b：`LeasePublicChargeCalculator` / `LeasePublicChargeServices`、L11：`LeaseComponentSettings` / `LeaseMaintenanceServices`、L12：`LeaseRevenueStrategy.Operating` / `LeaseDepreciationServices`、L13：`LeaseReLeaseServices`、L14：`LeaseTerminationServices`） |
 | Groovy | `groovyScripts/lease/`（`LeaseProductServices` / `LeaseApplicationServices` / `PrepareLeaseApplication`） |
 | entitydef | `entitymodel_lease.xml` |
 | servicedef | `services_lease.xml` |
@@ -1248,6 +1249,112 @@ L1〜L11 と同じで、契約の収益計上方法（`LeaseRevenueStrategy`）�
 - **満了通知**：再リース期間の終了に対する満了通知（`LeaseExpiryNotice` は契約に 1 件）は作らない。再リースの更新案内は運用で行う。
 - **期間途中の解約**：再リース期間中の解約（前受の返金・未償却簿価の処理）は L14（中途解約）で扱う。
 - **月数**：再リース期間は月単位（既定 12 か月）。日割りはしない。
+
+---
+
+## 16. STEP L14 — 中途解約
+
+有効なリースを期間の途中で解約する。規定損害金を算定して請求し、物件を引き揚げて処分する。
+解約後は請求を止め、損害金と請求済みの未払リース料の回収、物件の返還（引揚）が済んだら契約を完了にする。
+
+実装：`LeaseTerminationServices`。`LeaseReLeaseServices.terminateReLeases`、`LeaseAccountingServices`（入金・回収状況）、
+`LeaseContractAdapter`（延滞・未決済請求書）、`LeaseExpiryServices`（返還・完了）、`LeasePublicChargeServices`、`LeaseInquiryHelper`、
+`setLeaseAgreementStatus` に連動を追加した。
+
+### 16.1 決定事項（2026-10-15）
+
+| 項目 | 決定 |
+|------|------|
+| 規定損害金 | **未経過リース料の現在価値**：解約日より後が期日の未請求リース料を、契約の計算利子率 / 12（月利）で、解約日から各期日までの月数（端数は日割り）で割り引いた合計。構成要素・消費税は含めない。請求済みで未払いのリース料は損害金とは別に請求が残る |
+| 見積残価 | **含めない（既定）**。物件は貸手に戻り、残価は物件の価値として貸手の帳簿に残るため。残価保証がある契約は `lease.termination.include.residual=true` で残価の現在価値を損害金に含める（その場合、引き揚げた物件は帳簿価額 0） |
+| 消費税 | **不課税**（損害賠償金）。損害金の請求書に消費税を付けない |
+| 物件の売却代金 | **損害金から控除しない**。損害金は解約時に確定し、売却代金は貸手の処分損益（L7 / L12 と同じ処分） |
+| 再リース中の解約 | **返金しない**。前受再リース料の残りは解約日に受取再リース料へ一括で振り替える。損害金はない。未開始の再リース期間は取り消す |
+
+> 選択肢の説明では「＋見積残価の現在価値」と書いたが、物件を引き揚げる（売却代金を控除しない）前提では残価を損害金に含めると二重回収になるため、既定は含めない形で実装し、設定で切り替えられるようにした。
+
+### 16.2 状態
+
+- `LEASEAGR_TERMINATED`（解約・引揚中）を追加：`LEASEAGR_ACTIVE` → `LEASEAGR_TERMINATED`（`terminateLeaseAgreement` のみ）→ `LEASEAGR_COMPLETED`（物件の返還とすべての請求書の決済後、満了サービス）。汎用の `setLeaseAgreementStatus` では解約できない。
+- `FinanceContract` は回収中のため `FINCTR_ACTIVE` のまま（完了時に `FINCTR_COMPLETED`）。共通層の延滞処理（`LeaseContractAdapter.isActive`）・入金は解約後も対象。月次バッチ（請求・戻入・償却）は対象外。
+
+### 16.3 解約の処理（`terminateLeaseAgreement`）
+
+1. 解約日までに期日が来た回を請求する（通常の請求）。解約日まで繰延リース利益を戻し入れ（ファイナンス）、償却する（オペレーティング）。再リースは解約日までの計上を済ませる。
+2. 損害金を算定する（16.1）。
+3. ファイナンスリース（再リース前）：リース投資資産を精算する。
+
+| 借方 | 貸方 | 金額 |
+|------|------|------|
+| 繰延リース利益（128700） | リース投資資産（128500）／リース債権（128600） | 未戻入の繰延リース利益 |
+| 売掛金（core、損害金の請求書） | リース投資資産／リース債権 | 規定損害金（損害金がリース料債権に代わる） |
+| リース投資資産／リース債権 | 解約益（404200） | 差額が正のとき |
+| 解約損失（504200） | リース投資資産／リース債権 | 差額が負のとき |
+
+   差額＝損害金＋引揚物件の帳簿価額（残価、残価を含める設定では 0）− 正味リース投資額（未請求リース料＋残価 − 未戻入の繰延リース利益）。精算後のリース投資資産の残高は残価（物件の帳簿価額）になり、返還・処分は L7 と同じ。
+
+4. オペレーティングリース：損害金の請求書は解約益（404200）に計上する（損害金収入）。物件は帳簿価額（取得価額 − 減価償却累計額）のまま。
+5. 再リース中：損害金なし。前受再リース料の残りを一括で受取再リース料へ（`LeaseReLeaseRecognition` に最後の行）、期間は `LSREL_COMPLETED`。再リースの償却は止まり、物件はその時点の帳簿価額で処分する。未開始の再リース期間は `LSREL_CANCELLED`。
+6. 損害金の請求書（`LEASE_TERM_DAMAGES`、不課税、期日＝解約日＋`lease.termination.due.days`）を READY にして転記する。
+7. 状態を `LEASEAGR_TERMINATED` にし、保守計画（L11）を解約日の翌日で終了（以降の予定は取消）、物件ごとに引揚タスク（`FINWE_ASSET_RETURN`）を作る。契約ごとに 1 回（冪等）。
+
+`calculateLeaseTerminationDamages` は同じ算定を変更なしで返す（試算）。
+
+### 16.4 解約後
+
+- **入金**：`receiveLeasePayment` は解約後も使える。損害金の請求書も消込の対象（期日の古い順）。
+- **回収状況**：損害金を請求額・消込額に含め、`terminationDamagesAmount`・`collectedTerminationAmount` を返す。解約後の未回収元本＝請求済み元本の未回収分＋損害金の未回収分（ファイナンス）。未請求リース料・繰延リース利益残高は 0。
+- **延滞**：未払の損害金を延滞に含める（ファイナンス＝元本、オペレーティング＝リース料収益のバケット）。解約後の未請求の回は延滞に含めない。
+- **引揚（返還）**：`returnLeaseAsset` は解約日以降に使える（所有権移転リースも可）。精算記録の帳簿価額は、ファイナンス＝精算後の残価（`residualCarried` を物件に按分）、オペレーティング・再リース後＝取得価額 − 減価償却累計額。処分（`disposeLeaseAsset`）は L7 / L12 と同じ。
+- **完了**：物件がすべて返還され、すべての請求書（損害金を含む）が決済されたら `LEASEAGR_COMPLETED`。
+- **公租公課**：解約・引揚中の物件も貸手所有のため申告の対象。
+- **照会**：既定の表示対象に `LEASEAGR_TERMINATED` を含め、延滞日数も算出する。
+
+### 16.5 データモデル・seed
+
+| 種類 | 値 |
+|------|----|
+| エンティティ | `LeaseTermination`（leaseAgreementId：解約日・理由・未請求の回数と額・月利・中間利息控除額・残価を含めたか・損害金・未戻入の繰延リース利益・正味リース投資額・引揚物件の帳簿価額・解約損益・再リース料の一括計上額・請求書・仕訳） |
+| 状態 | `LEASEAGR_TERMINATED` と遷移 2 本 |
+| 請求明細種別 | `LEASE_TERM_DAMAGES`（`SALES_INVOICE`） |
+| GL 科目タイプ | `LEASE_TERM_INCOME`（404200 解約益・解約損害金収入）、`LEASE_TERM_LOSS`（504200 解約損失）。Company への割当は demo・テストデータに追加 |
+| `finance.properties` | `lease.termination.include.residual=false`、`lease.termination.due.days=0` |
+
+### 16.6 画面
+
+- `ManageLeaseAgreement` に「中途解約」のスクリーンレットを追加：有効な契約では解約日を指定した損害金の試算と解約フォーム、解約後は解約記録（損害金・中間利息控除額・解約損益・請求書）。解約後は物件の返還フォームが使える。
+
+### 16.7 テスト（`LeaseTerminationTests`）
+
+| テスト | 内容 |
+|--------|------|
+| `testDamagesCalculation` | 月数・現在価値の計算、試算（未請求の回数・額、損害金 < 未請求額、中間利息控除額、未回収元本との近さ）、未来日・開始前の拒否、汎用の状態変更で解約できないこと |
+| `testFinanceTermination` | 解約日までの請求、以降の請求の拒否、精算仕訳（128700 借方＝未戻入額、貸借一致、解約損益＝損害金＋引揚物件の帳簿価額 − 正味投資額）、損害金の請求書（明細 1 件・消費税なし・128500 貸方）、冪等、引揚タスク、延滞に損害金（元本）、未請求の回は延滞にならない、月次バッチの対象外、全額入金で未回収元本 0、返還で契約・共通台帳とも完了、帳簿価額 0 の物件の売却益 |
+| `testOperatingTermination` | 損害金を 404200 に計上、精算仕訳なし、解約日までの償却 3 か月、保守計画の終了と以降の予定の取消、延滞は収益のバケット、返還時の帳簿価額＝取得価額 − 累計額 |
+| `testTerminationDuringReLease` | 損害金 0・請求書なし、前受再リース料の残りの一括計上（224700 → 404100）、期間の完了、未開始の期間の取消、前受残高 0 |
+
+### 16.8 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| XML の整形式 | 変更したファイルで OK |
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 新規 1 テーブル（`LEASE_TERMINATION`）、356 行を変更 |
+| `gradlew "ofbiz --test component=finance"` | tests=182 / errors=0 / failures=0（L14 の 4 件を含む、41.6 分） |
+| demo 投入 | BUILD SUCCESSFUL |
+| 画面 | 未確認（定義のみ） |
+
+**入金サービスのトランザクション時間**：DB 作り直し直後でも全体テストが 58〜83 分かかり、`receiveLeasePayment` / `receiveLoanPayment`（core の入金・消込・仕訳を連続して呼ぶ）が既定の 60 秒でタイムアウトする失敗が L7・L6・ローン・L14 の既存テストで出た。core の会計サービスそのものが 1 回 1〜3 秒かかっており（`setInvoiceStatus`・`createAcctgTransAndEntries`・`getParentOrganizations` 等）、環境（Derby・PC の負荷）の要因と見ている。2 つのサービスに `transaction-timeout="600"` を設定して回避した（ローン層の `services_step3.xml` も変更）。本番 DB では通常 60 秒以内に収まる見込みだが、性能は要確認。
+
+### 16.9 要確認・制約
+
+- **損害金の算定方式**：現在価値方式（計算利子率）を採用した。契約書の規定損害金表（回ごとの固定額）を使う運用の場合は、表を持たせる方式を追加する（要確認）。消費者契約では損害金の上限（平均的損害）の確認が必要。
+- **消費税**：損害金は不課税とした（税理士の最終確認が必要）。解約日までに請求済みの回の消費税はそのまま。開始時一括（L5）の契約では、開始時に計上した未経過分の消費税の取扱い（調整）を行っていない（要確認）。
+- **構成要素**：未請求の構成要素（固定資産税相当額・保守料等）は損害金に含めない（役務・負担が発生しないため）。
+- **オペレーティングの償却**：解約月の途中までの償却（日割り）はしない。解約日までに終わった月まで。
+- **与信額**：解約後も `FinanceContract` は有効のため、与信の合算に元の取得価額が含まれる（回収完了で外れる）。
+- **物件の評価**：引き揚げた物件は残価（または帳簿価額）のまま。処分見込額での評価減はしない。
+- **部分解約**：契約の一部の物件だけの解約は対象外（将来拡張「物件分割・契約分割」）。
 
 ---
 

@@ -822,6 +822,17 @@ under the License.
         <response name="success" type="request-redirect" value="FindLeaseExpiry"/>
         <response name="error" type="request-redirect" value="FindLeaseExpiry"/>
     </request-map>
+    <!-- STEP L14: early termination -->
+    <request-map uri="terminateLeaseAgreement">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="terminateLeaseAgreement"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
     <!-- STEP L13: re-lease -->
     <request-map uri="createLeaseReLease">
         <security https="true" auth="true"/>

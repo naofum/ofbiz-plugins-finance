@@ -86,6 +86,7 @@ public final class LeaseInquiryHelper {
             list.add(statusId);
         } else {
             list.add("LEASEAGR_ACTIVE");
+            list.add("LEASEAGR_TERMINATED");
             list.add("LEASEAGR_COMPLETED");
         }
         return list;
@@ -107,7 +108,7 @@ public final class LeaseInquiryHelper {
             row.put("leaseEndDate", agreement.getTimestamp("leaseEndDate"));
             row.put("totalLeaseAmount", agreement.getBigDecimal("totalLeaseAmount"));
             row.putAll(LeaseAccountingServices.computeBalance(delegator, agreement));
-            row.put("daysPastDue", "LEASEAGR_ACTIVE".equals(agreement.getString("statusId"))
+            row.put("daysPastDue", LeaseTerminationServices.isCollectible(agreement)
                     ? adapter.computeDelinquency(delegator, agreement, asOf).getDaysPastDue() : 0L);
             rows.add(row);
         }

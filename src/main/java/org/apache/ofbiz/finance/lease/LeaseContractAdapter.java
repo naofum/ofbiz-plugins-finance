@@ -92,7 +92,8 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
 
     @Override
     public boolean isActive(GenericValue agreement) {
-        return "LEASEAGR_ACTIVE".equals(agreement.getString("statusId"));
+        // STEP L14: a terminated lease is still collected (damages, unpaid installments).
+        return LeaseTerminationServices.isCollectible(agreement);
     }
 
     @Override
@@ -122,6 +123,7 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
             Timestamp asOfDate) throws GenericEntityException {
         String leaseAgreementId = agreement.getString("leaseAgreementId");
         List<Map<String, Object>> rows = new ArrayList<>();
+        boolean terminated = LeaseTerminationServices.findTermination(delegator, leaseAgreementId) != null;
         List<GenericValue> schedule = EntityQuery.use(delegator).from("LeaseAgreementPaymentSchedule")
                 .where("leaseAgreementId", leaseAgreementId,
                         "scheduleRevisionNumber", LeaseAccountingServices.currentScheduleRevision(delegator, leaseAgreementId))
@@ -156,6 +158,9 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
                 }
                 unpaid = nz(InvoiceWorker.getInvoiceNotApplied(invoice));
             } else {
+                if (terminated) {
+                    continue;                                                   // STEP L14: replaced by the damages
+                }
                 // Not billed yet: include the scheduled component amounts of the installment.
                 for (GenericValue comp : EntityQuery.use(delegator).from("LeaseAgrPaySchedComp")
                         .where("leaseAgreementId", leaseAgreementId,
@@ -190,6 +195,8 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
         }
         // STEP L13: overdue re-lease invoices (fee + tax, no principal).
         rows.addAll(LeaseReLeaseServices.overdue(delegator, agreement, asOfDate));
+        // STEP L14: the unpaid termination damages.
+        rows.addAll(LeaseTerminationServices.overdue(delegator, agreement, asOfDate));
         return rows;
     }
 
@@ -237,7 +244,13 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
                 invoiceIds.add(link.getString("invoiceId"));
             }
         }
-        for (Object[] inv : LeaseReLeaseServices.reLeaseInvoices(delegator, agreement.getString("leaseAgreementId"))) {
+        List<Object[]> extra = new ArrayList<>(LeaseReLeaseServices.reLeaseInvoices(delegator, agreement.getString("leaseAgreementId")));
+        // STEP L14: the termination damages invoice.
+        Object[] damages = LeaseTerminationServices.damagesInvoice(delegator, agreement.getString("leaseAgreementId"));
+        if (damages != null) {
+            extra.add(damages);
+        }
+        for (Object[] inv : extra) {
             GenericValue invoice = EntityQuery.use(delegator).from("Invoice").where("invoiceId", inv[0]).cache(false).queryOne();
             if (invoice != null && !isSettled(invoice)) {
                 invoiceIds.add((String) inv[0]);

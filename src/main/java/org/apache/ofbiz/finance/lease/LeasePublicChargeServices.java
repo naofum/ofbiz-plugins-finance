@@ -470,7 +470,8 @@ public final class LeasePublicChargeServices {
                                     UtilMisc.toList(CLASS_NON_TRANSFER, LeaseProductHelper.CLASS_OPERATING)),
                             EntityCondition.makeCondition("organizationPartyId", organizationPartyId)))).queryList()) {
                 String status = agreement.getString("statusId");
-                if (!"LEASEAGR_ACTIVE".equals(status) && !"LEASEAGR_COMPLETED".equals(status)) {
+                if (!"LEASEAGR_ACTIVE".equals(status) && !"LEASEAGR_COMPLETED".equals(status)
+                        && !LeaseTerminationServices.STATUS_TERMINATED.equals(status)) {
                     continue;
                 }
                 for (GenericValue asset : EntityQuery.use(delegator).from("LeaseAgreementAsset")

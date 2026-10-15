@@ -637,7 +637,8 @@ public final class LeaseAccountingServices {
             if (agreement == null) {
                 return error("FinanceRecordNotFound", UtilMisc.toMap("entityName", "LeaseAgreement", "id", leaseAgreementId), locale);
             }
-            if (!isActive(agreement)) {
+            // STEP L14: payments are still received after an early termination.
+            if (!LeaseTerminationServices.isCollectible(agreement)) {
                 return error("FinanceLeaseAccountingRequiresActive", UtilMisc.toMap("leaseAgreementId", leaseAgreementId), locale);
             }
             if (amount == null || amount.signum() <= 0) {
@@ -654,6 +655,11 @@ public final class LeaseAccountingServices {
                 targets.add(new Object[] {link.getString("invoiceId"), link.getTimestamp("dueDate")});
             }
             targets.addAll(LeaseReLeaseServices.reLeaseInvoices(delegator, leaseAgreementId));
+            // STEP L14: the termination damages invoice.
+            Object[] damagesInvoice = LeaseTerminationServices.damagesInvoice(delegator, leaseAgreementId);
+            if (damagesInvoice != null) {
+                targets.add(damagesInvoice);
+            }
             targets.sort((a, b) -> {
                 Timestamp x = (Timestamp) a[1];
                 Timestamp y = (Timestamp) b[1];
@@ -765,6 +771,7 @@ public final class LeaseAccountingServices {
         BigDecimal collectedInterest = BigDecimal.ZERO;
         BigDecimal collectedPrincipal = BigDecimal.ZERO;
         long billedCount = 0;
+        BigDecimal billedPrincipal = BigDecimal.ZERO;
         for (GenericValue link : EntityQuery.use(delegator).from("LeaseInstallmentInvoice")
                 .where("leaseAgreementId", leaseAgreementId).queryList()) {
             billedCount++;
@@ -778,6 +785,7 @@ public final class LeaseAccountingServices {
             }
             BigDecimal component = nz(link.getBigDecimal("componentAmount"));
             BigDecimal componentTax = nz(link.getBigDecimal("componentTaxAmount"));
+            billedPrincipal = billedPrincipal.add(principal);
             billedLease = billedLease.add(nz(link.getBigDecimal("leaseAmount")));
             billedTax = billedTax.add(tax);
             billedComponent = billedComponent.add(component);
@@ -816,8 +824,17 @@ public final class LeaseAccountingServices {
         Map<String, BigDecimal> reLease = LeaseReLeaseServices.balance(delegator, leaseAgreementId);
         billed = billed.add(reLease.get("billedReLeaseAmount")).add(reLease.get("billedReLeaseTaxAmount"));
         applied = applied.add(reLease.get("reLeaseAppliedAmount"));
+        // STEP L14: the termination damages invoice.
+        Map<String, BigDecimal> termination = LeaseTerminationServices.balance(delegator, leaseAgreementId);
+        BigDecimal damages = termination.get("terminationDamagesAmount");
+        BigDecimal collectedDamages = termination.get("collectedTerminationAmount");
+        billed = billed.add(damages);
+        applied = applied.add(collectedDamages);
+        boolean terminated = LeaseTerminationServices.isTerminated(agreement)
+                || LeaseTerminationServices.findTermination(delegator, leaseAgreementId) != null;
         Map<String, Object> balance = new HashMap<>();
         balance.putAll(reLease);
+        balance.putAll(termination);
         balance.put("billedCount", billedCount);
         balance.put("billedLeaseAmount", billedLease);
         balance.put("billedTaxAmount", billedTax);
@@ -830,11 +847,14 @@ public final class LeaseAccountingServices {
         balance.put("collectedComponentAmount", collectedComponent);
         balance.put("collectedInterestAmount", collectedInterest);
         balance.put("collectedPrincipalAmount", collectedPrincipal);
-        balance.put("outstandingPrincipal", operating ? BigDecimal.ZERO
+        // STEP L14: after a termination the outstanding principal is the unpaid billed principal plus the unpaid damages.
+        balance.put("outstandingPrincipal", operating ? BigDecimal.ZERO : terminated
+                ? billedPrincipal.subtract(collectedPrincipal).add(damages).subtract(collectedDamages)
                 : nz(agreement.getBigDecimal("acquisitionCost")).subtract(collectedPrincipal));
-        balance.put("unbilledLeaseAmount", nz(agreement.getBigDecimal("totalLeaseAmount")).subtract(billedLease));
+        balance.put("unbilledLeaseAmount", terminated ? BigDecimal.ZERO
+                : nz(agreement.getBigDecimal("totalLeaseAmount")).subtract(billedLease));
         balance.put("recognizedProfitAmount", recognized);
-        balance.put("deferredProfitBalance", operating ? BigDecimal.ZERO
+        balance.put("deferredProfitBalance", operating || terminated ? BigDecimal.ZERO
                 : nz(agreement.getBigDecimal("totalInterestAmount")).subtract(recognized));
         // STEP L12: the leased asset of an operating lease (cost, accumulated depreciation, book value).
         if (operating) {
