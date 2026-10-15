@@ -1142,7 +1142,62 @@ under the License.
         <value xml:lang="en">Default monthly lease rate factor (0.018 = 1.8%)</value>
         <value xml:lang="ja">標準月額リース料率（0.018 = 1.8%）</value>
     </property>
-    <property key="FinanceLeaseTerminationDateInvalid">
+    <property key="FinanceLeaseModificationNoChange">
+        <value xml:lang="en">No change of terms is given for lease ${leaseAgreementId} (term, monthly amount or calculation rate).</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} の変更内容（期間・月額・計算利子率）がありません。</value>
+    </property>
+    <property key="FinanceLeaseModificationReLease">
+        <value xml:lang="en">Lease ${leaseAgreementId} has re-lease periods; its terms cannot be changed.</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} は再リースがあるため、条件変更できません。</value>
+    </property>
+    <property key="FinanceLeaseModificationNothingUnbilled">
+        <value xml:lang="en">Every installment of lease ${leaseAgreementId} is billed; there is nothing to change.</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} は全回請求済みのため、変更できる回がありません。</value>
+    </property>
+    <property key="FinanceLeaseModificationTermInvalid">
+        <value xml:lang="en">The new term ${newTermMonths} must be at least ${minTermMonths} months (the first unbilled installment).</value>
+        <value xml:lang="ja">新しい期間 ${newTermMonths} は ${minTermMonths} か月（未請求の最初の回）以上にしてください。</value>
+    </property>
+    <property key="FinanceLeaseModificationAmountInvalid">
+        <value xml:lang="en">The new value ${amount} is invalid (the monthly amount must be positive, the rate not negative).</value>
+        <value xml:lang="ja">新しい値 ${amount} が不正です（月額は正、利子率は 0 以上）。</value>
+    </property>
+    <property key="FinanceLeaseModificationLumpSumTax">
+        <value xml:lang="en">The consumption tax of lease ${leaseAgreementId} was booked in full at the start; the total lease payments cannot change.</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} は消費税を開始時に一括計上しているため、リース料の総額が変わる変更はできません。</value>
+    </property>
+    <property key="FinanceLeaseModification">
+        <value xml:lang="en">Change of terms</value>
+        <value xml:lang="ja">条件変更</value>
+    </property>
+    <property key="FinanceLeaseModificationCalculate">
+        <value xml:lang="en">Calculate</value>
+        <value xml:lang="ja">試算</value>
+    </property>
+    <property key="FinanceLeaseModificationApply">
+        <value xml:lang="en">Change terms</value>
+        <value xml:lang="ja">条件を変更する</value>
+    </property>
+    <property key="FinanceLeaseModificationNewTerm">
+        <value xml:lang="en">New term (months)</value>
+        <value xml:lang="ja">変更後の期間（月）</value>
+    </property>
+    <property key="FinanceLeaseModificationNewAmount">
+        <value xml:lang="en">New monthly lease amount</value>
+        <value xml:lang="ja">変更後の月額リース料</value>
+    </property>
+    <property key="FinanceLeaseModificationNewRate">
+        <value xml:lang="en">New calculation interest rate</value>
+        <value xml:lang="ja">変更後の計算利子率</value>
+    </property>
+    <property key="FinanceLeaseModificationInterestAdjustment">
+        <value xml:lang="en">Change of the interest equivalent</value>
+        <value xml:lang="ja">利息相当額の増減</value>
+    </property>
+    <property key="FinanceLeaseModificationHistory">
+        <value xml:lang="en">Change of terms history</value>
+        <value xml:lang="ja">条件変更の履歴</value>
+    </property>    <property key="FinanceLeaseTerminationDateInvalid">
         <value xml:lang="en">The termination date ${terminationDate} must be on or after the lease start, not in the future and not after the lease (or last re-lease) end of ${leaseAgreementId}.</value>
         <value xml:lang="ja">解約日 ${terminationDate} はリース開始日以降・今日以前で、リース（または最後の再リース）の終了日以前にしてください（${leaseAgreementId}）。</value>
     </property>

@@ -163,3 +163,16 @@ if (context.leaseTermination == null && context.isActive && parameters.terminati
 if (context.isTerminated) {
     context.assetLines.each { Map row -> row.canReturn = row.assetStatusId == 'LSAST_LEASED' }
 }
+
+// STEP L15: change of terms (history, and a quote for the requested values).
+context.leaseModifications = from('LeaseModification').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
+        .orderBy('leaseModificationId').queryList()
+context.canModify = context.isActive && context.reLeases.isEmpty()
+if (context.canModify && (parameters.modNewTermMonths || parameters.modNewMonthlyLeaseAmount || parameters.modNewCalcInterestRate)) {
+    Map quote = dispatcher.runSync('calculateLeaseModification', [leaseAgreementId: leaseAgreement.leaseAgreementId,
+            newTermMonths: parameters.modNewTermMonths ? (parameters.modNewTermMonths as Long) : null,
+            newMonthlyLeaseAmount: parameters.modNewMonthlyLeaseAmount ? new BigDecimal(parameters.modNewMonthlyLeaseAmount) : null,
+            newCalcInterestRate: parameters.modNewCalcInterestRate ? new BigDecimal(parameters.modNewCalcInterestRate) : null,
+            userLogin: userLogin])
+    context.modificationQuote = org.apache.ofbiz.service.ServiceUtil.isSuccess(quote) ? quote : null
+}

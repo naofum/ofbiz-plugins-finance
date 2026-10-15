@@ -487,6 +487,52 @@ under the License.
     </service>
 
     <!-- ============================================================= -->
+    <!-- STEP L15: change of terms (条件変更)                            -->
+    <!-- ============================================================= -->
+    <service name="calculateLeaseModification" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseModificationServices" invoke="calculateLeaseModification" auth="true">
+        <description>The change of terms of an ACTIVE lease (term / monthly amount / calculation rate) from the first unbilled
+            installment, without applying it.</description>
+        <permission-service service-name="financeGenericPermission" main-action="VIEW"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="newTermMonths" type="Long" mode="IN" optional="true"><description>new total lease term in months (at least the first unbilled installment); empty = unchanged</description></attribute>
+        <attribute name="newMonthlyLeaseAmount" type="BigDecimal" mode="IN" optional="true"><description>new monthly lease amount (tax excluded); the calculation interest rate is solved</description></attribute>
+        <attribute name="newCalcInterestRate" type="BigDecimal" mode="IN" optional="true"><description>new annual calculation interest rate (used when no monthly amount is given; empty = current)</description></attribute>
+        <attribute name="effectiveInstallmentNumber" type="Long" mode="OUT" optional="true"/>
+        <attribute name="effectiveDate" type="Timestamp" mode="OUT" optional="true"/>
+        <attribute name="newTermMonths" type="Long" mode="OUT" optional="true"/>
+        <attribute name="newMonthlyLeaseAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="newCalcInterestRate" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="newLeaseEndDate" type="Timestamp" mode="OUT" optional="true"/>
+        <attribute name="oldRemainingLeaseAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="newRemainingLeaseAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="interestAdjustment" type="BigDecimal" mode="OUT" optional="true"/>    </service>
+    <service name="createLeaseModification" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseModificationServices" invoke="createLeaseModification" auth="true">
+        <description>Change the terms of an ACTIVE lease (no re-lease) from the first unbilled installment: rebuild the confirmed
+            schedule as a new revision recovering the same principal, adjust the lease investment and deferred lease profit
+            (finance) or the depreciation spread (operating), update the agreement and keep the history (LeaseModification).
+            Leases taxed in full at the start cannot change the total lease payments.</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="newTermMonths" type="Long" mode="IN" optional="true"><description>new total lease term in months (at least the first unbilled installment); empty = unchanged</description></attribute>
+        <attribute name="newMonthlyLeaseAmount" type="BigDecimal" mode="IN" optional="true"><description>new monthly lease amount (tax excluded); the calculation interest rate is solved</description></attribute>
+        <attribute name="newCalcInterestRate" type="BigDecimal" mode="IN" optional="true"><description>new annual calculation interest rate (used when no monthly amount is given; empty = current)</description></attribute>
+        <attribute name="effectiveInstallmentNumber" type="Long" mode="OUT" optional="true"/>
+        <attribute name="effectiveDate" type="Timestamp" mode="OUT" optional="true"/>
+        <attribute name="newTermMonths" type="Long" mode="OUT" optional="true"/>
+        <attribute name="newMonthlyLeaseAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="newCalcInterestRate" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="newLeaseEndDate" type="Timestamp" mode="OUT" optional="true"/>
+        <attribute name="oldRemainingLeaseAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="newRemainingLeaseAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="interestAdjustment" type="BigDecimal" mode="OUT" optional="true"/>        <attribute name="reason" type="String" mode="IN" optional="true"/>
+        <attribute name="leaseModificationId" type="String" mode="OUT" optional="true"/>
+        <attribute name="scheduleRevisionNumber" type="Long" mode="OUT" optional="true"/>
+        <attribute name="acctgTransId" type="String" mode="OUT" optional="true"/>
+    </service>
+
+    <!-- ============================================================= -->
     <!-- STEP L14: early termination (中途解約)                          -->
     <!-- ============================================================= -->
     <service name="calculateLeaseTerminationDamages" engine="java"

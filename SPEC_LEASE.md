@@ -40,6 +40,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L12 | オペレーティングリース（賃貸資産のリース期間定額法による減価償却、受取リース料の請求時計上。14 章） | 完了（tests=166 / errors=0 / failures=0） |
 | L13 | 再リース（元の契約に再リース期間を追加、年額の前払請求と月次の収益按分、残存簿価の償却。15 章） | 完了（tests=174 / errors=0 / failures=0） |
 | L14 | 中途解約（規定損害金＝未経過リース料の現在価値、リース投資資産の精算、物件の引揚。16 章） | 完了（tests=182 / errors=0 / failures=0） |
+| L15 | 条件変更（期間・月額・計算利子率、確定リース料表の新 revision、投資資産と繰延利益の調整。17 章） | 完了（tests=186 / errors=0 / failures=0） |
 
 前提：STEP L0（共通層の切り出し、`SPEC_COMMON.md`）の完了後に着手する。
 
@@ -49,7 +50,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 
 | 種別 | 配置 |
 |------|------|
-| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`、L10：`PropertyTaxValuation`、L10b：`LeasePublicChargeCalculator` / `LeasePublicChargeServices`、L11：`LeaseComponentSettings` / `LeaseMaintenanceServices`、L12：`LeaseRevenueStrategy.Operating` / `LeaseDepreciationServices`、L13：`LeaseReLeaseServices`、L14：`LeaseTerminationServices`） |
+| Java | `org.apache.ofbiz.finance.lease`（L1：`LeaseProductHelper`、L2：`LeaseCalculator` / `LeaseContractAdapter`、L3：`LeaseAcquisitionServices` / `LeaseRevenueStrategy`、L4：`LeaseAccountingServices` / `LeaseProfitAllocator`、L5：`LeaseTaxHelper`、L9：`LeaseComponentCalculator`、L10：`PropertyTaxValuation`、L10b：`LeasePublicChargeCalculator` / `LeasePublicChargeServices`、L11：`LeaseComponentSettings` / `LeaseMaintenanceServices`、L12：`LeaseRevenueStrategy.Operating` / `LeaseDepreciationServices`、L13：`LeaseReLeaseServices`、L14：`LeaseTerminationServices`、L15：`LeaseModificationServices`） |
 | Groovy | `groovyScripts/lease/`（`LeaseProductServices` / `LeaseApplicationServices` / `PrepareLeaseApplication`） |
 | entitydef | `entitymodel_lease.xml` |
 | servicedef | `services_lease.xml` |
@@ -1359,6 +1360,81 @@ L1〜L11 と同じで、契約の収益計上方法（`LeaseRevenueStrategy`）�
 - **与信額**：解約後も `FinanceContract` は有効のため、与信の合算に元の取得価額が含まれる（回収完了で外れる）。
 - **物件の評価**：引き揚げた物件は残価（または帳簿価額）のまま。処分見込額での評価減はしない。
 - **部分解約**：契約の一部の物件だけの解約は対象外（将来拡張「物件分割・契約分割」）。
+
+---
+
+## 17. STEP L15 — 条件変更
+
+有効なリースの期間・月額リース料・計算利子率を、未請求の最初の回から変更する。ローン STEP 7 と同じく、
+確定リース料表を新しい revision として作り直し、請求済みの回はそのまま写す。変更前後の値は履歴（`LeaseModification`）に残す。
+
+実装：`LeaseModificationServices`。`LeaseDepreciationServices`（変更後の償却の配分）に連動を追加した。
+
+### 17.1 決定事項（2026-10-15）
+
+| 項目 | 決定 |
+|------|------|
+| 変更できる項目 | **期間（延長・短縮）・月額リース料・計算利子率**。月額を指定すれば計算利子率を逆算し、指定しなければ計算利子率（既定は現行）で残りの月額を再計算する。見積残価は変えない |
+| ファイナンスリースの会計 | **投資資産と繰延リース利益を調整**：元本の回収額は変わらないので、未請求リース料の増減＝利息相当額の増減。増えたら 借 リース投資資産／リース債権 ／ 貸 繰延リース利益、減ったら逆。損益は出ない。以降の戻入は新しいリース料表に従う |
+| 開始時一括の消費税 | **総額が変わる変更は不可**（`LEASE_TAX_AT_START` の契約）。総額が変わらない変更は認め、残りの回の消費税の合計を変更前と同じに保つ |
+| 適用開始の回 | **未請求の最初の回から**。請求済みの回は変えない |
+
+### 17.2 計算（`plan`）
+
+- k＝未請求の最初の回。k−1 回目の後の未回収元本（k=1 なら取得価額）から残価までを、新しい回数 m＝新期間 − k + 1 で回収する。
+- 前払い（`LEASE_PAY_ADVANCE`）では、k 回目の利息相当額は k−1 期に旧条件で発生済みのため、そのまま残し（計算の基礎に加え）、新条件は k 期から適用する。後払いでは k−1 回目の後の元本を基礎にする。
+- 計算は L2 の `LeaseCalculator`（月額指定＝料率方式で利子率を逆算、利子率指定＝年金方式）。最終回で端数を調整し、残りの元本は残価で終わる。
+- 期日・期間は検収時（L3）と同じ規則（開始日から月ごと、営業日調整）。リース終了日＝開始日＋新期間 − 1 日。
+- 新期間は k 以上、商品の最短・最長期間の範囲内。再リースのある契約、全回請求済みの契約は変更できない。
+- 構成要素（L9）：請求済みの回は写し、新しい回は定義の月額（元の回にあった額）で作り直す。消費税は契約に固定した税率。
+
+### 17.3 適用（`createLeaseModification`）
+
+1. オペレーティングリース：適用開始の前の月まで償却を済ませ、その月数を `depreciationBaseMonth` に記録する。以降は、残りの償却対象額を新しい残り月数で定額に配分する（`LeaseDepreciationServices.cumulativeFromBase`、最終月で残価に一致）。仕訳はない。
+2. 確定リース料表の新 revision（1..k−1 を写し、k..新期間を作り直す）と構成要素の行を作る。
+3. ファイナンスリース：利息相当額の増減で 借 リース投資資産 ／ 貸 繰延リース利益（減少は逆）。
+4. 履歴（変更前後の期間・月額・利子率・終了日、未請求リース料の前後、利息相当額の増減、revision、仕訳）を残し、契約（期間・終了日・月額・料率・利子率・リース料総額・利息相当額総額・消費税総額）を更新する。
+5. 終了日が変わったら、旧終了日の満了通知タスクを取り消す（満了バッチが新しい終了日で作り直す）。
+
+`calculateLeaseModification` は同じ計算を変更なしで返す（試算）。
+
+### 17.4 データモデル
+
+| エンティティ | 主キー | 内容 |
+|--------------|--------|------|
+| `LeaseModification` | leaseModificationId | 契約、変更日、適用開始の回・日、revision（前・後）、期間・月額・計算利子率・終了日（前・後）、回収する元本、未請求リース料（前・後）、利息相当額の増減、仕訳、償却の基準月（オペレーティング）、理由 |
+
+### 17.5 画面
+
+- `ManageLeaseAgreement` に「条件変更」のスクリーンレットを追加：試算フォーム（変更後の期間・月額・利子率）、試算結果、変更フォーム、変更履歴。有効で再リースのない契約で表示する。
+
+### 17.6 テスト（`LeaseModificationTests`）
+
+| テスト | 内容 |
+|--------|------|
+| `testFinanceTermExtension` | 変更なし・最長期間超過・請求済みの回より短い期間の拒否、試算は変更しない、48 → 60 か月：新 revision、請求済み 4 回は不変、回収元本が同じ、前払いの 5 回目は旧利息のまま、残価で終わる、終了日、総額＝表の合計、総額の増減＝利息相当額の増減、仕訳（借 128500 ／ 貸 128700）、履歴、戻入・回収状況 |
+| `testAmountChangeSolvesRate` | 月額を 100 下げる：計算利子率を逆算（3% 未満）、利息相当額の減少と逆仕訳（借 128700 ／ 貸 128500）、期間・終了日は不変 |
+| `testOperatingTermChangeDepreciation` | 60 → 48 か月：仕訳なし、償却の基準月 3、変更後の月の償却額＝残りの償却対象額 / 45、配分の最終月で償却対象額に一致 |
+| `testModificationRestrictions` | 開始時一括の消費税の契約で総額が変わる変更を拒否、再リースのある契約を拒否 |
+
+### 17.7 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 新規 1 テーブル（`LEASE_MODIFICATION`） |
+| `gradlew "ofbiz --test component=finance"` | tests=186 / errors=0 / failures=0（L15 の 4 件を含む、25 分） |
+| demo 投入 | BUILD SUCCESSFUL |
+| 画面 | 未確認（定義のみ） |
+
+### 17.8 要確認・制約
+
+- **会計基準**：変更を「同じ元本を新しい条件で回収する」ものとして扱い、利息相当額の増減を繰延リース利益で調整した（損益なし）。リース会計上、条件変更をリースの変更（新しいリース）として扱うべき場合（期間の大幅な延長、区分の再判定）の扱いは要確認。
+- **区分の再判定**：変更後にファイナンス／オペレーティングの区分を見直すことはしない。
+- **残価・物件**：見積残価、物件の追加・一部返還は変更できない（将来拡張「物件分割・契約分割」）。
+- **再リース・解約後**：再リースのある契約、解約後の契約は変更できない。
+- **公租公課・保守**：期間変更に合わせた償却資産税の見込み額（構成要素）の再計算、保守計画の期限の見直しはしない（保守予定はリース終了日まで作るため、延長後は自動的に延びる）。
+- **与信額**：変更後も与信の合算は元の取得価額のまま。
 
 ---
 

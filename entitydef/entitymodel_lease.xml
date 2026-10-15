@@ -1245,4 +1245,45 @@ under the License.
             <key-map field-name="invoiceId"/>
         </relation>
     </entity>
+    <!-- ========================================================= -->
+    <!-- STEP L15: change of terms (条件変更). The confirmed lease  -->
+    <!-- payment schedule is rebuilt as a new revision from the     -->
+    <!-- first unbilled installment (loan STEP 7 style); the before -->
+    <!-- and after values are kept.                                 -->
+    <!-- ========================================================= -->
+    <entity entity-name="LeaseModification" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease change of terms (条件変更)">
+        <field name="leaseModificationId" type="id"><description>primary sequenced ID</description></field>
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="modificationDate" type="date-time"></field>
+        <field name="effectiveInstallmentNumber" type="numeric"><description>first installment with the new terms (first unbilled)</description></field>
+        <field name="effectiveDate" type="date-time"><description>period start of the effective installment</description></field>
+        <field name="fromRevisionNumber" type="numeric"></field>
+        <field name="toRevisionNumber" type="numeric"></field>
+        <field name="oldTermMonths" type="numeric"></field>
+        <field name="newTermMonths" type="numeric"></field>
+        <field name="oldMonthlyLeaseAmount" type="currency-amount"></field>
+        <field name="newMonthlyLeaseAmount" type="currency-amount"></field>
+        <field name="oldCalcInterestRate" type="fixed-point"></field>
+        <field name="newCalcInterestRate" type="fixed-point"></field>
+        <field name="oldLeaseEndDate" type="date-time"></field>
+        <field name="newLeaseEndDate" type="date-time"></field>
+        <field name="principalBase" type="currency-amount"><description>remaining principal recovered by the new installments (residual excluded)</description></field>
+        <field name="oldRemainingLeaseAmount" type="currency-amount"><description>unbilled lease payments before the change</description></field>
+        <field name="newRemainingLeaseAmount" type="currency-amount"><description>unbilled lease payments after the change</description></field>
+        <field name="interestAdjustment" type="currency-amount"><description>change of the interest equivalent (= change of the lease payments; the principal is unchanged)</description></field>
+        <field name="acctgTransId" type="id"><description>finance lease: Dr lease investment / Cr deferred lease profit (reversed for a decrease)</description></field>
+        <field name="depreciationBaseMonth" type="numeric"><description>operating lease: months depreciated before the change; the remainder is spread over the remaining months</description></field>
+        <field name="reason" type="description"></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="createdByUserLogin" type="id-vlong"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseModificationId"/>
+        <relation type="one" fk-name="LEASEMOD_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <index name="LEASEMOD_AGR_IDX">
+            <index-field name="leaseAgreementId"/>
+        </index>
+    </entity>
 </entitymodel>

@@ -812,8 +812,48 @@ under the License.
         <field name="actualCompletionDate" title="${uiLabelMap.FinanceLeaseCompletedOn}"><display type="date"/></field>
     </grid>
 
-    <!-- STEP L14: early termination -->
-    <form name="CalculateLeaseTermination" type="single" target="ManageLeaseAgreement">
+    <!-- STEP L15: change of terms -->
+    <form name="CalculateLeaseModification" type="single" target="ManageLeaseAgreement">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="modNewTermMonths" title="${uiLabelMap.FinanceLeaseModificationNewTerm}"><text size="4"/></field>
+        <field name="modNewMonthlyLeaseAmount" title="${uiLabelMap.FinanceLeaseModificationNewAmount}"><text size="15"/></field>
+        <field name="modNewCalcInterestRate" title="${uiLabelMap.FinanceLeaseModificationNewRate}"><text size="10"/></field>
+        <field name="calculateButton" title="${uiLabelMap.FinanceLeaseModificationCalculate}"><submit button-type="button"/></field>
+    </form>
+
+    <form name="ViewLeaseModificationQuote" type="single" default-map-name="modificationQuote">
+        <field name="effectiveInstallmentNumber" title="${uiLabelMap.FinanceInstallmentNumber}"><display/></field>
+        <field name="newTermMonths" title="${uiLabelMap.FinanceLeaseModificationNewTerm}"><display/></field>
+        <field name="newMonthlyLeaseAmount" title="${uiLabelMap.FinanceLeaseModificationNewAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="newCalcInterestRate" title="${uiLabelMap.FinanceLeaseModificationNewRate}"><display/></field>
+        <field name="newLeaseEndDate" title="${uiLabelMap.FinanceLeaseEndDate}"><display type="date"/></field>
+        <field name="interestAdjustment" title="${uiLabelMap.FinanceLeaseModificationInterestAdjustment}"><display type="currency" currency="${currencyUomId}"/></field>
+    </form>
+
+    <form name="CreateLeaseModification" type="single" target="createLeaseModification">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="newTermMonths" title="${uiLabelMap.FinanceLeaseModificationNewTerm}"><text size="4" default-value="${parameters.modNewTermMonths}"/></field>
+        <field name="newMonthlyLeaseAmount" title="${uiLabelMap.FinanceLeaseModificationNewAmount}"><text size="15" default-value="${parameters.modNewMonthlyLeaseAmount}"/></field>
+        <field name="newCalcInterestRate" title="${uiLabelMap.FinanceLeaseModificationNewRate}"><text size="10" default-value="${parameters.modNewCalcInterestRate}"/></field>
+        <field name="reason" title="${uiLabelMap.FinanceLeaseTerminationReason}"><text size="40"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceLeaseModificationApply}"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListLeaseModifications" list-name="leaseModifications" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="modificationDate" title="${uiLabelMap.FinanceLeaseModification}"><display type="date"/></field>
+        <field name="effectiveInstallmentNumber" title="${uiLabelMap.FinanceInstallmentNumber}"><display/></field>
+        <field name="oldTermMonths" title="${uiLabelMap.FinanceTermMonths}"><display/></field>
+        <field name="newTermMonths" title="${uiLabelMap.FinanceLeaseModificationNewTerm}"><display/></field>
+        <field name="oldMonthlyLeaseAmount" title="${uiLabelMap.FinanceLeaseMonthlyAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="newMonthlyLeaseAmount" title="${uiLabelMap.FinanceLeaseModificationNewAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="newCalcInterestRate" title="${uiLabelMap.FinanceLeaseModificationNewRate}"><display/></field>
+        <field name="interestAdjustment" title="${uiLabelMap.FinanceLeaseModificationInterestAdjustment}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="toRevisionNumber" title="Rev."><display/></field>
+        <field name="reason" title="${uiLabelMap.FinanceLeaseTerminationReason}"><display/></field>
+    </grid>
+
+    <!-- STEP L14: early termination -->    <form name="CalculateLeaseTermination" type="single" target="ManageLeaseAgreement">
         <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
         <field name="terminationDate" title="${uiLabelMap.FinanceLeaseTerminationDate}" tooltip="${uiLabelMap.FinanceLeaseDefaultToday}"><date-time type="date"/></field>
         <field name="calculateButton" title="${uiLabelMap.FinanceLeaseTerminationCalculate}"><submit button-type="button"/></field>

@@ -452,6 +452,23 @@ under the License.
                                             </section>
                                             <include-grid name="ListLeaseAssetSettlements" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                         </screenlet>
+                                        <!-- STEP L15: change of terms -->
+                                        <screenlet title="${uiLabelMap.FinanceLeaseModification}">
+                                            <section>
+                                                <condition><if-compare field="canModify" operator="equals" value="true" type="Boolean"/></condition>
+                                                <widgets>
+                                                    <include-form name="CalculateLeaseModification" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                    <section>
+                                                        <condition><not><if-empty field="modificationQuote"/></not></condition>
+                                                        <widgets>
+                                                            <include-form name="ViewLeaseModificationQuote" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                        </widgets>
+                                                    </section>
+                                                    <include-form name="CreateLeaseModification" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </widgets>
+                                            </section>
+                                            <include-grid name="ListLeaseModifications" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </screenlet>
                                         <!-- STEP L14: early termination -->
                                         <screenlet title="${uiLabelMap.FinanceLeaseTermination}">
                                             <section>

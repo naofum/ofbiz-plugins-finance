@@ -24,6 +24,7 @@ import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -94,6 +95,24 @@ public final class LeaseDepreciationServices {
             return depreciable.setScale(scale, mode);
         }
         return depreciable.multiply(BigDecimal.valueOf(k)).divide(BigDecimal.valueOf(term), scale, mode);
+    }
+
+    /**
+     * STEP L15: cumulative depreciation after {@code k} months when the term was changed after
+     * {@code baseMonth} months with {@code baseCumulative} depreciated: the remainder is spread
+     * straight-line over months baseMonth+1..term; the last month takes the remainder.
+     */
+    public static BigDecimal cumulativeFromBase(BigDecimal depreciable, BigDecimal baseCumulative, int baseMonth, int k,
+            int term, int scale, RoundingMode mode) {
+        if (k <= baseMonth) {
+            return baseCumulative.setScale(scale, mode);
+        }
+        if (k >= term) {
+            return depreciable.setScale(scale, mode);
+        }
+        BigDecimal remaining = depreciable.subtract(baseCumulative);
+        return baseCumulative.add(remaining.multiply(BigDecimal.valueOf(k - baseMonth))
+                .divide(BigDecimal.valueOf(term - baseMonth), scale, mode));
     }
 
     /** Accumulated depreciation of an agreement (or of one asset when assetSeqId is given). */
@@ -178,6 +197,21 @@ public final class LeaseDepreciationServices {
             GenericValue last = EntityQuery.use(delegator).from("LeaseAssetDepreciation")
                     .where("leaseAgreementId", leaseAgreementId).orderBy("-periodNumber").cache(false).queryFirst();
             int k = last == null ? 1 : last.getLong("periodNumber").intValue() + 1;
+            // STEP L15: after a change of the lease term the remaining depreciable amount is spread
+            // straight-line over the remaining months from the last modification's base month.
+            GenericValue modification = EntityQuery.use(delegator).from("LeaseModification")
+                    .where("leaseAgreementId", leaseAgreementId).orderBy("-leaseModificationId").cache(false).queryFirst();
+            int baseMonth = modification == null || modification.getLong("depreciationBaseMonth") == null ? 0
+                    : modification.getLong("depreciationBaseMonth").intValue();
+            Map<String, BigDecimal> baseCumulative = new HashMap<>();
+            if (baseMonth > 0) {
+                for (GenericValue asset : assets) {
+                    GenericValue at = EntityQuery.use(delegator).from("LeaseAssetDepreciation").where("leaseAgreementId",
+                            leaseAgreementId, "assetSeqId", asset.getString("assetSeqId"), "periodNumber", (long) baseMonth)
+                            .cache(false).queryOne();
+                    baseCumulative.put(asset.getString("assetSeqId"), at == null ? BigDecimal.ZERO : nz(at.getBigDecimal("cumulativeAmount")));
+                }
+            }
             long created = 0;
             BigDecimal depreciated = BigDecimal.ZERO;
             for (; k <= term; k++) {
@@ -193,8 +227,17 @@ public final class LeaseDepreciationServices {
                     String seq = asset.getString("assetSeqId");
                     BigDecimal cost = nz(asset.getBigDecimal("acquisitionCost"));
                     BigDecimal depreciable = cost.subtract(nz(residuals.get(seq))).max(BigDecimal.ZERO);
-                    BigDecimal cum = cumulative(depreciable, k, term, scale, mode);
-                    BigDecimal amount = cum.subtract(cumulative(depreciable, k - 1, term, scale, mode));
+                    BigDecimal cum;
+                    BigDecimal prev;
+                    if (baseMonth > 0 && k > baseMonth) {
+                        BigDecimal base = baseCumulative.get(seq);
+                        cum = cumulativeFromBase(depreciable, base, baseMonth, k, term, scale, mode);
+                        prev = cumulativeFromBase(depreciable, base, baseMonth, k - 1, term, scale, mode);
+                    } else {
+                        cum = cumulative(depreciable, k, term, scale, mode);
+                        prev = cumulative(depreciable, k - 1, term, scale, mode);
+                    }
+                    BigDecimal amount = cum.subtract(prev);
                     amounts.put(seq, amount);
                     cumulatives.put(seq, cum);
                     monthTotal = monthTotal.add(amount);
