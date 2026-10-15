@@ -1177,3 +1177,15 @@ SystemProperty / finance.properties キー
 
 - **契約の取消と core の口座**：ローン口座は取消状態にするだけで消さない。担保は解除日を付けるだけ。
 - **請求・入金がある場合**：取り消せない。必要なら先に core で請求書・入金を取り消すが、利息計上（`LoanAccrual`）を戻すサービスはないため、計上後は取り消せない。
+
+---
+
+## 28. STEP L15b — 祝日カレンダーによる期日調整（ローンへの影響、計画）
+
+> **状態：計画（未着手）**。共通層の方針・部品は `SPEC_COMMON.md` 12 章。
+
+- ローンの期日の営業日調整（`LOAN_DUEDATE_CONV`）が、土日に加えて祝日（core `TechDataCalendar` の例外日）と、カレンダーの曜日の定義を考慮するようになる。
+- 対象：見積（`CreateLoanQuote.groovy`）、繰上返済・条件変更の返済表の作り直し（`FinancePrepaymentServices.persistSchedule`）。
+- 使うカレンダー：商品（`FinancialProductCalendar`）→ `finance.properties` の `business.calendar.ids` → どちらもなければ従来どおり土日のみ。
+- 既存の確定返済表（`LoanAgreementRepaymentSchedule`）の期日は変えない。新しく作る返済表から適用する。
+- 利息計算期間（`interestFromDate` / `interestThruDate`、STEP 9）は暦日のまま。`interestThruDate` は営業日調整前の期日（STEP 9 の規則）で、変更しない。
