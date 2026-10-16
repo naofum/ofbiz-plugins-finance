@@ -366,6 +366,7 @@ flowchart LR
 | Apache OFBiz | 24.09 系（開発・テストは **24.09.07** で実施） |
 | Java | OFBiz 24.09 が対応する JDK（17 以上。開発は JDK 21 で実施） |
 | データベース | 既定の Derby で動作を確認（ほかの DB は未確認） |
+| **jasperreports プラグイン** | **別途インストールが必要**。帳票（PDF）の出力に [ofbiz-plugins-jasperreports](#62-配置) を使う |
 | OS | Windows では `gradlew.bat`、Linux / macOS では `./gradlew` を使う |
 
 ### 6.2 配置
@@ -377,11 +378,20 @@ cd apache-ofbiz-24.09.07/plugins
 git clone https://github.com/naofum/ofbiz-plugins-finance.git finance
 ```
 
+#### jasperreports プラグイン（必須）
+
+本プラグインは、見積書・契約書・検収証・督促状・照会などの帳票（PDF）を、**ofbiz-plugins-jasperreports** プラグインの JasperReports ビューハンドラーで出力します（`webapp/finance/WEB-INF/controller.xml` の `type="jasperreports"` の view、`groovyScripts` の `JRMapCollectionDataSource`）。このプラグインは finance に含まれないので、**別途インストールしてください**。
+
+- `plugins` ディレクトリーに `jasperreports` という名前で配置します（`plugins/jasperreports`）。
+- インストールしないと、finance の Web アプリケーションがビューハンドラーのクラスを読み込めず、帳票（と帳票を準備する Groovy スクリプト）が動きません。
+- 日本語の帳票は、jasperreports プラグインが使う CJK フォント（`HeiseiKakuGo-W5`、`openpdf-fonts-extra`）で出力します。詳しくは jasperreports プラグインの README を参照してください。
+
 配置後のディレクトリー構成は次のとおりです。
 
 ```
 apache-ofbiz-24.09.07/
 └── plugins/
+    ├── jasperreports/            … 帳票出力（別途インストール）
     └── finance/
         ├── ofbiz-component.xml   … コンポーネントの定義
         ├── config/               … 設定（finance.properties）・ラベル
