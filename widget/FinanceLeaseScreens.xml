@@ -358,6 +358,22 @@ under the License.
                                         </screenlet>
                                     </widgets>
                                 </section>
+                                <!-- STEP L15c: advance lease payments and security deposits -->
+                                <screenlet title="${uiLabelMap.FinanceLeaseAdvances}">
+                                    <section>
+                                        <condition><if-compare field="canReceiveAdvance" operator="equals" value="true" type="Boolean"/></condition>
+                                        <widgets>
+                                            <include-form name="ReceiveLeaseAdvance" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </widgets>
+                                    </section>
+                                    <section>
+                                        <condition><if-compare field="canSettleAdvances" operator="equals" value="true" type="Boolean"/></condition>
+                                        <widgets>
+                                            <include-form name="SettleLeaseAdvances" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                        </widgets>
+                                    </section>
+                                    <include-grid name="ListLeaseAdvanceReceipts" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                </screenlet>
                                 <!-- STEP L4: billing, deferred profit release, payments -->
                                 <section>
                                     <condition><not><if-empty field="leaseAcceptance"/></not></condition>

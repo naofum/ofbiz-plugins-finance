@@ -1288,4 +1288,47 @@ under the License.
             <index-field name="leaseAgreementId"/>
         </index>
     </entity>
+    <!-- ========================================================= -->
+    <!-- STEP L15c: advance lease payments and security deposits.  -->
+    <!-- One row per receipt (core CUSTOMER_DEPOSIT payment whose  -->
+    <!-- overrideGlAccountId is the liability). Advance lease      -->
+    <!-- payments are applied to the lease invoices automatically; -->
+    <!-- deposits are applied / refunded by the settlement.        -->
+    <!-- ========================================================= -->
+    <entity entity-name="LeaseAdvanceReceipt" package-name="org.apache.ofbiz.finance.lease"
+            title="Advance lease payment / security deposit">
+        <field name="leaseAdvanceReceiptId" type="id"></field>
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="advanceTypeEnumId" type="id"><description>LEASE_ADV_TYPE: LSADV_LEASE (advance lease payment) / LSADV_DEPOSIT (security deposit)</description></field>
+        <field name="statusId" type="id"><description>LEASE_ADV_STATUS: LSADVST_RECEIVED (balance left) / LSADVST_APPLIED (fully applied) / LSADVST_REFUNDED (settled with a refund)</description></field>
+        <field name="receiptDate" type="date-time"></field>
+        <field name="amount" type="currency-amount"></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="paymentId" type="id"><description>core CUSTOMER_DEPOSIT payment (PMNT_RECEIVED)</description></field>
+        <field name="appliedAmount" type="currency-amount"><description>applied to lease invoices (copy of the core payment applications)</description></field>
+        <field name="refundedAmount" type="currency-amount"></field>
+        <field name="refundPaymentId" type="id"><description>core CUSTOMER_REFUND payment (PMNT_SENT)</description></field>
+        <field name="settledDate" type="date-time"></field>
+        <field name="comments" type="comment"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseAdvanceReceiptId"/>
+        <relation type="one" fk-name="LEASEADV_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEADV_TYPE" rel-entity-name="Enumeration">
+            <key-map field-name="advanceTypeEnumId" rel-field-name="enumId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEADV_STTS" rel-entity-name="StatusItem">
+            <key-map field-name="statusId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEADV_PAY" rel-entity-name="Payment">
+            <key-map field-name="paymentId"/>
+        </relation>
+        <relation type="one" fk-name="LEASEADV_RPAY" title="Refund" rel-entity-name="Payment">
+            <key-map field-name="refundPaymentId" rel-field-name="paymentId"/>
+        </relation>
+        <index name="LEASEADV_AGR_IDX">
+            <index-field name="leaseAgreementId"/>
+        </index>
+    </entity>
 </entitymodel>

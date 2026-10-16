@@ -2580,4 +2580,72 @@ under the License.
         <value xml:lang="en">A day is a business day only when every calendar is open. No calendar: the default (business.calendar.ids), else Saturday/Sunday only. Holidays are maintained in the manufacturing calendar screens. Applies to schedules created afterwards.</value>
         <value xml:lang="ja">すべてのカレンダーで稼働日の日だけを営業日とします。指定がなければ既定（business.calendar.ids）、それもなければ土日だけを休日とします。祝日は製造（manufacturing）のカレンダー画面で登録します。この後に作る表から適用します。</value>
     </property>
+    <property key="FinanceLeaseAdvances">
+        <value xml:lang="en">Advance lease payments and deposits</value>
+        <value xml:lang="ja">前受リース料・保証金</value>
+    </property>
+    <property key="FinanceLeaseReceiveAdvance">
+        <value xml:lang="en">Receive</value>
+        <value xml:lang="ja">受け取る</value>
+    </property>
+    <property key="FinanceLeaseSettleAdvances">
+        <value xml:lang="en">Settle (apply to unpaid invoices and refund the rest)</value>
+        <value xml:lang="ja">精算する（未払の請求に充当し、残りを返還）</value>
+    </property>
+    <property key="FinanceLeaseSettleAdvancesNote">
+        <value xml:lang="en">Applies the advance lease payments and then the deposits to the unpaid lease invoices (oldest first) and refunds the rest. Possible before a cancellation, after a termination, or after every asset is returned / disposed and every installment is billed.</value>
+        <value xml:lang="ja">前受リース料、次に保証金を未払の請求書へ古い順に充当し、残りを返還します。解約（取消）の前、中途解約の後、またはすべての物件の返還・処分とすべての回の請求の後にできます。</value>
+    </property>
+    <property key="FinanceLeaseAdvanceType">
+        <value xml:lang="en">Type</value>
+        <value xml:lang="ja">種類</value>
+    </property>
+    <property key="FinanceLeaseAdvanceApplied">
+        <value xml:lang="en">Applied</value>
+        <value xml:lang="ja">充当額</value>
+    </property>
+    <property key="FinanceLeaseAdvanceRefunded">
+        <value xml:lang="en">Refunded</value>
+        <value xml:lang="ja">返還額</value>
+    </property>
+    <property key="FinanceLeaseRefundPaymentId">
+        <value xml:lang="en">Refund payment</value>
+        <value xml:lang="ja">返還の支払</value>
+    </property>
+    <property key="FinanceLeaseSettlementDate">
+        <value xml:lang="en">Settlement date</value>
+        <value xml:lang="ja">精算日</value>
+    </property>
+    <property key="FinanceLeaseAdvanceBalance">
+        <value xml:lang="en">Advance lease payments (balance)</value>
+        <value xml:lang="ja">前受リース料の残高</value>
+    </property>
+    <property key="FinanceLeaseAdvanceAppliedTotal">
+        <value xml:lang="en">Advance lease payments applied</value>
+        <value xml:lang="ja">前受リース料の充当額</value>
+    </property>
+    <property key="FinanceLeaseDepositBalance">
+        <value xml:lang="en">Security deposits (balance)</value>
+        <value xml:lang="ja">保証金の残高</value>
+    </property>
+    <property key="FinanceLeaseAdvanceRequiresOpen">
+        <value xml:lang="en">Advance payments and deposits can be received only for a contracted or active lease: ${leaseAgreementId}</value>
+        <value xml:lang="ja">前受金・保証金は契約済または有効なリースでだけ受け取れます: ${leaseAgreementId}</value>
+    </property>
+    <property key="FinanceLeaseAdvanceTypeInvalid">
+        <value xml:lang="en">Invalid advance receipt type: ${advanceTypeEnumId}</value>
+        <value xml:lang="ja">前受金の種類が正しくありません: ${advanceTypeEnumId}</value>
+    </property>
+    <property key="FinanceLeaseAdvanceSettleNotReady">
+        <value xml:lang="en">The advance payments and deposits of lease ${leaseAgreementId} can be settled only before a cancellation, after a termination, or after every asset is returned and every installment is billed</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} の前受金・保証金は、取消の前、中途解約の後、またはすべての物件の返還とすべての回の請求の後にだけ精算できます</value>
+    </property>
+    <property key="FinanceLeaseCompleteAdvancePending">
+        <value xml:lang="en">Lease ${leaseAgreementId} has advance payments or deposits not settled (settleLeaseAdvances)</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} に精算していない前受金・保証金があります（精算してください）</value>
+    </property>
+    <property key="FinanceLeaseCancelAdvancePending">
+        <value xml:lang="en">Refund the advance payments and deposits of lease ${leaseAgreementId} before the cancellation</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} の前受金・保証金を返還してから取り消してください</value>
+    </property>
 </resource>

@@ -308,4 +308,18 @@ under the License.
     <StatusValidChange statusId="LEASEAGR_TERMINATED" statusIdTo="LEASEAGR_ACTIVE" transitionName="Reverse termination"/>
     <StatusValidChange statusId="LSREL_CANCELLED" statusIdTo="LSREL_CONTRACTED" transitionName="Reverse termination"/>
     <StatusValidChange statusId="LSREL_COMPLETED" statusIdTo="LSREL_ACTIVE" transitionName="Reverse termination"/>
+    <!-- STEP L15c: advance lease payments and security deposits (SPEC_LEASE.md 19). -->
+    <GlAccountType description="Advance lease payments received (前受リース料)" glAccountTypeId="LEASE_ADVANCE_RCVD" hasTable="N" parentTypeId="CURRENT_LIABILITY"/>
+    <GlAccount glAccountId="224800" accountCode="224800" glAccountClassId="CURRENT_LIABILITY" glAccountTypeId="LEASE_ADVANCE_RCVD" glResourceTypeId="MONEY" accountName="ADVANCE LEASE PAYMENTS RECEIVED"/>
+    <GlAccountType description="Lease security deposits received (預り保証金)" glAccountTypeId="LEASE_DEPOSIT_RCVD" hasTable="N" parentTypeId="LONG_TERM_LIABILITY"/>
+    <GlAccount glAccountId="239500" accountCode="239500" glAccountClassId="LONGTERM_LIABILITY" glAccountTypeId="LEASE_DEPOSIT_RCVD" glResourceTypeId="MONEY" accountName="LEASE SECURITY DEPOSITS RECEIVED"/>
+    <EnumerationType description="Lease advance receipt type" enumTypeId="LEASE_ADV_TYPE" hasTable="N"/>
+    <Enumeration description="Advance lease payment (前受リース料)" enumCode="ADVANCE" enumId="LSADV_LEASE" sequenceId="01" enumTypeId="LEASE_ADV_TYPE"/>
+    <Enumeration description="Security deposit (保証金)" enumCode="DEPOSIT" enumId="LSADV_DEPOSIT" sequenceId="02" enumTypeId="LEASE_ADV_TYPE"/>
+    <StatusType description="Lease advance receipt" hasTable="N" statusTypeId="LEASE_ADV_STATUS"/>
+    <StatusItem description="Received (balance left)" sequenceId="01" statusCode="RECEIVED" statusId="LSADVST_RECEIVED" statusTypeId="LEASE_ADV_STATUS"/>
+    <StatusItem description="Applied in full" sequenceId="02" statusCode="APPLIED" statusId="LSADVST_APPLIED" statusTypeId="LEASE_ADV_STATUS"/>
+    <StatusItem description="Settled with a refund" sequenceId="03" statusCode="REFUNDED" statusId="LSADVST_REFUNDED" statusTypeId="LEASE_ADV_STATUS"/>
+    <StatusValidChange statusId="LSADVST_RECEIVED" statusIdTo="LSADVST_APPLIED" transitionName="Apply"/>
+    <StatusValidChange statusId="LSADVST_RECEIVED" statusIdTo="LSADVST_REFUNDED" transitionName="Refund"/>
 </entity-engine-xml>

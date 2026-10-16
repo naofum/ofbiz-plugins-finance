@@ -277,7 +277,7 @@ public final class LeaseExpiryServices {
      *
      * @return null when completed, else the label key of the missing condition
      */
-    private static String tryComplete(DispatchContext dctx, GenericValue agreement, Timestamp completionDate,
+    static String tryComplete(DispatchContext dctx, GenericValue agreement, Timestamp completionDate,
             GenericValue userLogin, Locale locale) throws GenericEntityException, GenericServiceException {
         Delegator delegator = dctx.getDelegator();
         String leaseAgreementId = agreement.getString("leaseAgreementId");
@@ -296,6 +296,10 @@ public final class LeaseExpiryServices {
         }
         if (!allBilledAndSettled(delegator, agreement)) {
             return "FinanceLeaseCompleteOpenBalance";
+        }
+        // STEP L15c: advance lease payments / security deposits must be applied or refunded first.
+        if (LeaseAdvanceServices.hasBalance(delegator, leaseAgreementId)) {
+            return "FinanceLeaseCompleteAdvancePending";
         }
         if (!terminated) {
             Map<String, Object> released = LeaseAccountingServices.recognizeLeaseProfit(dctx, UtilMisc.toMap(

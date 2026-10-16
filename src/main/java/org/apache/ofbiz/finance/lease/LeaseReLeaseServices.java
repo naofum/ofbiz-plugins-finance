@@ -447,6 +447,8 @@ public final class LeaseReLeaseServices {
         r.set("taxAuthorityRateSeqId", taxRate.getTaxAuthorityRateSeqId());
         r.set("statusId", STATUS_ACTIVE);
         r.store();
+        // STEP L15c: advance lease payments are applied to the re-lease invoice.
+        LeaseAdvanceServices.applyAdvances(dctx, agreement, userLogin);
         return invoiceId;
     }
 

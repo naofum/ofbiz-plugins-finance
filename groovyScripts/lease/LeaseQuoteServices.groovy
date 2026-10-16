@@ -510,6 +510,11 @@ Map setLeaseAgreementStatus() {
             && from('LeaseAssetPurchase').where('leaseAgreementId', agreement.leaseAgreementId).queryCount() > 0) {
         return error(label('FinanceLeaseCancelAfterPurchase', [leaseAgreementId: agreement.leaseAgreementId]))
     }
+    // STEP L15c: advance lease payments / deposits are refunded (settleLeaseAdvances) before a cancellation.
+    if (parameters.statusId == 'LEASEAGR_CANCELLED'
+            && org.apache.ofbiz.finance.lease.LeaseAdvanceServices.hasBalance(delegator, agreement.leaseAgreementId as String)) {
+        return error(label('FinanceLeaseCancelAdvancePending', [leaseAgreementId: agreement.leaseAgreementId]))
+    }
     Map changed = changeStatus(agreement, parameters.statusId)
     if (changed.error) {
         return error(changed.error)

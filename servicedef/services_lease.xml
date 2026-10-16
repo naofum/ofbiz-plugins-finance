@@ -337,6 +337,14 @@ under the License.
         <attribute name="unearnedReLeaseAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L13</description></attribute>
         <attribute name="terminationDamagesAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L14</description></attribute>
         <attribute name="collectedTerminationAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L14</description></attribute>
+        <attribute name="advanceReceivedAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c</description></attribute>
+        <attribute name="advanceAppliedAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c</description></attribute>
+        <attribute name="advanceRefundedAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c</description></attribute>
+        <attribute name="advanceBalance" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c</description></attribute>
+        <attribute name="depositReceivedAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c</description></attribute>
+        <attribute name="depositAppliedAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c</description></attribute>
+        <attribute name="depositRefundedAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c</description></attribute>
+        <attribute name="depositBalance" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c</description></attribute>
     </service>
     <!-- ============================================================= -->
     <!-- STEP L7: expiry (tasks, notice, return, disposal, transfer)   -->
@@ -408,7 +416,37 @@ under the License.
         <attribute name="agreementCompleted" type="Boolean" mode="OUT" optional="true"/>
     </service>
 
-    <!-- ============================================================= -->
+    <!-- STEP L15c: advance lease payments and security deposits (SPEC_LEASE.md 19) -->
+    <service name="receiveLeaseAdvance" engine="java" transaction-timeout="600"
+            location="org.apache.ofbiz.finance.lease.LeaseAdvanceServices" invoke="receiveLeaseAdvance" auth="true">
+        <description>Receive an advance lease payment (LSADV_LEASE, Cr advance lease payments) or a security deposit
+            (LSADV_DEPOSIT, Cr security deposits) for a CONTRACTED or ACTIVE lease (core CUSTOMER_DEPOSIT payment).
+            Advance lease payments are applied to the open lease invoices at once and to every later lease invoice.</description>
+        <permission-service service-name="financePaymentPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="advanceTypeEnumId" type="String" mode="IN" optional="false"><description>LSADV_LEASE / LSADV_DEPOSIT</description></attribute>
+        <attribute name="amount" type="BigDecimal" mode="IN" optional="false"/>
+        <attribute name="paymentMethodTypeId" type="String" mode="IN" optional="true"><description>defaults to EFT_ACCOUNT</description></attribute>
+        <attribute name="receiptDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="comments" type="String" mode="IN" optional="true"/>
+        <attribute name="leaseAdvanceReceiptId" type="String" mode="OUT" optional="true"/>
+        <attribute name="paymentId" type="String" mode="OUT" optional="true"/>
+        <attribute name="appliedAmount" type="BigDecimal" mode="OUT" optional="true"/>
+    </service>
+    <service name="settleLeaseAdvances" engine="java" transaction-timeout="600"
+            location="org.apache.ofbiz.finance.lease.LeaseAdvanceServices" invoke="settleLeaseAdvances" auth="true">
+        <description>Settle the advance lease payments and security deposits: apply them to the unpaid lease invoices
+            (advance first, oldest first) and refund the rest (core CUSTOMER_REFUND, PMNT_SENT). Allowed when CONTRACTED
+            (refund before a cancellation), TERMINATED, or ACTIVE with every installment billed and every asset returned /
+            disposed / transferred; then completes the lease when every other condition holds.</description>
+        <permission-service service-name="financePaymentPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="paymentMethodTypeId" type="String" mode="IN" optional="true"><description>refund method, defaults to EFT_ACCOUNT</description></attribute>
+        <attribute name="settlementDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="appliedAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="refundedAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="agreementCompleted" type="Boolean" mode="OUT" optional="true"/>
+    </service>    <!-- ============================================================= -->
     <!-- STEP L10 / L10b: public charges (公租公課)                       -->
     <!-- ============================================================= -->
     <service name="resolveLeasePublicChargeEstimate" engine="java"

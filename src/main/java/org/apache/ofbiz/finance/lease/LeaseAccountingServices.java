@@ -348,6 +348,8 @@ public final class LeaseAccountingServices {
             check(dispatcher.runSync("setInvoiceStatus", UtilMisc.toMap("invoiceId", invoiceId,
                     "statusId", "INVOICE_READY", "userLogin", userLogin)));
             FinanceGlHelper.postUnposted(delegator, dispatcher, "invoiceId", invoiceId, userLogin);
+            // STEP L15c: advance lease payments are applied to the new invoice (oldest receipt first).
+            LeaseAdvanceServices.applyAdvances(dctx, agreement, userLogin);
             return invoiceResult(invoiceId, billed, true);
         } catch (GenericEntityException | GenericServiceException e) {
             Debug.logError(e, MODULE);
@@ -616,6 +618,55 @@ public final class LeaseAccountingServices {
     // ------------------------------------------------------------------
 
     /**
+     * Every invoice of a lease as {@code [invoiceId, dueDate]}, oldest due first: the installment
+     * invoices, the re-lease invoices (STEP L13) and the termination damages invoice (STEP L14).
+     */
+    public static List<Object[]> invoiceTargets(Delegator delegator, String leaseAgreementId)
+            throws GenericEntityException {
+        List<Object[]> targets = new ArrayList<>();
+        for (GenericValue link : EntityQuery.use(delegator).from("LeaseInstallmentInvoice")
+                .where("leaseAgreementId", leaseAgreementId).orderBy("dueDate", "installmentNumber").queryList()) {
+            targets.add(new Object[] {link.getString("invoiceId"), link.getTimestamp("dueDate")});
+        }
+        targets.addAll(LeaseReLeaseServices.reLeaseInvoices(delegator, leaseAgreementId));
+        Object[] damagesInvoice = LeaseTerminationServices.damagesInvoice(delegator, leaseAgreementId);
+        if (damagesInvoice != null) {
+            targets.add(damagesInvoice);
+        }
+        targets.sort((a, b) -> {
+            Timestamp x = (Timestamp) a[1];
+            Timestamp y = (Timestamp) b[1];
+            return x == null ? (y == null ? 0 : 1) : (y == null ? -1 : x.compareTo(y));
+        });
+        return targets;
+    }
+
+    /**
+     * Open invoices of a lease that a payment of the lessee can be applied to (not cancelled /
+     * written off, lessee and currency of the agreement, amount not applied &gt; 0), oldest due first.
+     */
+    public static List<GenericValue> openInvoices(Delegator delegator, GenericValue agreement)
+            throws GenericEntityException {
+        List<GenericValue> open = new ArrayList<>();
+        String lessee = agreement.getString("lesseePartyId");
+        String currency = agreement.getString("currencyUomId");
+        for (Object[] target : invoiceTargets(delegator, agreement.getString("leaseAgreementId"))) {
+            GenericValue invoice = EntityQuery.use(delegator).from("Invoice")
+                    .where("invoiceId", target[0]).cache(false).queryOne();
+            String status = invoice == null ? null : invoice.getString("statusId");
+            if (invoice == null || "INVOICE_CANCELLED".equals(status) || "INVOICE_WRITEOFF".equals(status)
+                    || "INVOICE_IN_PROCESS".equals(status)
+                    || !lessee.equals(invoice.getString("partyId")) || !currency.equals(invoice.getString("currencyUomId"))) {
+                continue;
+            }
+            if (InvoiceWorker.getInvoiceNotApplied(invoice).signum() > 0) {
+                open.add(invoice);
+            }
+        }
+        return open;
+    }
+
+    /**
      * Receive a customer payment for a lease and apply it to one lease invoice, or
      * (no invoice given) to the open lease invoices oldest due first. The amount may
      * not exceed the open amount of the target invoice(s).
@@ -648,23 +699,7 @@ public final class LeaseAccountingServices {
             String currency = agreement.getString("currencyUomId");
 
             // Target invoices and the amount applied to each (oldest due first).
-            // STEP L13: the re-lease invoices are lease invoices too.
-            List<Object[]> targets = new ArrayList<>();
-            for (GenericValue link : EntityQuery.use(delegator).from("LeaseInstallmentInvoice")
-                    .where("leaseAgreementId", leaseAgreementId).orderBy("dueDate", "installmentNumber").queryList()) {
-                targets.add(new Object[] {link.getString("invoiceId"), link.getTimestamp("dueDate")});
-            }
-            targets.addAll(LeaseReLeaseServices.reLeaseInvoices(delegator, leaseAgreementId));
-            // STEP L14: the termination damages invoice.
-            Object[] damagesInvoice = LeaseTerminationServices.damagesInvoice(delegator, leaseAgreementId);
-            if (damagesInvoice != null) {
-                targets.add(damagesInvoice);
-            }
-            targets.sort((a, b) -> {
-                Timestamp x = (Timestamp) a[1];
-                Timestamp y = (Timestamp) b[1];
-                return x == null ? (y == null ? 0 : 1) : (y == null ? -1 : x.compareTo(y));
-            });
+            List<Object[]> targets = invoiceTargets(delegator, leaseAgreementId);
             if (UtilValidate.isNotEmpty(invoiceId)) {
                 targets.removeIf(t -> !invoiceId.equals(t[0]));
             }
@@ -835,6 +870,8 @@ public final class LeaseAccountingServices {
         Map<String, Object> balance = new HashMap<>();
         balance.putAll(reLease);
         balance.putAll(termination);
+        // STEP L15c: advance lease payments and security deposits (received / applied / refunded / balance).
+        balance.putAll(LeaseAdvanceServices.balance(delegator, leaseAgreementId));
         balance.put("billedCount", billedCount);
         balance.put("billedLeaseAmount", billedLease);
         balance.put("billedTaxAmount", billedTax);

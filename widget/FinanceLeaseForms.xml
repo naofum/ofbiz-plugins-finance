@@ -611,6 +611,9 @@ under the License.
         <field name="deferredProfitBalance" title="${uiLabelMap.FinanceLeaseDeferredProfitBalance}"><display type="currency" currency="${currencyUomId}"/></field>
         <field name="accumulatedDepreciation" title="${uiLabelMap.FinanceLeaseAccumulatedDepreciation}" use-when="${bsh:context.get(&quot;isOperating&quot;)}"><display type="currency" currency="${currencyUomId}"/></field>
         <field name="leasedAssetBookValue" title="${uiLabelMap.FinanceLeaseAssetBookValue}" use-when="${bsh:context.get(&quot;isOperating&quot;)}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="advanceBalance" title="${uiLabelMap.FinanceLeaseAdvanceBalance}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="advanceAppliedAmount" title="${uiLabelMap.FinanceLeaseAdvanceAppliedTotal}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="depositBalance" title="${uiLabelMap.FinanceLeaseDepositBalance}"><display type="currency" currency="${currencyUomId}"/></field>
     </form>
 
     <!-- STEP L12: depreciation of operating lease assets -->
@@ -685,7 +688,43 @@ under the License.
     </grid>
 
     <!-- ============================================================= -->
-    <!-- STEP L6: delinquency, late fee, dunning                       -->
+    <!-- STEP L15c: advance lease payments and security deposits       -->
+    <!-- ============================================================= -->
+    <form name="ReceiveLeaseAdvance" type="single" target="receiveLeaseAdvance">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="advanceTypeEnumId" title="${uiLabelMap.FinanceLeaseAdvanceType}">
+            <drop-down allow-empty="false">
+                <entity-options entity-name="Enumeration" key-field-name="enumId" description="${description}">
+                    <entity-constraint name="enumTypeId" value="LEASE_ADV_TYPE"/>
+                    <entity-order-by field-name="sequenceId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="amount" title="${uiLabelMap.FinanceAmount}" required-field="true"><text size="20"/></field>
+        <field name="receiptDate" title="${uiLabelMap.FinanceLeaseReceiptDate}" tooltip="${uiLabelMap.FinanceLeaseDefaultToday}"><date-time type="date"/></field>
+        <field name="comments" title="${uiLabelMap.CommonComments}"><text size="60"/></field>
+        <field name="receiveButton" title="${uiLabelMap.FinanceLeaseReceiveAdvance}"><submit button-type="button"/></field>
+    </form>
+
+    <form name="SettleLeaseAdvances" type="single" target="settleLeaseAdvances">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="note" title=" "><display description="${uiLabelMap.FinanceLeaseSettleAdvancesNote}"/></field>
+        <field name="settlementDate" title="${uiLabelMap.FinanceLeaseSettlementDate}" tooltip="${uiLabelMap.FinanceLeaseDefaultToday}"><date-time type="date"/></field>
+        <field name="settleButton" title="${uiLabelMap.FinanceLeaseSettleAdvances}"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListLeaseAdvanceReceipts" list-name="advanceReceipts" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="receiptDate" title="${uiLabelMap.FinanceLeaseReceiptDate}"><display type="date"/></field>
+        <field name="advanceTypeEnumId" title="${uiLabelMap.FinanceLeaseAdvanceType}"><display-entity entity-name="Enumeration" key-field-name="enumId"/></field>
+        <field name="amount" title="${uiLabelMap.FinanceAmount}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="appliedAmount" title="${uiLabelMap.FinanceLeaseAdvanceApplied}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="refundedAmount" title="${uiLabelMap.FinanceLeaseAdvanceRefunded}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="statusId" title="${uiLabelMap.FinanceStatus}"><display-entity entity-name="StatusItem" key-field-name="statusId"/></field>
+        <field name="paymentId" title="${uiLabelMap.FinanceLeasePaymentId}"><display/></field>
+        <field name="refundPaymentId" title="${uiLabelMap.FinanceLeaseRefundPaymentId}"><display/></field>
+        <field name="settledDate" title="${uiLabelMap.FinanceLeaseSettlementDate}"><display type="date"/></field>
+    </grid>
     <!-- ============================================================= -->
     <grid name="ListLeaseDelinquencies" list-name="leaseDelinquencies" paginate="false"
             odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">

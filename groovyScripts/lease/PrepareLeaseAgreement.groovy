@@ -182,3 +182,10 @@ context.financeReversals = from('FinanceReversal').where('financeContractId', le
         .orderBy('-financeReversalId').queryList()
 context.canReverseAcceptance = context.isActive && context.leaseAcceptance != null
 context.canReverseModification = context.isActive && context.leaseModifications.any { it.reversedDate == null }
+
+// STEP L15c: advance lease payments and security deposits.
+context.advanceReceipts = from('LeaseAdvanceReceipt').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
+        .orderBy('receiptDate', 'leaseAdvanceReceiptId').queryList()
+context.canReceiveAdvance = leaseAgreement.statusId in ['LEASEAGR_CONTRACTED', 'LEASEAGR_ACTIVE']
+context.canSettleAdvances = leaseAgreement.statusId in ['LEASEAGR_CONTRACTED', 'LEASEAGR_ACTIVE', 'LEASEAGR_TERMINATED'] &&
+        org.apache.ofbiz.finance.lease.LeaseAdvanceServices.hasBalance(delegator, leaseAgreement.leaseAgreementId as String)

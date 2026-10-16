@@ -43,7 +43,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L15 | 条件変更（期間・月額・計算利子率、確定リース料表の新 revision、投資資産と繰延利益の調整。17 章） | 完了（tests=186 / errors=0 / failures=0） |
 | L15a | 誤操作の取消（検収・中途解約・条件変更。18 章。共通部品は `SPEC_COMMON.md` 11 章） | 完了（tests=192 / errors=0 / failures=0） |
 | L15b | 祝日カレンダーを考慮した営業日調整（共通層。`SPEC_COMMON.md` 12 章。リースは見積・検収・条件変更の期日に適用） | 完了（tests=203 / errors=0 / failures=0） |
-| L15c | 前受リース料と保証金（19 章） | 計画（未着手） |
+| L15c | 前受リース料と保証金（19 章） | 完了（tests=211 / errors=0 / failures=0） |
 | L15d | 物件分割・契約分割（20 章） | 計画（未着手） |
 
 前提：STEP L0（共通層の切り出し、`SPEC_COMMON.md`）の完了後に着手する。
@@ -1502,9 +1502,9 @@ L1〜L11 と同じで、契約の収益計上方法（`LeaseRevenueStrategy`）�
 
 ---
 
-## 19. STEP L15c — 前受リース料と保証金（計画）
+## 19. STEP L15c — 前受リース料と保証金
 
-> **状態：計画（未着手）**。2026-10-16 に方針を決定した。実装後に「実装」「テスト」「検証」を追記する。
+> **状態：完了**（2026-10-16。tests=211 / errors=0 / failures=0）。
 
 契約時・リース開始前に受け取る前受リース料と、保証金（敷金）を管理する（`REQUIREMENTS_LEASE.md` 将来拡張「前受金」）。
 
@@ -1516,44 +1516,74 @@ L1〜L11 と同じで、契約の収益計上方法（`LeaseRevenueStrategy`）�
 | 前受リース料の充当 | リース料を請求したときに、古い前受金から順に**自動で請求書へ消し込む** |
 | 保証金の精算 | 返還（満了）・解約の後に**精算サービスで、未払の請求書へ古い順に充当し、残りを返還する**。保証金が精算されるまで契約は完了にしない |
 
-### 19.2 データモデル・seed（予定）
+### 19.2 データモデル・seed
 
 | 種類 | 内容 |
 |------|------|
-| `LeaseAdvanceReceipt`（新規） | 契約、種類（前受リース料／保証金）、受領日、金額、core の入金（Payment）、充当済額、返還額、返還の支払、状態（受領・一部充当・充当済・返還済） |
-| GL 科目タイプ（新規） | 前受リース料（流動負債）、預り保証金（固定負債） |
-| 入金の種類 | core の `CUSTOMER_DEPOSIT` を使い、入金ごとに貸方の科目（前受リース料／預り保証金）を指定する |
+| `LeaseAdvanceReceipt`（新規、`entitymodel_lease.xml`） | 受け取り 1 件ごとの記録。契約、種類（`LEASE_ADV_TYPE`：`LSADV_LEASE` 前受リース料／`LSADV_DEPOSIT` 保証金）、状態（`LEASE_ADV_STATUS`）、受領日、金額、通貨、core の入金（`paymentId`）、充当額、返還額、返還の支払（`refundPaymentId`）、精算日、備考 |
+| 状態 `LEASE_ADV_STATUS` | `LSADVST_RECEIVED`（残高あり。一部充当を含む）→ `LSADVST_APPLIED`（全額充当）／`LSADVST_REFUNDED`（返還して精算）。サービスの中だけで変える |
+| GL 科目タイプ（seed） | `LEASE_ADVANCE_RCVD` 前受リース料（224800、流動負債）、`LEASE_DEPOSIT_RCVD` 預り保証金（239500、固定負債 `LONGTERM_LIABILITY`） |
+| 組織の科目（demo・テストデータ） | `Company` に 224800・239500 を `GlAccountTypeDefault` で設定 |
 
-### 19.3 処理（予定）
+### 19.3 仕訳（core の入金・支払・消込の仕訳を使う）
 
-| サービス | 内容 |
+| 処理 | core | 仕訳 |
+|------|------|------|
+| 受領 | `CUSTOMER_DEPOSIT` の入金（`PMNT_RECEIVED`）。`overrideGlAccountId` に負債の科目を指定 | 借 現預金（支払方法の科目）／ 貸 前受リース料 224800（保証金は預り保証金 239500） |
+| 請求書への充当 | `createPaymentApplication`（入金 → 請求書） | 借 前受リース料（または預り保証金）／ 貸 売掛金 120000 |
+| 返還 | `CUSTOMER_REFUND` の支払（`PMNT_SENT`）。`overrideGlAccountId` に負債の科目 | 借 前受リース料（または預り保証金）／ 貸 現預金 |
+| 返還と受領の紐付け | `createPaymentApplication`（返還の支払 → 受領の入金、`toPaymentId`） | なし（core は請求書のない消込に仕訳を作らない） |
+
+計画のときに要確認とした「core の支払で保証金を返したときの仕訳」は、上のとおりになることを core のコード（`createAcctgTransAndEntriesForOutgoingPayment` が `overrideGlAccountId` を借方に使う）とテストで確かめた。
+
+### 19.4 処理
+
+| サービス／部品 | 内容 |
 |----------|------|
-| 前受金の受領 | 契約済（`LEASEAGR_CONTRACTED`）または有効な契約で受け取る。core の入金で受け、仕訳は 借 現預金 ／ 貸 前受リース料（保証金は 預り保証金） |
-| 自動充当（請求時） | `createLeaseInstallmentInvoice` の後に、前受リース料の残高を古い順に請求書へ消し込む（core の消込。仕訳は 借 前受リース料 ／ 貸 売掛金）。請求額を超える分は次の回に回す。再リース・損害金の請求書にも充当する |
-| 保証金の精算 | 返還または解約の後に実行する。未払の請求書へ古い順に充当し、残りを core の支払で借手に返す（借 預り保証金 ／ 貸 現預金）。充当・返還を記録して状態を返還済にする |
-| 完了の条件 | 今の完了の条件（物件の返還とすべての請求書の決済）に、「保証金が精算済み」を加える |
+| `receiveLeaseAdvance`（`LeaseAdvanceServices`） | 契約済（`LEASEAGR_CONTRACTED`）または有効な契約で受け取る。core の入金を作り、記録を作る。前受リース料を有効な契約で受け取ったときは、すでにある未払の請求書へすぐ充当する |
+| 自動充当 `LeaseAdvanceServices.applyAdvances` | 前受リース料の残高を、未払の請求書へ古い受領・古い期日から順に充当する。呼ぶ場所：リース料の請求（`createLeaseInstallmentInvoice`）、再リースの請求、中途解約の損害金の請求、受領。請求額を超える分は次の回に回る。保証金は使わない |
+| `settleLeaseAdvances` | 前受リース料、次に保証金を未払の請求書へ古い順に充当し、残りを返還する。できるのは、①契約済（取消の前の返還。充当はしない）、②中途解約の後、③有効な契約で、すべての回を請求し、すべての物件を返還・処分・譲渡した後。精算の後、完了の条件がそろえば契約を完了にする |
+| 完了の条件（`LeaseExpiryServices.tryComplete`） | 今の条件（物件の返還・すべての請求書の決済）に、「残高のある受け取りがない」を加えた（`FinanceLeaseCompleteAdvancePending`）。返還（`returnLeaseAsset`）で完了しなかった契約は、精算のときに完了する |
+| 取消（`setLeaseAgreementStatus` → `LEASEAGR_CANCELLED`） | 残高のある受け取りがあると取り消せない（`FinanceLeaseCancelAdvancePending`）。先に精算で返還する |
+| 部品の共通化 | `LeaseAccountingServices.invoiceTargets`（契約の請求書を期日順に：リース料・再リース・損害金）と `openInvoices`（消し込める未払の請求書）を追加し、入金（`receiveLeasePayment`）と前受金で同じものを使う |
 
-### 19.4 照会・画面（予定）
+### 19.5 照会・画面
 
-- 回収状況（`computeBalance`）に、前受リース料の残高・保証金の残高・充当額を加える。
-- 契約画面に、前受金の受領フォーム、保証金の精算フォーム、前受金の一覧を追加する。
+- 回収状況（`computeBalance` / `getLeaseAgreementBalance`）に次の値を加えた：`advanceReceivedAmount` / `advanceAppliedAmount` / `advanceRefundedAmount` / `advanceBalance`（前受リース料）、`depositReceivedAmount` / `depositAppliedAmount` / `depositRefundedAmount` / `depositBalance`（保証金）。
+- 前受金で充当した分は core の消込なので、回収額・未回収元本・延滞の計算にそのまま入る（入金と同じ扱い）。
+- 契約画面（`ManageLeaseAgreement`）に「前受リース料・保証金」を追加した：受け取りフォーム（契約済・有効のとき）、精算フォーム（残高があるとき）、受け取りの一覧。回収状況に前受リース料の残高・充当額と保証金の残高を出す。
 
-### 19.5 テスト（予定）
+### 19.6 テスト（`LeaseAdvanceTests`、4 件）
 
-- 前受金の受領と仕訳、請求時の自動消込（仕訳、回収状況、未回収元本の減少）。
-- 請求額を超える前受金が次の回に回ること。
-- 保証金の受領、精算（未払への充当と残額の返還）、精算前は契約を完了できないこと。
-- 解約後の損害金への充当。
+| テスト | 確認すること |
+|--------|--------------|
+| `testAdvanceLeasePaymentAppliedAtBilling` | 検収前の受領と仕訳（貸 224800）、第 1 回の請求で自動充当（請求書が PAID、借 224800／貸 120000）、残りが第 2 回へ回ること、全額充当で状態が APPLIED、有効な契約での受領はすぐ充当、保証金は自動充当しない（貸 239500）、物件の返還前は精算できない、種類が正しくないとエラー |
+| `testDepositSettlementBeforeCompletion` | 満了・全額入金・返還の後も保証金があると完了しない（`completeLeaseAgreement` もエラー）、精算で全額返還（`CUSTOMER_REFUND`・`PMNT_SENT`、借 239500／貸 現預金、受領の入金への紐付け）、精算で完了（共通台帳も COMPLETED）、完了後は精算できない |
+| `testDepositAppliedAfterTermination` | 中途解約の後、保証金を未払のリース料、次に損害金へ古い順に充当（借 239500／貸 120000）、残りの返還、物件を回収するまでは完了しない |
+| `testRefundBeforeCancellation` | 契約済の契約は、前受金・保証金を返還するまで取り消せない、精算で両方を返還（借 224800・239500）、取消の後は受け取れない |
 
-### 19.6 要確認・制約
+### 19.7 検証
 
-- **返還の仕訳**：core の支払で保証金を返すときに 借 預り保証金 ／ 貸 現預金 となるか（返金の支払の種類と科目の指定方法）を実装の前に確認する。
+| 検証項目 | 結果 |
+|----------|------|
+| XML の整形式 | 変更したすべてのファイルで OK |
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 新規 1 テーブル（`LEASE_ADVANCE_RECEIPT`）、490 行を変更 |
+| `gradlew "ofbiz --test component=finance"` | tests=211 / errors=0 / failures=0（33 分）。1回目は、テストの見積で商品の月額料率（60 か月向け）を 12〜24 か月に使ったため見積が作れず 4 件がエラーになった。テストの見積を計算利子率の指定に直した |
+| demo 投入 | BUILD SUCCESSFUL |
+| 画面 | 未確認（定義のみ） |
+
+### 19.8 要確認・制約
+
 - **前受金の利息**：前受金・保証金に利息は付けない。
-- **延滞との関係**：前受金で充当した分は延滞にならない。保証金は精算まで延滞の計算に使わない。
-- **誤操作の取消**（L15a）：前受金の受領・精算の取消は対象外。
+- **延滞との関係**：前受金で充当した分は入金と同じく延滞にならない。保証金は精算まで延滞の計算に使わない（精算で充当した分から延滞が減る）。
+- **中途解約の取消（L15a）との関係**：解約の後に前受リース料が損害金の請求書へ自動で充当されると、損害金に入金があるものとして中途解約の取消ができなくなる（今の取消の条件のまま）。
+- **誤操作の取消**：前受金の受領・精算の取消は対象外。
+- **返還の支払方法**：既定は `EFT_ACCOUNT`。core の支払の仕訳は相手先の役割を `BILL_FROM_VENDOR` で記録する（core の仕様。借手は顧客だが、金額と科目は正しい）。
+- **契約済での精算**：検収前（契約済）の精算は返還だけを行う（請求書がないため）。取消の前に使う。
+- **分割（L15d）との関係**：分割した契約への前受金・保証金の振り分けは L15d で決める。
 
 ---
-
 ## 20. STEP L15d — 物件分割・契約分割（計画）
 
 > **状態：計画（未着手）**。2026-10-16 に方針を決定した。実装後に「実装」「テスト」「検証」を追記する。

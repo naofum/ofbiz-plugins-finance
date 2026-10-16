@@ -177,6 +177,11 @@ under the License.
     <GlAccountOrganization glAccountId="404200" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_TERM_LOSS" glAccountId="504200"/>
     <GlAccountOrganization glAccountId="504200" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <!-- STEP L15c: advance lease payments and security deposits -->
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_ADVANCE_RCVD" glAccountId="224800"/>
+    <GlAccountOrganization glAccountId="224800" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
+    <GlAccountTypeDefault organizationPartyId="Company" glAccountTypeId="LEASE_DEPOSIT_RCVD" glAccountId="239500"/>
+    <GlAccountOrganization glAccountId="239500" organizationPartyId="Company" fromDate="2001-01-01 00:00:00.0"/>
     <Party partyId="TEST_TAXAUTH_JP" partyTypeId="PARTY_GROUP"/>
     <PartyGroup partyId="TEST_TAXAUTH_JP" groupName="Test Consumption Tax Authority"/>
     <PartyRole partyId="TEST_TAXAUTH_JP" roleTypeId="TAX_AUTHORITY"/>

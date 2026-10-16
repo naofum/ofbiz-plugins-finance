@@ -767,6 +767,27 @@ under the License.
     </request-map>
 
     <!-- STEP L6: lease late fee, dunning notice (common delinquency services) -->
+    <!-- STEP L15c: advance lease payments and security deposits -->
+    <request-map uri="receiveLeaseAdvance">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="receiveLeaseAdvance"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="settleLeaseAdvances">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="settleLeaseAdvances"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
     <request-map uri="runLeaseLateFeeAccrual">
         <security https="true" auth="true"/>
         <event type="service" invoke="runLateFeeAccrual"/>

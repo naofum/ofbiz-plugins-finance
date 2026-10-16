@@ -370,6 +370,8 @@ public final class LeaseTerminationServices {
             // 6. Status (billing stops; the common contract stays ACTIVE while collected).
             agreement.set("statusId", STATUS_TERMINATED);
             agreement.store();
+            // STEP L15c: advance lease payments left are applied to the damages invoice.
+            LeaseAdvanceServices.applyAdvances(dctx, agreement, userLogin);
 
             // 7. Maintenance plans end; an asset recovery (return) task per asset.
             Timestamp nextDay = UtilDateTime.adjustTimestamp(terminationDate, Calendar.DAY_OF_MONTH, 1);
