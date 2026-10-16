@@ -380,9 +380,14 @@ git clone https://github.com/naofum/ofbiz-plugins-finance.git finance
 
 #### jasperreports プラグイン（必須）
 
-本プラグインは、見積書・契約書・検収証・督促状・照会などの帳票（PDF）を、**ofbiz-plugins-jasperreports** プラグインの JasperReports ビューハンドラーで出力します（`webapp/finance/WEB-INF/controller.xml` の `type="jasperreports"` の view、`groovyScripts` の `JRMapCollectionDataSource`）。このプラグインは finance に含まれないので、**別途インストールしてください**。
+本プラグインは、見積書・契約書・検収証・督促状・照会などの帳票（PDF）を、**[ofbiz-plugins-jasperreports](https://github.com/naofum/ofbiz-plugins-jasperreports)** プラグインの JasperReports ビューハンドラーで出力します（`webapp/finance/WEB-INF/controller.xml` の `type="jasperreports"` の view、`groovyScripts` の `JRMapCollectionDataSource`）。このプラグインは finance に含まれないので、**別途インストールしてください**。
 
 - `plugins` ディレクトリーに `jasperreports` という名前で配置します（`plugins/jasperreports`）。
+
+  ```bash
+  cd apache-ofbiz-24.09.07/plugins
+  git clone https://github.com/naofum/ofbiz-plugins-jasperreports.git jasperreports
+  ```
 - インストールしないと、finance の Web アプリケーションがビューハンドラーのクラスを読み込めず、帳票（と帳票を準備する Groovy スクリプト）が動きません。
 - 日本語の帳票は、jasperreports プラグインが使う CJK フォント（`HeiseiKakuGo-W5`、`openpdf-fonts-extra`）で出力します。詳しくは jasperreports プラグインの README を参照してください。
 
