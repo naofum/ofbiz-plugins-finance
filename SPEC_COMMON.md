@@ -33,7 +33,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L6 | 延滞・督促へのリース用契約アダプタ登録（共通層側の変更） | 未着手 |
 | L10a | 契約×取引先×役割×持分率（`FinanceContractParty`）と契約の親子関係（10 章） | 完了（tests=138 / errors=0 / failures=0） |
 | L15a | 誤操作の取消（取消記録・逆仕訳・管理者権限。11 章。ローン・リースの各操作は `SPEC.md` 27 章・`SPEC_LEASE.md` 18 章） | 完了（tests=192 / errors=0 / failures=0） |
-| L15b | 祝日カレンダーを考慮した営業日調整（core `TechDataCalendar`、複数カレンダー。12 章） | 計画（未着手） |
+| L15b | 祝日カレンダーを考慮した営業日調整（core `TechDataCalendar`、複数カレンダー。12 章） | 完了（tests=203 / errors=0 / failures=0） |
 
 L0 のコミット：L0-1 `6d46268`、L0-2 `fe644c8`、L0-3 `ae6fa2e`、L0-4 `2afe7f7`、L0-5 `beea390`、L0-6 `450b654`。
 
@@ -361,58 +361,94 @@ core の `Agreement` / `AgreementRole` は使わない（`FinanceContract` は c
 
 ---
 
-## 12. 祝日カレンダーを考慮した営業日調整（STEP L15b、計画）
+## 12. 祝日カレンダーを考慮した営業日調整（STEP L15b）
 
-> **状態：計画（未着手）**。2026-10-16 に方針を決定した。実装後に「実装」「テスト」「検証」を追記する。
+> **状態：完了**（2026-10-16。tests=203 / errors=0 / failures=0）。
 
-期日の営業日調整（`BusinessDayCalculator`）は、現在は土日だけを休日にしている。祝日と、国ごとに違う休日を扱えるようにする。
-ローン層・リース層の両方が使う共通の部品とする。
+期日の営業日調整（`BusinessDayCalculator`）は、STEP 9 からこれまで土日だけを休日にしていた。祝日と、国ごとに違う休日も扱えるようにした。
+ローン層・リース層の両方が使う共通の部品である。
 
 ### 12.1 決定事項（2026-10-16）
 
 | 項目 | 決定 |
 |------|------|
-| カレンダーの持ち方 | **core の `TechDataCalendar` を使う**（datamodel にあるため追加のコンポーネント不要）。国（または市場）ごとにカレンダーを作る（例：`FIN_JP`、`FIN_US`） |
-| 休日の表し方 | 曜日の定義（`TechDataCalendarWeek`）で稼働 0 の曜日を休日とする（金土が休みの国にも対応）。例外日（`TechDataCalendarExcDay`）は、稼働 0 なら祝日、稼働ありなら振替出勤日 |
+| カレンダーの持ち方 | **core の `TechDataCalendar` を使う**（datamodel にあるため、追加のコンポーネントは不要）。国（または市場）ごとにカレンダーを作る（例：`FIN_JP`、`FIN_US`） |
+| 休日の表し方 | 曜日の定義（`TechDataCalendarWeek`）で、稼働（`xxxCapacity`）が空または 0 の曜日を休日とする（金土が休みの国にも対応）。例外日（`TechDataCalendarExcDay`）は、稼働が空または 0 なら祝日、稼働ありなら振替出勤日。例外日は曜日の定義より優先する |
 | 複数のカレンダー | 1 つの商品に複数のカレンダーを指定できる。**指定したどれか 1 つでも休みの日は休業日**（例：円とドルの両方の銀行休業日） |
-| 既存の契約 | **新しい表から適用する**。既存の確定リース料表・確定返済表の期日は変えない（契約確定後は不変の原則） |
+| 既存の契約 | **新しく作る表から適用する**。既存の見積の表・確定リース料表・確定返済表の期日は変えない（契約確定後は不変の原則） |
 | 保守 | カレンダー・祝日の登録は core（manufacturing アプリ）の画面で行う |
 
-### 12.2 データモデル（予定）
+### 12.2 データモデル・設定
 
 | エンティティ | 主キー | 内容 |
 |--------------|--------|------|
-| `FinancialProductCalendar`（新規、共通層） | productId + calendarId | 商品が使うカレンダー（core `TechDataCalendar`）。行がない商品は既定のカレンダーを使う |
+| `FinancialProductCalendar`（新規、共通層、`entitymodel_common.xml`） | productId + calendarId | 商品が使うカレンダー（FK：`FinancialProduct`、core `TechDataCalendar`）。行がない商品は既定のカレンダーを使う |
 
-既定のカレンダーは `finance.properties` の `business.calendar.ids`（カンマ区切り、例 `FIN_JP`）。既定もない場合は従来どおり土日だけを休日とする。
+- 既定のカレンダー：`finance.properties` の `business.calendar.ids`（カンマ区切り。SystemProperty でも上書きできる）。既定値は `FIN_JP`。空にすると、従来どおり土日だけを休日とする。
+- 存在しないカレンダーの ID は読み飛ばし、警告をログに出す。使えるカレンダーが 1 つもなければ土日だけを休日とする。曜日の定義がないカレンダーは土日を休日とする。
 
-### 12.3 計算部品（予定）
+### 12.3 計算部品
 
-- `BusinessDayCalculator` に、休日の判定（カレンダーの集合を受け取る形）を追加する。期日の調整方式（`LOAN_DUEDATE_CONV`：調整なし・翌営業日・前営業日・修正翌営業日）は今の 4 つのまま。カレンダーを渡さない既存の呼び出しは従来どおり（土日のみ）。
-- カレンダーを読み込む部品（新規、共通層）：商品 → `FinancialProductCalendar` → 既定、の順にカレンダーを決め、曜日の定義と例外日を読み込む。例外日は年単位でまとめて読み、同じ処理の中では使い回す。
-- 利息の日割り計算の期間（暦日）は変えない。営業日調整は期日だけに使う。
+| クラス | 内容 |
+|--------|------|
+| `FinanceBusinessCalendar`（新規、`org.apache.ofbiz.finance.common`） | カレンダーの読み込みと休日の判定。`forProduct(delegator, productId)`（商品 → 既定 → 土日のみ）、`load(delegator, calendarIds)`、`defaultCalendarIds`、`isBusinessDay(date)`、`WEEKEND_ONLY`（土日のみ）。エンティティのキャッシュを使い、1 回の処理（見積・検収 等）の中では読み込んだ内容を使い回す |
+| `BusinessDayCalculator`（変更） | `isBusinessDay` / `adjust` / `following` / `preceding` / `modifiedFollowing` に、カレンダーを受け取る形を追加した。カレンダーを渡さない形は `WEEKEND_ONLY` を使い、従来と同じ結果になる。すべて休みのカレンダーで止まらないよう、ずらす日数を 366 日までにした（超えたらエラー）。`Timestamp` の調整は時刻を保ったまま日付を動かす |
+| `FinanceInterestCalculator.resolveBusinessCalendar(delegator, loanAgreement)`（追加） | ローン契約の商品（申込から辿る）のカレンダー |
 
-### 12.4 適用する処理（予定）
+- 期日の調整方式（`LOAN_DUEDATE_CONV`：調整なし・翌営業日・前営業日・修正翌営業日）は 4 つのまま。調整方式が `DUEDATE_NONE`（既定）の商品は、カレンダーがあっても期日は変わらない。
+- 利息の日割り計算の期間・リースの期間（`periodFromDate` / `periodThruDate`）は暦日のまま。営業日調整は期日（`dueDate`）だけに使う。
+
+### 12.4 適用した処理
 
 | 層 | 処理 |
 |----|------|
 | ローン | 見積（`CreateLoanQuote.groovy`）、繰上返済・条件変更の返済表の作り直し（`FinancePrepaymentServices.persistSchedule`） |
-| リース | 見積（`LeaseQuoteServices.groovy`）、検収（`LeaseAcquisitionServices.acceptLeaseAgreement`）、条件変更（`LeaseModificationServices`） |
+| リース | 見積（`LeaseQuoteServices.groovy`）、検収（`LeaseAcquisitionServices.acceptLeaseAgreement` の revision の作り直し）、条件変更（`LeaseModificationServices`） |
 
-### 12.5 seed・テスト（予定）
+契約の作成（見積の表を写す）は期日を計算し直さないため、見積の期日がそのまま確定表に入る。
 
-- seed：日本のカレンダー `FIN_JP`（土日休み）に、2026〜2030 年の国民の祝日・振替休日と年末年始（12/31〜1/3）を例外日として入れる。日付は内閣府の公表値を使う（2027 年以降は予定。法改正・公表に合わせて更新する運用が必要）。
-- テストデータ：米国のカレンダー（例 `TEST_FIN_US`）を入れる。
-- テスト：祝日・振替出勤日・複数カレンダーの合成での営業日判定、期日が祝日に当たる見積で期日がずれること、既存の確定表が変わらないこと、カレンダーの指定がない商品は土日のみで従来と同じ結果になること。
+### 12.5 サービス・画面
 
-### 12.6 要確認・制約
+| サービス | 内容 |
+|----------|------|
+| `addFinancialProductCalendar` / `removeFinancialProductCalendar`（entity-auto、`services_common.xml`） | 商品にカレンダーを追加・削除する。この後に作る表から使われる。存在しないカレンダーは FK で追加できない |
 
-- **祝日データの保守**：祝日は法律の改正や臨時の休日で変わる。毎年の更新手順（manufacturing 画面での例外日の登録）を運用で決める。
-- **ローン層への影響**：ローンの返済表の期日にも適用される（`SPEC.md` 28 章）。
+- 金融商品の画面（`EditFinancialProduct`）に「営業日カレンダー」の一覧と追加フォームを加えた。
+
+### 12.6 seed・テストデータ
+
+- seed `data/FinanceCalendarSeedData.xml`（新規）：曜日の定義 `FIN_WEEK_MON_FRI`（月〜金）、カレンダー `FIN_JP`、SystemProperty `business.calendar.ids=FIN_JP`、例外日（祝日）104 件。2026〜2030 年の国民の祝日・振替休日・国民の休日と、銀行の年末年始（12/31〜1/3）を入れた。春分・秋分の日は 2027 年以降は予定の日付（毎年 2 月に翌年分が公表される）。
+- テストデータ：`TEST_FIN_US`（米国：2027-07-05・2027-09-06 休み）、`TEST_FIN_AE`（金土休み。曜日の定義 `TEST_FIN_WK_SUN_THU`）、`TEST_FIN_X`（曜日の定義なし。2027-05-08 の土曜を出勤日、2027-05-12 の水曜を休日とする）。
+
+### 12.7 テスト（`FinanceBusinessCalendarTests`、3 件）
+
+| テスト | 確認すること |
+|--------|--------------|
+| `testCalendarDefinition` | 祝日・振替休日・国民の休日・年末年始、金土休みの曜日の定義、曜日の定義がない場合、振替出勤日、複数カレンダーの合成、4 つの調整方式（修正翌営業日で月をまたぐ場合を含む）、時刻を保つこと、存在しない ID の扱い、既定のカレンダー、カレンダーなしは土日のみで従来と同じ |
+| `testLeaseScheduleUsesProductCalendars` | 商品に `FIN_JP` と `TEST_FIN_US` を指定し、見積の期日が両方の休日を避けること（期間は暦日のまま）、契約の確定表が見積と同じこと、検収の revision 2 も休日を避けること、カレンダーを外しても既存の表は変わらないこと |
+| `testLoanQuoteUsesProductCalendars` | ローン見積の期日が祝日を避け（年始・ゴールデンウィーク）、`interestThruDate` は暦日のままであること、存在しないカレンダーは追加できないこと、ローン契約から同じカレンダーを解決すること |
+
+### 12.8 検証
+
+| 検証項目 | 結果 |
+|----------|------|
+| XML の整形式 | 変更したすべてのファイルで OK |
+| `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| seed 投入 | 新規 1 テーブル（`FINANCIAL_PRODUCT_CALENDAR`）。新しい seed ファイルから 107 行、全体で 477 行を変更 |
+| `gradlew "ofbiz --test component=finance"` | tests=203 / errors=0 / failures=0（44 分）。初回はテストデータの ID が 20 文字を超えて（`TEST_FIN_WEEK_SUN_THU`）データの読み込みが失敗したため、`TEST_FIN_WK_SUN_THU` に直した |
+| demo 投入 | BUILD SUCCESSFUL（244 行） |
+| 画面 | 未確認（定義のみ） |
+
+### 12.9 要確認・制約
+
+- **祝日データの保守**：祝日は法律の改正や臨時の休日で変わる。seed は 2030 年まで。毎年、翌年の祝日（春分・秋分の日の公表後）を manufacturing の画面か seed で登録する運用が必要。登録がない年は土日だけが休日になる（エラーにはしない）。
+- **既定のカレンダーの影響**：既定を `FIN_JP` にしたため、カレンダーを指定していない商品でも、調整方式が `DUEDATE_NONE` 以外なら日本の祝日を避けるようになる（STEP L15b より前は土日のみ）。今の seed・demo・テストの商品は `DUEDATE_NONE` のため、結果は変わらない。
+- **キャッシュ**：カレンダーはエンティティのキャッシュを通して読む。core の画面で祝日を変えたときは、エンティティエンジンがキャッシュを消してから反映される。
+- **ローン層への影響**：ローンの返済表の期日にも適用する（`SPEC.md` 28 章）。
 - **core 変更**：なし（core のエンティティを読むだけ）。
+- **テスト時間**：今回の全体テストは 44 分かかった。目安の 20 分を超えているため、次の STEP の前に開発用 DB を作り直す（`cleanAll loadAll`）ことを勧める。
 
 ---
-
 ## 運用メモ
 
 - **DB 項目追加**：L0 で `FinanceContract` / `FinanceContractType` を新設し、`LoanAgreement`・`LoanUnderwriting`・

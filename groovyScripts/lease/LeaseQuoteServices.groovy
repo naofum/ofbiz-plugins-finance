@@ -26,6 +26,7 @@ import org.apache.ofbiz.base.util.UtilProperties
 import org.apache.ofbiz.entity.GenericValue
 import org.apache.ofbiz.entity.util.EntityUtilProperties
 import org.apache.ofbiz.finance.common.BusinessDayCalculator
+import org.apache.ofbiz.finance.common.FinanceBusinessCalendar
 import org.apache.ofbiz.finance.common.FinanceContractHelper
 import org.apache.ofbiz.finance.common.FinanceInterestCalculator
 import org.apache.ofbiz.finance.lease.LeaseCalculator
@@ -156,6 +157,8 @@ Map createLeaseQuote() {
     Timestamp start = UtilDateTime.getDayStart((Timestamp) (param('leaseStartDate') ?: now))
     Timestamp firstPayment = timing == LeaseProductHelper.TIMING_ADVANCE ? start : addMonths(start, 1)
     String dueDateConvention = FinanceInterestCalculator.resolveDueDateConvention(delegator, application.productId as String)
+    // STEP L15b: holidays of the product's business-day calendars.
+    FinanceBusinessCalendar businessCalendar = FinanceBusinessCalendar.forProduct(delegator, application.productId as String)
 
     String leaseQuoteId = delegator.getNextSeqId('LeaseQuote')
     makeValue('LeaseQuote', [
@@ -192,7 +195,7 @@ Map createLeaseQuote() {
 
     calc.rows.each { LeaseCalculator.Row row ->
         int k = row.installmentNumber
-        Timestamp due = BusinessDayCalculator.adjust(addMonths(firstPayment, k - 1), dueDateConvention)
+        Timestamp due = BusinessDayCalculator.adjust(addMonths(firstPayment, k - 1), dueDateConvention, businessCalendar)
         makeValue('LeasePaymentSchedule', [
                 leaseQuoteId      : leaseQuoteId,
                 installmentNumber : (long) k,

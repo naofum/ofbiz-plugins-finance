@@ -42,6 +42,7 @@ import org.apache.ofbiz.entity.condition.EntityCondition;
 import org.apache.ofbiz.entity.condition.EntityOperator;
 import org.apache.ofbiz.entity.util.EntityQuery;
 import org.apache.ofbiz.finance.common.BusinessDayCalculator;
+import org.apache.ofbiz.finance.common.FinanceBusinessCalendar;
 import org.apache.ofbiz.finance.common.FinanceInterestCalculator;
 import org.apache.ofbiz.service.DispatchContext;
 import org.apache.ofbiz.service.GenericServiceException;
@@ -344,6 +345,8 @@ public final class FinancePrepaymentServices {
         List<ScheduleRow> rows = amortize(principal, annualRate, termMonths, methodEnumId);
         String currencyUomId = agreement.getString("currencyUomId");
         String dueDateConvId = FinanceInterestCalculator.resolveDueDateConvention(delegator, agreement);
+        // STEP L15b: holidays of the product's business-day calendars.
+        FinanceBusinessCalendar businessCalendar = FinanceInterestCalculator.resolveBusinessCalendar(delegator, agreement);
         // interestFromDate[1] = eventDate + 1 day (the day after the prepayment / modification date)
         // interestFromDate[n] = interestThruDate[n-1] + 1 day
         Timestamp prevThru = null;
@@ -353,7 +356,7 @@ public final class FinancePrepaymentServices {
             // interestThruDate = calendar due date (before business-day adjustment)
             Timestamp interestThru = calendarDue;
             // Apply business-day adjustment to dueDate.
-            Timestamp dueDate = BusinessDayCalculator.adjust(calendarDue, dueDateConvId);
+            Timestamp dueDate = BusinessDayCalculator.adjust(calendarDue, dueDateConvId, businessCalendar);
             Timestamp interestFrom;
             if (prevThru == null) {
                 // First installment: day after the event date

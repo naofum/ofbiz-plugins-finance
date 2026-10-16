@@ -20,6 +20,7 @@
 - 誤操作の取消（STEP L15a、`SPEC_COMMON.md` 11 章）は操作ごとの専用サービス（`reverseLease*` / `reverseLoan*`）だけで行う。FINANCE_ADMIN（`financeAdminPermission`）と理由が必須で、後続の処理（請求・入金・計上・延滞・後続の変更）がある場合は取り消さない。元の記録は消さず、逆仕訳（`FinanceGlHelper.reverseTransaction`）と `FinanceReversal` を足す。取消用の状態遷移は汎用の状態サービスでは使えないようにする。
 - 人が行う作業（満了時の返還・引取り、督促活動、保守作業 等）は core の `WorkEffort` でタスク化し、共通層の `FinanceContractWorkEffort` で契約に紐付ける（STEP L7〜、`plugins/finance/REQUIREMENTS_LEASE.md` 3.5）。WorkEffort の状態は作業の完了だけを表し、業務STATUSを変えない（業務サービスの結果としてタスクを完了にする）。タスクの自動作成は契約×作業種別×きっかけごとに1件（冪等）。バッチの定期実行は WorkEffort ではなくジョブスケジューラで行う。
 - 契約の取引先（役割・持分・期間）は共通層の `FinanceContractParty`、基本契約と個別契約の関係は `FinanceContract.parentFinanceContractId` で表す（STEP L10a、`plugins/finance/SPEC_COMMON.md` 10 章）。契約作成時は `FinanceContractHelper.createContract` の貸手組織つきの版を使い、顧客と貸手組織を 100% で登録する。役割は `FIN_CTR_ROLE` 配下の `RoleType` だけを使い、契約種別ごとの役割は `FinanceContractAdapter` が返す。既存の業務処理（請求・与信・延滞・税）は各層の取引先列を読み続け、土台を読むように切り替えるときは、その STEP の仕様書に記録する。
+- 期日の営業日調整（STEP L15b、`SPEC_COMMON.md` 12 章）は、商品のカレンダー（`FinancialProductCalendar` → `finance.properties` の `business.calendar.ids` → 土日のみ）を `FinanceBusinessCalendar` で読み、`BusinessDayCalculator.adjust(…, calendar)` に渡す。カレンダーは core `TechDataCalendar`（曜日の定義と例外日）で、どれか 1 つでも休みなら休業日。新しく表を作る処理（見積・検収・条件変更・繰上返済）を追加するときは、カレンダーを渡す形を使う。既存の確定表の期日は計算し直さない。利息・リースの期間は暦日のまま。
 
 ## Loan Layer Rules（ローン層）
 - LoanApplicationは作成時に必ず `LOANAPP_RECEIVED`。内容更新はRECEIVED中だけに限定し、状態変更は専用ステータス遷移サービスのみを使用する。

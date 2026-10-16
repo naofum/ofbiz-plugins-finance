@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+<!--
+STEP L15b: business-day calendars (SPEC_COMMON.md 12).
+
+Core TechDataCalendar rows used by the finance due-date adjustment:
+- TechDataCalendarWeek: a weekday with capacity 0 (or empty) is closed.
+- TechDataCalendarExcDay: capacity 0 = holiday, capacity > 0 = working day.
+- A product uses FinancialProductCalendar rows; without rows, finance.properties
+  business.calendar.ids (default FIN_JP).
+
+FIN_JP: Japanese bank holidays 2026-2030 (national holidays, substitute and
+citizens' holidays, and the year-end / New Year bank holidays Dec 31 - Jan 3).
+Dates follow the Cabinet Office list; equinox days from 2027 are provisional
+(announced each February for the next year). Update every year and when the
+holiday law changes (manufacturing > calendar screens or this file).
+-->
+<entity-engine-xml>
+    <TechDataCalendarWeek calendarWeekId="FIN_WEEK_MON_FRI" description="Finance: Monday to Friday"
+            mondayStartTime="09:00:00" mondayCapacity="28800000"
+            tuesdayStartTime="09:00:00" tuesdayCapacity="28800000"
+            wednesdayStartTime="09:00:00" wednesdayCapacity="28800000"
+            thursdayStartTime="09:00:00" thursdayCapacity="28800000"
+            fridayStartTime="09:00:00" fridayCapacity="28800000"
+            saturdayCapacity="0" sundayCapacity="0"/>
+    <TechDataCalendar calendarId="FIN_JP" description="Finance: Japan bank business days" calendarWeekId="FIN_WEEK_MON_FRI"/>
+
+    <SystemProperty systemResourceId="finance" systemPropertyId="business.calendar.ids" systemPropertyValue="FIN_JP"
+            description="Default business-day calendars (comma-separated TechDataCalendar ids) for products without FinancialProductCalendar rows"/>
+
+    <!-- FIN_JP holidays 2026-2030 -->    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-01-01 00:00:00.0" exceptionCapacity="0" description="New Year's Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-01-02 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-01-03 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-01-12 00:00:00.0" exceptionCapacity="0" description="Coming of Age Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-02-11 00:00:00.0" exceptionCapacity="0" description="National Foundation Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-02-23 00:00:00.0" exceptionCapacity="0" description="Emperor's Birthday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-03-20 00:00:00.0" exceptionCapacity="0" description="Vernal Equinox Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-04-29 00:00:00.0" exceptionCapacity="0" description="Showa Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-05-03 00:00:00.0" exceptionCapacity="0" description="Constitution Memorial Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-05-04 00:00:00.0" exceptionCapacity="0" description="Greenery Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-05-05 00:00:00.0" exceptionCapacity="0" description="Children's Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-05-06 00:00:00.0" exceptionCapacity="0" description="Substitute Holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-07-20 00:00:00.0" exceptionCapacity="0" description="Marine Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-08-11 00:00:00.0" exceptionCapacity="0" description="Mountain Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-09-21 00:00:00.0" exceptionCapacity="0" description="Respect for the Aged Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-09-22 00:00:00.0" exceptionCapacity="0" description="Citizens' Holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-09-23 00:00:00.0" exceptionCapacity="0" description="Autumnal Equinox Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-10-12 00:00:00.0" exceptionCapacity="0" description="Sports Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-11-03 00:00:00.0" exceptionCapacity="0" description="Culture Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-11-23 00:00:00.0" exceptionCapacity="0" description="Labor Thanksgiving Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2026-12-31 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-01-01 00:00:00.0" exceptionCapacity="0" description="New Year's Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-01-02 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-01-03 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-01-11 00:00:00.0" exceptionCapacity="0" description="Coming of Age Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-02-11 00:00:00.0" exceptionCapacity="0" description="National Foundation Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-02-23 00:00:00.0" exceptionCapacity="0" description="Emperor's Birthday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-03-21 00:00:00.0" exceptionCapacity="0" description="Vernal Equinox Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-03-22 00:00:00.0" exceptionCapacity="0" description="Substitute Holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-04-29 00:00:00.0" exceptionCapacity="0" description="Showa Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-05-03 00:00:00.0" exceptionCapacity="0" description="Constitution Memorial Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-05-04 00:00:00.0" exceptionCapacity="0" description="Greenery Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-05-05 00:00:00.0" exceptionCapacity="0" description="Children's Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-07-19 00:00:00.0" exceptionCapacity="0" description="Marine Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-08-11 00:00:00.0" exceptionCapacity="0" description="Mountain Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-09-20 00:00:00.0" exceptionCapacity="0" description="Respect for the Aged Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-09-23 00:00:00.0" exceptionCapacity="0" description="Autumnal Equinox Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-10-11 00:00:00.0" exceptionCapacity="0" description="Sports Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-11-03 00:00:00.0" exceptionCapacity="0" description="Culture Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-11-23 00:00:00.0" exceptionCapacity="0" description="Labor Thanksgiving Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2027-12-31 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-01-01 00:00:00.0" exceptionCapacity="0" description="New Year's Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-01-02 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-01-03 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-01-10 00:00:00.0" exceptionCapacity="0" description="Coming of Age Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-02-11 00:00:00.0" exceptionCapacity="0" description="National Foundation Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-02-23 00:00:00.0" exceptionCapacity="0" description="Emperor's Birthday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-03-20 00:00:00.0" exceptionCapacity="0" description="Vernal Equinox Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-04-29 00:00:00.0" exceptionCapacity="0" description="Showa Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-05-03 00:00:00.0" exceptionCapacity="0" description="Constitution Memorial Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-05-04 00:00:00.0" exceptionCapacity="0" description="Greenery Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-05-05 00:00:00.0" exceptionCapacity="0" description="Children's Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-07-17 00:00:00.0" exceptionCapacity="0" description="Marine Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-08-11 00:00:00.0" exceptionCapacity="0" description="Mountain Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-09-18 00:00:00.0" exceptionCapacity="0" description="Respect for the Aged Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-09-22 00:00:00.0" exceptionCapacity="0" description="Autumnal Equinox Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-10-09 00:00:00.0" exceptionCapacity="0" description="Sports Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-11-03 00:00:00.0" exceptionCapacity="0" description="Culture Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-11-23 00:00:00.0" exceptionCapacity="0" description="Labor Thanksgiving Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2028-12-31 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-01-01 00:00:00.0" exceptionCapacity="0" description="New Year's Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-01-02 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-01-03 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-01-08 00:00:00.0" exceptionCapacity="0" description="Coming of Age Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-02-11 00:00:00.0" exceptionCapacity="0" description="National Foundation Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-02-12 00:00:00.0" exceptionCapacity="0" description="Substitute Holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-02-23 00:00:00.0" exceptionCapacity="0" description="Emperor's Birthday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-03-20 00:00:00.0" exceptionCapacity="0" description="Vernal Equinox Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-04-29 00:00:00.0" exceptionCapacity="0" description="Showa Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-04-30 00:00:00.0" exceptionCapacity="0" description="Substitute Holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-05-03 00:00:00.0" exceptionCapacity="0" description="Constitution Memorial Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-05-04 00:00:00.0" exceptionCapacity="0" description="Greenery Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-05-05 00:00:00.0" exceptionCapacity="0" description="Children's Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-07-16 00:00:00.0" exceptionCapacity="0" description="Marine Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-08-11 00:00:00.0" exceptionCapacity="0" description="Mountain Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-09-17 00:00:00.0" exceptionCapacity="0" description="Respect for the Aged Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-09-23 00:00:00.0" exceptionCapacity="0" description="Autumnal Equinox Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-09-24 00:00:00.0" exceptionCapacity="0" description="Substitute Holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-10-08 00:00:00.0" exceptionCapacity="0" description="Sports Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-11-03 00:00:00.0" exceptionCapacity="0" description="Culture Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-11-23 00:00:00.0" exceptionCapacity="0" description="Labor Thanksgiving Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2029-12-31 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-01-01 00:00:00.0" exceptionCapacity="0" description="New Year's Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-01-02 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-01-03 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-01-14 00:00:00.0" exceptionCapacity="0" description="Coming of Age Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-02-11 00:00:00.0" exceptionCapacity="0" description="National Foundation Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-02-23 00:00:00.0" exceptionCapacity="0" description="Emperor's Birthday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-03-20 00:00:00.0" exceptionCapacity="0" description="Vernal Equinox Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-04-29 00:00:00.0" exceptionCapacity="0" description="Showa Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-05-03 00:00:00.0" exceptionCapacity="0" description="Constitution Memorial Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-05-04 00:00:00.0" exceptionCapacity="0" description="Greenery Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-05-05 00:00:00.0" exceptionCapacity="0" description="Children's Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-05-06 00:00:00.0" exceptionCapacity="0" description="Substitute Holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-07-15 00:00:00.0" exceptionCapacity="0" description="Marine Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-08-11 00:00:00.0" exceptionCapacity="0" description="Mountain Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-08-12 00:00:00.0" exceptionCapacity="0" description="Substitute Holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-09-16 00:00:00.0" exceptionCapacity="0" description="Respect for the Aged Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-09-23 00:00:00.0" exceptionCapacity="0" description="Autumnal Equinox Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-10-14 00:00:00.0" exceptionCapacity="0" description="Sports Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-11-03 00:00:00.0" exceptionCapacity="0" description="Culture Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-11-04 00:00:00.0" exceptionCapacity="0" description="Substitute Holiday"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-11-23 00:00:00.0" exceptionCapacity="0" description="Labor Thanksgiving Day"/>
+    <TechDataCalendarExcDay calendarId="FIN_JP" exceptionDateStartTime="2030-12-31 00:00:00.0" exceptionCapacity="0" description="Year-end and New Year bank holiday"/>
+</entity-engine-xml>

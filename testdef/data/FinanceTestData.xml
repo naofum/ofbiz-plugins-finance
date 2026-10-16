@@ -182,4 +182,17 @@ under the License.
     <PartyRole partyId="TEST_TAXAUTH_JP" roleTypeId="TAX_AUTHORITY"/>
     <TaxAuthority taxAuthGeoId="JPN" taxAuthPartyId="TEST_TAXAUTH_JP" includeTaxInPrice="N"/>
     <TaxAuthorityGlAccount taxAuthGeoId="JPN" taxAuthPartyId="TEST_TAXAUTH_JP" organizationPartyId="Company" glAccountId="224500"/>
+    <!-- STEP L15b: test calendars (FIN_JP is seed). US: Independence Day observed 2027-07-05 (Mon).
+         AE-like week: Friday and Saturday closed. TEST_FIN_X: no week definition (Sat/Sun closed),
+         2027-05-08 (Sat) is a working day and 2027-05-12 (Wed) a holiday. -->
+    <TechDataCalendar calendarId="TEST_FIN_US" description="Test: US bank business days" calendarWeekId="FIN_WEEK_MON_FRI"/>
+    <TechDataCalendarExcDay calendarId="TEST_FIN_US" exceptionDateStartTime="2027-07-05 00:00:00.0" exceptionCapacity="0" description="Independence Day (observed)"/>
+    <TechDataCalendarExcDay calendarId="TEST_FIN_US" exceptionDateStartTime="2027-09-06 00:00:00.0" exceptionCapacity="0" description="Labor Day"/>
+    <TechDataCalendarWeek calendarWeekId="TEST_FIN_WK_SUN_THU" description="Test: Sunday to Thursday"
+            mondayCapacity="28800000" tuesdayCapacity="28800000" wednesdayCapacity="28800000" thursdayCapacity="28800000"
+            fridayCapacity="0" saturdayCapacity="0" sundayCapacity="28800000"/>
+    <TechDataCalendar calendarId="TEST_FIN_AE" description="Test: Friday/Saturday weekend" calendarWeekId="TEST_FIN_WK_SUN_THU"/>
+    <TechDataCalendar calendarId="TEST_FIN_X" description="Test: exceptions without a week definition"/>
+    <TechDataCalendarExcDay calendarId="TEST_FIN_X" exceptionDateStartTime="2027-05-08 00:00:00.0" exceptionCapacity="28800000" description="Working Saturday"/>
+    <TechDataCalendarExcDay calendarId="TEST_FIN_X" exceptionDateStartTime="2027-05-12 00:00:00.0" exceptionCapacity="0" description="Test holiday"/>
 </entity-engine-xml>

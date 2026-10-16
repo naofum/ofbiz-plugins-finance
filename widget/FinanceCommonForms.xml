@@ -195,6 +195,32 @@ under the License.
         <field name="submitButton" title="${uiLabelMap.CommonSave}"><submit button-type="button"/></field>
     </form>
 
+    <!-- STEP L15b: business-day calendars of a financial product -->
+    <grid name="ListFinancialProductCalendars" list-name="productCalendars" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="calendarId" title="${uiLabelMap.FinanceBusinessCalendar}">
+            <display-entity entity-name="TechDataCalendar" description="${description} [${calendarId}]"/>
+        </field>
+        <field name="removeLink" title=" " widget-style="buttontext">
+            <hyperlink description="${uiLabelMap.CommonRemove}" target="removeFinancialProductCalendar" link-type="hidden-form" also-hidden="false">
+                <parameter param-name="productId"/>
+                <parameter param-name="calendarId"/>
+            </hyperlink>
+        </field>
+    </grid>
+
+    <form name="AddFinancialProductCalendar" type="single" target="addFinancialProductCalendar">
+        <field name="productId"><hidden value="${productId}"/></field>
+        <field name="calendarId" title="${uiLabelMap.FinanceBusinessCalendar}" tooltip="${uiLabelMap.FinanceBusinessCalendarNote}">
+            <drop-down allow-empty="false">
+                <entity-options entity-name="TechDataCalendar" key-field-name="calendarId" description="${description} [${calendarId}]">
+                    <entity-order-by field-name="calendarId"/>
+                </entity-options>
+            </drop-down>
+        </field>
+        <field name="addButton" title="${uiLabelMap.CommonAdd}"><submit button-type="button"/></field>
+    </form>
+
     <!-- STEP L10a: parties of a contract and the contract hierarchy -->
     <form name="ViewFinanceContractPartyHeader" type="single" default-map-name="financeContract">
         <field name="financeContractId" title="${uiLabelMap.FinanceContractId}"><display/></field>

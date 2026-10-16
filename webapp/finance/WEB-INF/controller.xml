@@ -470,6 +470,27 @@ under the License.
             <redirect-parameter name="productId"/>
         </response>
     </request-map>
+    <!-- STEP L15b: business-day calendars of a financial product -->
+    <request-map uri="addFinancialProductCalendar">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="addFinancialProductCalendar"/>
+        <response name="success" type="request-redirect" value="EditFinancialProduct">
+            <redirect-parameter name="productId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditFinancialProduct">
+            <redirect-parameter name="productId"/>
+        </response>
+    </request-map>
+    <request-map uri="removeFinancialProductCalendar">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="removeFinancialProductCalendar"/>
+        <response name="success" type="request-redirect" value="EditFinancialProduct">
+            <redirect-parameter name="productId"/>
+        </response>
+        <response name="error" type="request-redirect" value="EditFinancialProduct">
+            <redirect-parameter name="productId"/>
+        </response>
+    </request-map>
 
     <!-- STEP L1: lease products, applications, requested assets, underwriting -->
     <request-map uri="EditFinancialProductLease">

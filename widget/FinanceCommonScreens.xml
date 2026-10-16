@@ -117,6 +117,22 @@ under the License.
                         <screenlet title="${uiLabelMap.FinanceEditFinancialProduct}">
                             <include-form name="EditFinancialProduct" location="component://finance/widget/FinanceCommonForms.xml"/>
                         </screenlet>
+                        <section>
+                            <condition><not><if-empty field="financialProduct"/></not></condition>
+                            <actions>
+                                <entity-condition entity-name="FinancialProductCalendar" list="productCalendars">
+                                    <condition-expr field-name="productId" from-field="productId"/>
+                                    <order-by field-name="calendarId"/>
+                                </entity-condition>
+                            </actions>
+                            <widgets>
+                                <screenlet title="${uiLabelMap.FinanceBusinessCalendars}">
+                                    <label text="${uiLabelMap.FinanceBusinessCalendarNote}"/>
+                                    <include-form name="AddFinancialProductCalendar" location="component://finance/widget/FinanceCommonForms.xml"/>
+                                    <include-grid name="ListFinancialProductCalendars" location="component://finance/widget/FinanceCommonForms.xml"/>
+                                </screenlet>
+                            </widgets>
+                        </section>
                     </decorator-section>
                 </decorator-screen>
             </widgets>

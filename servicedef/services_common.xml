@@ -74,6 +74,18 @@ under the License.
         <override name="financialProductTypeId" optional="false"/>
     </service>
 
+    <!-- STEP L15b: business-day calendars (core TechDataCalendar) of a financial product -->
+    <service name="addFinancialProductCalendar" default-entity-name="FinancialProductCalendar" engine="entity-auto" invoke="create" auth="true">
+        <description>Use a business-day calendar for a financial product (a day is a business day only when every calendar is open); applies to schedules created afterwards</description>
+        <permission-service service-name="financeGenericPermission" main-action="CREATE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+    </service>
+    <service name="removeFinancialProductCalendar" default-entity-name="FinancialProductCalendar" engine="entity-auto" invoke="delete" auth="true">
+        <description>Stop using a business-day calendar for a financial product; existing schedules are not changed</description>
+        <permission-service service-name="financeGenericPermission" main-action="DELETE"/>
+        <auto-attributes include="pk" mode="IN" optional="false"/>
+    </service>
+
     <!-- Customer-level credit limit check (STEP L2), shared by loan and lease -->
     <service name="financeValidateCustomerCreditLimit" engine="groovy" export="false"
             location="component://finance/groovyScripts/ValidateCustomerCreditLimit.groovy" invoke="" auth="true">

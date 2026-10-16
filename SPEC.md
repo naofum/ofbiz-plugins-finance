@@ -1180,12 +1180,13 @@ SystemProperty / finance.properties キー
 
 ---
 
-## 28. STEP L15b — 祝日カレンダーによる期日調整（ローンへの影響、計画）
+## 28. STEP L15b — 祝日カレンダーによる期日調整（ローンへの影響）
 
-> **状態：計画（未着手）**。共通層の方針・部品は `SPEC_COMMON.md` 12 章。
+> **状態：完了**（2026-10-16）。共通層の方針・部品・テストは `SPEC_COMMON.md` 12 章。
 
-- ローンの期日の営業日調整（`LOAN_DUEDATE_CONV`）が、土日に加えて祝日（core `TechDataCalendar` の例外日）と、カレンダーの曜日の定義を考慮するようになる。
-- 対象：見積（`CreateLoanQuote.groovy`）、繰上返済・条件変更の返済表の作り直し（`FinancePrepaymentServices.persistSchedule`）。
-- 使うカレンダー：商品（`FinancialProductCalendar`）→ `finance.properties` の `business.calendar.ids` → どちらもなければ従来どおり土日のみ。
+- ローンの期日の営業日調整（`LOAN_DUEDATE_CONV`）が、土日に加えて祝日（core `TechDataCalendar` の例外日）と、カレンダーの曜日の定義を考慮するようになった。
+- 対象：見積（`CreateLoanQuote.groovy`）、繰上返済・条件変更の返済表の作り直し（`FinancePrepaymentServices.persistSchedule`。`FinanceInterestCalculator.resolveBusinessCalendar` で契約の商品のカレンダーを使う）。
+- 使うカレンダー：商品（`FinancialProductCalendar`）→ `finance.properties` の `business.calendar.ids`（既定 `FIN_JP`）→ どちらもなければ従来どおり土日のみ。
 - 既存の確定返済表（`LoanAgreementRepaymentSchedule`）の期日は変えない。新しく作る返済表から適用する。
-- 利息計算期間（`interestFromDate` / `interestThruDate`、STEP 9）は暦日のまま。`interestThruDate` は営業日調整前の期日（STEP 9 の規則）で、変更しない。
+- 利息計算期間（`interestFromDate` / `interestThruDate`、STEP 9）は暦日のまま。`interestThruDate` は営業日調整前の期日（STEP 9 の規則）で、変更しない（`FinanceBusinessCalendarTests.testLoanQuoteUsesProductCalendars` で確認）。
+- 調整方式が `DUEDATE_NONE`（既定）の商品は、期日が変わらない。

@@ -37,6 +37,7 @@ import org.apache.ofbiz.entity.GenericEntityException;
 import org.apache.ofbiz.entity.GenericValue;
 import org.apache.ofbiz.entity.util.EntityQuery;
 import org.apache.ofbiz.finance.common.BusinessDayCalculator;
+import org.apache.ofbiz.finance.common.FinanceBusinessCalendar;
 import org.apache.ofbiz.finance.common.FinanceContractHelper;
 import org.apache.ofbiz.finance.common.FinanceGlHelper;
 import org.apache.ofbiz.finance.common.FinanceInterestCalculator;
@@ -345,6 +346,9 @@ public final class LeaseAcquisitionServices {
             Timestamp firstPayment = advance ? start : addMonths(start, 1);
             String dueDateConvention = FinanceInterestCalculator.resolveDueDateConvention(delegator,
                     agreement.getString("productId"));
+            // STEP L15b: holidays of the product's business-day calendars.
+            FinanceBusinessCalendar businessCalendar = FinanceBusinessCalendar.forProduct(delegator,
+                    agreement.getString("productId"));
             // STEP L5: the consumption tax rate and timing are fixed at the lease start.
             LeaseTaxHelper.TaxRate taxRate = LeaseTaxHelper.resolveRate(delegator, agreement.getString("productId"), start);
             String taxTiming = LeaseTaxHelper.resolveTiming(delegator, agreement.getString("productId"));
@@ -366,7 +370,8 @@ public final class LeaseAcquisitionServices {
                 int k = row.getLong("installmentNumber").intValue();
                 GenericValue line = delegator.makeValue("LeaseAgreementPaymentSchedule", row.getAllFields());
                 line.set("scheduleRevisionNumber", newRevision);
-                line.set("dueDate", BusinessDayCalculator.adjust(addMonths(firstPayment, k - 1), dueDateConvention));
+                line.set("dueDate", BusinessDayCalculator.adjust(addMonths(firstPayment, k - 1), dueDateConvention,
+                        businessCalendar));
                 line.set("periodFromDate", addMonths(start, k - 1));
                 line.set("periodThruDate", minusOneDay(addMonths(start, k)));
                 line.set("taxAmount", taxes.get(index));

@@ -270,6 +270,18 @@ public final class FinanceInterestCalculator {
         return UtilValidate.isNotEmpty(sys) ? sys : DEFAULT_DUEDATE_CONVENTION;
     }
 
+    /**
+     * STEP L15b: business-day calendar of a loan agreement's product
+     * ({@link FinanceBusinessCalendar#forProduct}).
+     */
+    public static FinanceBusinessCalendar resolveBusinessCalendar(Delegator delegator, GenericValue agreement) {
+        String productId = null;
+        try {
+            productId = resolveProductId(delegator, agreement);
+        } catch (GenericEntityException e) { /* fall through: default calendar */ }
+        return FinanceBusinessCalendar.forProduct(delegator, productId);
+    }
+
     // -----------------------------------------------------------------------
     // Currency rounding
     // -----------------------------------------------------------------------

@@ -194,4 +194,24 @@ under the License.
             <index-field name="financeContractId"/>
         </index>
     </entity>
+    <!-- ========================================================= -->
+    <!-- STEP L15b: business-day calendars of a financial product. -->
+    <!-- A product may use several core TechDataCalendar rows; a   -->
+    <!-- day is a business day only when every calendar is open.   -->
+    <!-- No row = the default (finance.properties                  -->
+    <!-- business.calendar.ids), else Saturday/Sunday only.        -->
+    <!-- ========================================================= -->
+    <entity entity-name="FinancialProductCalendar" package-name="org.apache.ofbiz.finance.common"
+            title="Business-day calendar of a financial product">
+        <field name="productId" type="id"></field>
+        <field name="calendarId" type="id"><description>core TechDataCalendar</description></field>
+        <prim-key field="productId"/>
+        <prim-key field="calendarId"/>
+        <relation type="one" fk-name="FINPRODCAL_PROD" rel-entity-name="FinancialProduct">
+            <key-map field-name="productId"/>
+        </relation>
+        <relation type="one" fk-name="FINPRODCAL_CAL" rel-entity-name="TechDataCalendar">
+            <key-map field-name="calendarId"/>
+        </relation>
+    </entity>
 </entitymodel>

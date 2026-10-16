@@ -49,6 +49,7 @@ under the License.
     <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceStep8TypeData.xml"/>
     <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceStep9TypeData.xml"/>
     <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceLeaseTypeData.xml"/>
+    <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceCalendarSeedData.xml"/>
     <entity-resource type="data" reader-name="seed" loader="main" location="data/FinanceSecurityPermissionSeedData.xml"/>
 
     <!-- demo data: deterministic FX rates, shared master data and status snapshots -->

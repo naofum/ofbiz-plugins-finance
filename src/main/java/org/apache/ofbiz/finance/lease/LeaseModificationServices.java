@@ -39,6 +39,7 @@ import org.apache.ofbiz.entity.GenericEntityException;
 import org.apache.ofbiz.entity.GenericValue;
 import org.apache.ofbiz.entity.util.EntityQuery;
 import org.apache.ofbiz.finance.common.BusinessDayCalculator;
+import org.apache.ofbiz.finance.common.FinanceBusinessCalendar;
 import org.apache.ofbiz.finance.common.FinanceContractHelper;
 import org.apache.ofbiz.finance.common.FinanceGlHelper;
 import org.apache.ofbiz.finance.common.FinanceInterestCalculator;
@@ -223,6 +224,8 @@ public final class LeaseModificationServices {
         Timestamp start = agreement.getTimestamp("leaseStartDate");
         Timestamp firstPayment = advance ? start : addMonths(start, 1);
         String convention = FinanceInterestCalculator.resolveDueDateConvention(delegator, agreement.getString("productId"));
+        // STEP L15b: holidays of the product's business-day calendars.
+        FinanceBusinessCalendar businessCalendar = FinanceBusinessCalendar.forProduct(delegator, agreement.getString("productId"));
         p.effectiveDate = addMonths(start, p.k - 1);
         p.newLeaseEnd = minusOneDay(addMonths(start, p.newTerm));
 
@@ -267,7 +270,7 @@ public final class LeaseModificationServices {
             newInterest = newInterest.add(interest);
             Map<String, Object> row = new HashMap<>();
             row.put("installmentNumber", (long) number);
-            row.put("dueDate", BusinessDayCalculator.adjust(addMonths(firstPayment, number - 1), convention));
+            row.put("dueDate", BusinessDayCalculator.adjust(addMonths(firstPayment, number - 1), convention, businessCalendar));
             row.put("periodFromDate", addMonths(start, number - 1));
             row.put("periodThruDate", minusOneDay(addMonths(start, number)));
             row.put("leaseAmount", r.getLeaseAmount());

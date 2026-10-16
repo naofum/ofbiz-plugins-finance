@@ -2568,4 +2568,16 @@ under the License.
         <value xml:lang="en">Owner</value>
         <value xml:lang="ja">所有者</value>
     </property>
+    <property key="FinanceBusinessCalendars">
+        <value xml:lang="en">Business-day calendars</value>
+        <value xml:lang="ja">営業日カレンダー</value>
+    </property>
+    <property key="FinanceBusinessCalendar">
+        <value xml:lang="en">Calendar</value>
+        <value xml:lang="ja">カレンダー</value>
+    </property>
+    <property key="FinanceBusinessCalendarNote">
+        <value xml:lang="en">A day is a business day only when every calendar is open. No calendar: the default (business.calendar.ids), else Saturday/Sunday only. Holidays are maintained in the manufacturing calendar screens. Applies to schedules created afterwards.</value>
+        <value xml:lang="ja">すべてのカレンダーで稼働日の日だけを営業日とします。指定がなければ既定（business.calendar.ids）、それもなければ土日だけを休日とします。祝日は製造（manufacturing）のカレンダー画面で登録します。この後に作る表から適用します。</value>
+    </property>
 </resource>

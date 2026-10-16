@@ -118,4 +118,8 @@ under the License.
         <junit-test-suite class-name="org.apache.ofbiz.finance.test.FinanceContractPartyTests"/>
     </test-case>
 
+    <test-case case-name="finance-business-calendar-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.FinanceBusinessCalendarTests"/>
+    </test-case>
+
 </test-suite>
