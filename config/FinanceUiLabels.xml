@@ -2668,4 +2668,113 @@ under the License.
         <value xml:lang="en">Invalid application order: ${applyOrderEnumId}</value>
         <value xml:lang="ja">充当順が正しくありません: ${applyOrderEnumId}</value>
     </property>
+    <!-- STEP L15d: asset split and contract split -->
+    <property key="FinanceLeaseSplit">
+        <value xml:lang="en">Asset split / contract split</value>
+        <value xml:lang="ja">物件分割・契約分割</value>
+    </property>
+    <property key="FinanceLeaseAssetSplit">
+        <value xml:lang="en">Split an asset line</value>
+        <value xml:lang="ja">物件分割</value>
+    </property>
+    <property key="FinanceLeaseAssetSplitQuantity">
+        <value xml:lang="en">Quantity of the new line</value>
+        <value xml:lang="ja">新しい明細の数量</value>
+    </property>
+    <property key="FinanceLeaseAssetSplitQuantityTooltip">
+        <value xml:lang="en">The source line keeps the rest; the acquisition cost is allocated by quantity.</value>
+        <value xml:lang="ja">元の明細には残りの数量が残ります。取得価額は数量の比で分けます。</value>
+    </property>
+    <property key="FinanceLeaseAgreementSplit">
+        <value xml:lang="en">Split the contract</value>
+        <value xml:lang="ja">契約分割</value>
+    </property>
+    <property key="FinanceLeaseSplitAssets">
+        <value xml:lang="en">Assets of the first new agreement</value>
+        <value xml:lang="ja">1 つ目の新しい契約の物件</value>
+    </property>
+    <property key="FinanceLeaseSplitAssetsTooltip">
+        <value xml:lang="en">Comma-separated asset numbers (e.g. 00001,00002). The other assets go to the second new agreement.</value>
+        <value xml:lang="ja">物件の明細番号をカンマ区切りで入力します（例：00001,00002）。残りの物件は 2 つ目の新しい契約へ移ります。</value>
+    </property>
+    <property key="FinanceLeaseSplitDate">
+        <value xml:lang="en">Split date</value>
+        <value xml:lang="ja">分割日</value>
+    </property>
+    <property key="FinanceLeaseSplitHistory">
+        <value xml:lang="en">Split history</value>
+        <value xml:lang="ja">分割履歴</value>
+    </property>
+    <property key="FinanceLeaseSplitNewAgreement">
+        <value xml:lang="en">New agreement</value>
+        <value xml:lang="ja">新しい契約</value>
+    </property>
+    <property key="FinanceLeaseSplitFrom">
+        <value xml:lang="en">Split from</value>
+        <value xml:lang="ja">分割元の契約</value>
+    </property>
+    <property key="FinanceLeaseSplitRatio">
+        <value xml:lang="en">Allocation ratio</value>
+        <value xml:lang="ja">按分の比率</value>
+    </property>
+    <property key="FinanceLeaseSplitOpeningPrincipal">
+        <value xml:lang="en">Principal taken over</value>
+        <value xml:lang="ja">引き継いだ元本</value>
+    </property>
+    <property key="FinanceLeaseSplitDeferredProfit">
+        <value xml:lang="en">Deferred lease profit taken over</value>
+        <value xml:lang="ja">引き継いだ繰延リース利益</value>
+    </property>
+    <property key="FinanceLeaseSplitAdvance">
+        <value xml:lang="en">Advance lease payments transferred</value>
+        <value xml:lang="ja">振り替えた前受リース料</value>
+    </property>
+    <property key="FinanceLeaseSplitDeposit">
+        <value xml:lang="en">Deposits transferred</value>
+        <value xml:lang="ja">振り替えた保証金</value>
+    </property>
+    <property key="FinanceLeaseSplitReason">
+        <value xml:lang="en">Reason</value>
+        <value xml:lang="ja">分割の理由</value>
+    </property>
+    <property key="FinanceLeaseSplitNewAsset">
+        <value xml:lang="en">New line</value>
+        <value xml:lang="ja">新しい明細</value>
+    </property>
+    <property key="FinanceLeaseSplitSourceQuantity">
+        <value xml:lang="en">Quantity before the split</value>
+        <value xml:lang="ja">分割前の数量</value>
+    </property>
+    <property key="FinanceLeaseSplitNote">
+        <value xml:lang="en">Split from lease ${leaseAgreement.splitFromLeaseAgreementId} (the schedule starts at the first unbilled installment of the original)</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreement.splitFromLeaseAgreementId} から分割した契約です（確定リース料表は元の契約の未請求の最初の回から始まります）</value>
+    </property>
+    <property key="FinanceLeaseAssetSplitQuantityInvalid">
+        <value xml:lang="en">The quantities of the new lines must be positive and less than the quantity of the line (${quantity}) in total</value>
+        <value xml:lang="ja">新しい明細の数量は正の値で、合計が元の明細の数量（${quantity}）未満でなければなりません</value>
+    </property>
+    <property key="FinanceLeaseSplitReLease">
+        <value xml:lang="en">Lease ${leaseAgreementId} has a re-lease and cannot be split</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} は再リースがあるため分割できません</value>
+    </property>
+    <property key="FinanceLeaseSplitModification">
+        <value xml:lang="en">Lease ${leaseAgreementId} has a change of terms that is not reversed and cannot be split</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} は取り消していない条件変更があるため分割できません</value>
+    </property>
+    <property key="FinanceLeaseSplitDateInvalid">
+        <value xml:lang="en">The split date of lease ${leaseAgreementId} must be between the lease start and today (and not after the lease end)</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} の分割日は、リース開始日から本日まで（リース終了日以前）でなければなりません</value>
+    </property>
+    <property key="FinanceLeaseSplitGroupsInvalid">
+        <value xml:lang="en">Every asset of lease ${leaseAgreementId} must be in exactly one of at least two non-empty groups</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} のすべての物件を、2 つ以上の空でないグループのどれか 1 つに入れてください</value>
+    </property>
+    <property key="FinanceLeaseSplitNothingUnbilled">
+        <value xml:lang="en">Lease ${leaseAgreementId} has no unbilled installment to split</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} には分割する未請求の回がありません</value>
+    </property>
+    <property key="FinanceLeaseSplitRequiresService">
+        <value xml:lang="en">The split status of lease ${leaseAgreementId} is changed only by the contract split and the collection</value>
+        <value xml:lang="ja">リース契約 ${leaseAgreementId} の分割済の状態は、契約分割と回収でだけ変わります</value>
+    </property>
 </resource>

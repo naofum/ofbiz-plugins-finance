@@ -770,6 +770,11 @@ public final class LeaseAccountingServices {
             receipt.set("createdDate", UtilDateTime.nowTimestamp());
             receipt.create();
 
+            // STEP L15d: the original of a contract split completes once its billed installments are settled.
+            if (LeaseSplitServices.isSplit(agreement)) {
+                LeaseExpiryServices.tryComplete(dctx, findAgreement(delegator, leaseAgreementId), effectiveDate, userLogin, locale);
+            }
+
             Map<String, Object> result = ServiceUtil.returnSuccess();
             result.put("paymentId", paymentId);
             result.put("leasePaymentReceiptId", receiptId);
@@ -867,6 +872,9 @@ public final class LeaseAccountingServices {
         applied = applied.add(collectedDamages);
         boolean terminated = LeaseTerminationServices.isTerminated(agreement)
                 || LeaseTerminationServices.findTermination(delegator, leaseAgreementId) != null;
+        // STEP L15d: the original of a contract split keeps only its billed installments.
+        boolean split = LeaseSplitServices.wasSplit(delegator, agreement);
+        boolean closed = terminated || split;
         Map<String, Object> balance = new HashMap<>();
         balance.putAll(reLease);
         balance.putAll(termination);
@@ -885,21 +893,27 @@ public final class LeaseAccountingServices {
         balance.put("collectedInterestAmount", collectedInterest);
         balance.put("collectedPrincipalAmount", collectedPrincipal);
         // STEP L14: after a termination the outstanding principal is the unpaid billed principal plus the unpaid damages.
-        balance.put("outstandingPrincipal", operating ? BigDecimal.ZERO : terminated
+        // STEP L15d: a split agreement starts from the principal taken over (openingPrincipal).
+        balance.put("outstandingPrincipal", operating ? BigDecimal.ZERO : closed
                 ? billedPrincipal.subtract(collectedPrincipal).add(damages).subtract(collectedDamages)
-                : nz(agreement.getBigDecimal("acquisitionCost")).subtract(collectedPrincipal));
-        balance.put("unbilledLeaseAmount", terminated ? BigDecimal.ZERO
+                : LeaseSplitServices.startPrincipal(agreement).subtract(collectedPrincipal));
+        balance.put("unbilledLeaseAmount", closed ? BigDecimal.ZERO
                 : nz(agreement.getBigDecimal("totalLeaseAmount")).subtract(billedLease));
         balance.put("recognizedProfitAmount", recognized);
-        balance.put("deferredProfitBalance", operating || terminated ? BigDecimal.ZERO
+        balance.put("deferredProfitBalance", operating || closed ? BigDecimal.ZERO
                 : nz(agreement.getBigDecimal("totalInterestAmount")).subtract(recognized));
         // STEP L12: the leased asset of an operating lease (cost, accumulated depreciation, book value).
-        if (operating) {
+        if (operating && !split) {
             BigDecimal cost = nz(agreement.getBigDecimal("acquisitionCost"));
             BigDecimal accumulated = LeaseDepreciationServices.accumulatedDepreciation(delegator, leaseAgreementId, null);
             balance.put("leasedAssetCost", cost);
             balance.put("accumulatedDepreciation", accumulated);
             balance.put("leasedAssetBookValue", cost.subtract(accumulated));
+        } else if (operating) {
+            // STEP L15d: the leased assets moved to the new agreements.
+            balance.put("leasedAssetCost", BigDecimal.ZERO);
+            balance.put("accumulatedDepreciation", BigDecimal.ZERO);
+            balance.put("leasedAssetBookValue", BigDecimal.ZERO);
         }
         return balance;
     }

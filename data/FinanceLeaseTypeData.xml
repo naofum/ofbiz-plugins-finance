@@ -325,4 +325,9 @@ under the License.
     <EnumerationType description="Lease advance payment application order" enumTypeId="LEASE_ADV_ORDER" hasTable="N"/>
     <Enumeration description="Oldest installment first (古い回から)" enumCode="OLDEST" enumId="LSADV_ORD_OLDEST" sequenceId="01" enumTypeId="LEASE_ADV_ORDER"/>
     <Enumeration description="From the last installment (最終回から)" enumCode="LAST" enumId="LSADV_ORD_LAST" sequenceId="02" enumTypeId="LEASE_ADV_ORDER"/>
+    <!-- STEP L15d: asset split and contract split (SPEC_LEASE.md 20). -->
+    <StatusItem description="Split (billing moved to the new agreements; collected until settled)" sequenceId="06" statusCode="SPLIT" statusId="LEASEAGR_SPLIT" statusTypeId="LEASE_AGR_STATUS"/>
+    <StatusValidChange statusId="LEASEAGR_ACTIVE" statusIdTo="LEASEAGR_SPLIT" transitionName="Split"/>
+    <StatusValidChange statusId="LEASEAGR_SPLIT" statusIdTo="LEASEAGR_COMPLETED" transitionName="Complete"/>
+    <StatusItem description="Moved to a split agreement" sequenceId="07" statusCode="SPLIT" statusId="LSAST_SPLIT" statusTypeId="LEASE_ASSET_STATUS"/>
 </entity-engine-xml>

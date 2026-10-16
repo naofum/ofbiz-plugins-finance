@@ -395,6 +395,15 @@ under the License.
                                                 </screenlet>
                                             </widgets>
                                         </section>
+                                        <!-- STEP L15d: a split (or terminated) lease is still collected -->
+                                        <section>
+                                            <condition><if-compare field="isCollectingOnly" operator="equals" value="true" type="Boolean"/></condition>
+                                            <widgets>
+                                                <screenlet title="${uiLabelMap.FinanceLeaseReceivePayment}">
+                                                    <include-form name="ReceiveLeasePayment" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </screenlet>
+                                            </widgets>
+                                        </section>
                                         <screenlet title="${uiLabelMap.FinanceLeaseInvoices}">
                                             <include-grid name="ListLeaseInstallmentInvoices" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                         </screenlet>
@@ -529,6 +538,25 @@ under the License.
                                                     </section>
                                                 </fail-widgets>
                                             </section>
+                                        </screenlet>
+                                        <!-- STEP L15d: asset split and contract split -->
+                                        <screenlet title="${uiLabelMap.FinanceLeaseSplit}">
+                                            <section>
+                                                <condition><not><if-empty field="leaseAgreement.splitFromLeaseAgreementId"/></not></condition>
+                                                <widgets><label text="${uiLabelMap.FinanceLeaseSplitNote}"/></widgets>
+                                            </section>
+                                            <section>
+                                                <condition><if-compare field="canSplit" operator="equals" value="true" type="Boolean"/></condition>
+                                                <widgets>
+                                                    <label style="h3" text="${uiLabelMap.FinanceLeaseAssetSplit}"/>
+                                                    <include-form name="SplitLeaseAgreementAsset" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                    <label style="h3" text="${uiLabelMap.FinanceLeaseAgreementSplit}"/>
+                                                    <include-form name="SplitLeaseAgreement" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                                </widgets>
+                                            </section>
+                                            <label style="h3" text="${uiLabelMap.FinanceLeaseSplitHistory}"/>
+                                            <include-grid name="ListLeaseAgreementSplits" location="component://finance/widget/FinanceLeaseForms.xml"/>
+                                            <include-grid name="ListLeaseAssetSplits" location="component://finance/widget/FinanceLeaseForms.xml"/>
                                         </screenlet>
                                         <!-- STEP L13: re-lease -->
                                         <screenlet title="${uiLabelMap.FinanceLeaseReLease}">

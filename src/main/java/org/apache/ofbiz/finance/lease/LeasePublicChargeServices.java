@@ -476,8 +476,9 @@ public final class LeasePublicChargeServices {
                 }
                 for (GenericValue asset : EntityQuery.use(delegator).from("LeaseAgreementAsset")
                         .where("leaseAgreementId", agreement.getString("leaseAgreementId")).queryList()) {
-                    if (UtilValidate.isEmpty(asset.getString("fixedAssetId"))) {
-                        continue;
+                    if (UtilValidate.isEmpty(asset.getString("fixedAssetId"))
+                            || LeaseSplitServices.ASSET_SPLIT.equals(asset.getString("assetStatusId"))) {
+                        continue;                                                 // STEP L15d: declared on the split agreement
                     }
                     GenericValue fixedAsset = EntityQuery.use(delegator).from("FixedAsset")
                             .where("fixedAssetId", asset.getString("fixedAssetId")).queryOne();

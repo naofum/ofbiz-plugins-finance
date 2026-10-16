@@ -768,6 +768,27 @@ under the License.
 
     <!-- STEP L6: lease late fee, dunning notice (common delinquency services) -->
     <!-- STEP L15c: advance lease payments and security deposits -->
+    <!-- STEP L15d: asset split and contract split -->
+    <request-map uri="splitLeaseAgreementAsset">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="splitLeaseAgreementAsset"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
+    <request-map uri="splitLeaseAgreement">
+        <security https="true" auth="true"/>
+        <event type="service" invoke="splitLeaseAgreement"/>
+        <response name="success" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+        <response name="error" type="request-redirect" value="ManageLeaseAgreement">
+            <redirect-parameter name="leaseAgreementId"/>
+        </response>
+    </request-map>
     <request-map uri="receiveLeaseAdvance">
         <security https="true" auth="true"/>
         <event type="service" invoke="receiveLeaseAdvance"/>

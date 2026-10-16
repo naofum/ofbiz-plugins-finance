@@ -119,10 +119,13 @@ public final class LeaseTerminationServices {
                 .cache(false).queryOne();
     }
 
-    /** True for an agreement still collected: ACTIVE, or TERMINATED (damages / assets being recovered). */
+    /**
+     * True for an agreement still collected: ACTIVE, TERMINATED (damages / assets being recovered) or
+     * (STEP L15d) SPLIT (billed installments of the original of a contract split).
+     */
     public static boolean isCollectible(GenericValue agreement) {
         String s = agreement.getString("statusId");
-        return "LEASEAGR_ACTIVE".equals(s) || STATUS_TERMINATED.equals(s);
+        return "LEASEAGR_ACTIVE".equals(s) || STATUS_TERMINATED.equals(s) || LeaseSplitServices.STATUS_SPLIT.equals(s);
     }
 
     public static boolean isTerminated(GenericValue agreement) {

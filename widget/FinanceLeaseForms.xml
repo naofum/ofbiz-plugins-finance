@@ -735,6 +735,66 @@ under the License.
         <field name="refundPaymentId" title="${uiLabelMap.FinanceLeaseRefundPaymentId}"><display/></field>
         <field name="settledDate" title="${uiLabelMap.FinanceLeaseSettlementDate}"><display type="date"/></field>
     </grid>
+
+    <!-- ============================================================= -->
+    <!-- STEP L15d: asset split and contract split                     -->
+    <!-- ============================================================= -->
+    <form name="SplitLeaseAgreementAsset" type="single" target="splitLeaseAgreementAsset">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="assetSeqId" title="${uiLabelMap.FinanceLeaseAssetSeqId}">
+            <drop-down allow-empty="false">
+                <list-options list-name="leasedAssets" key-name="assetSeqId" description="${assetSeqId} ${assetName} (${quantity})"/>
+            </drop-down>
+        </field>
+        <field name="splitQuantity" title="${uiLabelMap.FinanceLeaseAssetSplitQuantity}" tooltip="${uiLabelMap.FinanceLeaseAssetSplitQuantityTooltip}" required-field="true"><text size="10"/></field>
+        <field name="splitDate" title="${uiLabelMap.FinanceLeaseSplitDate}" tooltip="${uiLabelMap.FinanceLeaseDefaultToday}"><date-time type="date"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceLeaseAssetSplit}"><submit button-type="button"/></field>
+    </form>
+
+    <form name="SplitLeaseAgreement" type="single" target="splitLeaseAgreement">
+        <field name="leaseAgreementId"><hidden value="${leaseAgreement.leaseAgreementId}"/></field>
+        <field name="newAgreementAssetSeqIds" title="${uiLabelMap.FinanceLeaseSplitAssets}" tooltip="${uiLabelMap.FinanceLeaseSplitAssetsTooltip}" required-field="true"><text size="40"/></field>
+        <field name="splitDate" title="${uiLabelMap.FinanceLeaseSplitDate}" tooltip="${uiLabelMap.FinanceLeaseDefaultToday}"><date-time type="date"/></field>
+        <field name="reason" title="${uiLabelMap.FinanceLeaseSplitReason}"><text size="40"/></field>
+        <field name="submitButton" title="${uiLabelMap.FinanceLeaseAgreementSplit}"><submit button-type="button"/></field>
+    </form>
+
+    <grid name="ListLeaseAgreementSplits" list-name="leaseAgreementSplits" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="leaseAgreementId" title="${uiLabelMap.FinanceLeaseSplitFrom}">
+            <hyperlink description="${leaseAgreementId}" target="ManageLeaseAgreement">
+                <parameter param-name="leaseAgreementId" from-field="leaseAgreementId"/>
+            </hyperlink>
+        </field>
+        <field name="newLeaseAgreementId" title="${uiLabelMap.FinanceLeaseSplitNewAgreement}">
+            <hyperlink description="${newLeaseAgreementId}" target="ManageLeaseAgreement">
+                <parameter param-name="leaseAgreementId" from-field="newLeaseAgreementId"/>
+            </hyperlink>
+        </field>
+        <field name="splitDate" title="${uiLabelMap.FinanceLeaseSplitDate}"><display type="date"/></field>
+        <field name="effectiveInstallmentNumber" title="${uiLabelMap.FinanceInstallmentNumber}"><display/></field>
+        <field name="allocationRatio" title="${uiLabelMap.FinanceLeaseSplitRatio}"><display/></field>
+        <field name="acquisitionCost" title="${uiLabelMap.FinanceLeaseAcquisitionCost}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="residualValue" title="${uiLabelMap.FinanceLeaseResidualValue}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="openingPrincipal" title="${uiLabelMap.FinanceLeaseSplitOpeningPrincipal}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="deferredProfit" title="${uiLabelMap.FinanceLeaseSplitDeferredProfit}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="accumulatedDepreciation" title="${uiLabelMap.FinanceLeaseAccumulatedDepreciation}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="advanceTransferred" title="${uiLabelMap.FinanceLeaseSplitAdvance}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="depositTransferred" title="${uiLabelMap.FinanceLeaseSplitDeposit}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="acctgTransId" title="${uiLabelMap.FinanceAcctgTransId}"><display/></field>
+        <field name="reason" title="${uiLabelMap.FinanceLeaseSplitReason}"><display/></field>
+    </grid>
+
+    <grid name="ListLeaseAssetSplits" list-name="leaseAssetSplits" paginate="false"
+            odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
+        <field name="splitDate" title="${uiLabelMap.FinanceLeaseSplitDate}"><display type="date"/></field>
+        <field name="sourceAssetSeqId" title="${uiLabelMap.FinanceLeaseAssetSeqId}"><display/></field>
+        <field name="newAssetSeqId" title="${uiLabelMap.FinanceLeaseSplitNewAsset}"><display/></field>
+        <field name="sourceQuantity" title="${uiLabelMap.FinanceLeaseSplitSourceQuantity}"><display/></field>
+        <field name="quantity" title="${uiLabelMap.FinanceLeaseAssetSplitQuantity}"><display/></field>
+        <field name="acquisitionCost" title="${uiLabelMap.FinanceLeaseAcquisitionCost}"><display type="currency" currency="${leaseAgreement.currencyUomId}"/></field>
+        <field name="fixedAssetId" title="${uiLabelMap.FinanceLeaseFixedAssetId}"><display/></field>
+    </grid>
     <!-- ============================================================= -->
     <grid name="ListLeaseDelinquencies" list-name="leaseDelinquencies" paginate="false"
             odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">

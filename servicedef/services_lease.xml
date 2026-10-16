@@ -796,4 +796,41 @@ under the License.
         <attribute name="completedCount" type="Long" mode="OUT" optional="true"/>
         <attribute name="cancelledCount" type="Long" mode="OUT" optional="true"/>
     </service>
+
+    <!-- ============================================================= -->
+    <!-- STEP L15d: asset split and contract split (SPEC_LEASE.md 20)  -->
+    <!-- ============================================================= -->
+    <service name="splitLeaseAgreementAsset" engine="java"
+            location="org.apache.ofbiz.finance.lease.LeaseSplitServices" invoke="splitLeaseAgreementAsset" auth="true">
+        <description>Split a leased asset line (quantity N) of an ACTIVE lease into several lines by quantity: the
+            acquisition cost, the depreciation records and the core FixedAsset are allocated by quantity (the last
+            line absorbs the rounding), a new FixedAsset per new line. No GL entry.</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="assetSeqId" type="String" mode="IN" optional="false"/>
+        <attribute name="quantities" type="List" mode="IN" optional="true"><description>quantity of each new line; the source keeps the rest</description></attribute>
+        <attribute name="splitQuantity" type="BigDecimal" mode="IN" optional="true"><description>quantity of one new line (form)</description></attribute>
+        <attribute name="splitDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="newAssetSeqIds" type="List" mode="OUT" optional="true"/>
+        <attribute name="newFixedAssetIds" type="List" mode="OUT" optional="true"/>
+    </service>
+    <service name="splitLeaseAgreement" engine="java" transaction-timeout="1800"
+            location="org.apache.ofbiz.finance.lease.LeaseSplitServices" invoke="splitLeaseAgreement" auth="true">
+        <description>Split an ACTIVE lease (no re-lease, no unreversed change of terms) into new leases of the same lessee per
+            group of assets from the first unbilled installment: account through the split date, create the new agreements
+            (FinanceContract, confirmed schedule revision 1 allocated by acquisition cost, components, acceptance, deferred
+            profit / depreciation taken over, maintenance plans, public charge attributes), transfer the advance lease
+            payments / deposits by the same ratio, post the transfer entries and set the original LEASEAGR_SPLIT
+            (collected until its billed installments are settled, then completed).</description>
+        <permission-service service-name="financeAccountingPermission" main-action="CREATE"/>
+        <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="splitDate" type="Timestamp" mode="IN" optional="true"><description>defaults to today; between the lease start and today</description></attribute>
+        <attribute name="assetGroups" type="List" mode="IN" optional="true"><description>one entry per new agreement: a List of assetSeqId (or a comma-separated String); every asset in exactly one group, at least two groups</description></attribute>
+        <attribute name="newAgreementAssetSeqIds" type="String" mode="IN" optional="true"><description>form: comma-separated assets of the first new agreement; the other assets go to the second</description></attribute>
+        <attribute name="reason" type="String" mode="IN" optional="true"/>
+        <attribute name="newLeaseAgreementIds" type="List" mode="OUT" optional="true"/>
+        <attribute name="effectiveInstallmentNumber" type="Long" mode="OUT" optional="true"/>
+        <attribute name="acctgTransId" type="String" mode="OUT" optional="true"/>
+        <attribute name="agreementCompleted" type="Boolean" mode="OUT" optional="true"/>
+    </service>
 </services>

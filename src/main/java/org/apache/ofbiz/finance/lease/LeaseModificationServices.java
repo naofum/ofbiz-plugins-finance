@@ -115,6 +115,7 @@ public final class LeaseModificationServices {
         private String errorKey;
         private Map<String, Object> errorArgs = new HashMap<>();
         private int k;
+        private int first = 1;
         private int oldTerm;
         private int newTerm;
         private long fromRevision;
@@ -167,7 +168,9 @@ public final class LeaseModificationServices {
                 .where("leaseAgreementId", leaseAgreementId).queryList()) {
             billedMax = Math.max(billedMax, link.getLong("installmentNumber"));
         }
-        p.k = (int) billedMax + 1;
+        // STEP L15d: the schedule of a split agreement starts at its first installment (> 1).
+        p.first = p.oldRows.isEmpty() ? 1 : p.oldRows.get(0).getLong("installmentNumber").intValue();
+        p.k = Math.max((int) billedMax + 1, p.first);
         if (p.k > p.oldTerm) {
             return p.fail("FinanceLeaseModificationNothingUnbilled", "leaseAgreementId", leaseAgreementId);
         }
@@ -189,9 +192,9 @@ public final class LeaseModificationServices {
         RoundingMode mode = FinanceInterestCalculator.resolveRoundingMode(currency, delegator);
         boolean advance = LeaseProductHelper.TIMING_ADVANCE.equals(agreement.getString("paymentTimingEnumId"));
         BigDecimal residual = nz(agreement.getBigDecimal("residualValue"));
-        GenericValue rowK = p.oldRows.get(p.k - 1);
-        BigDecimal remainingBefore = p.k == 1 ? nz(agreement.getBigDecimal("acquisitionCost"))
-                : nz(p.oldRows.get(p.k - 2).getBigDecimal("remainingPrincipal"));
+        GenericValue rowK = p.oldRows.get(p.k - p.first);
+        BigDecimal remainingBefore = p.k == p.first ? LeaseSplitServices.startPrincipal(agreement)
+                : nz(p.oldRows.get(p.k - p.first - 1).getBigDecimal("remainingPrincipal"));
         BigDecimal keptInterest = advance && p.k > 1 ? nz(rowK.getBigDecimal("interestPortion")) : BigDecimal.ZERO;
         BigDecimal base = remainingBefore.add(keptInterest);
         p.principalBase = remainingBefore.subtract(residual);
@@ -239,7 +242,7 @@ public final class LeaseModificationServices {
         }
         BigDecimal oldRemainingTax = BigDecimal.ZERO;
         BigDecimal oldRemainingInterest = BigDecimal.ZERO;
-        for (int i = p.k - 1; i < p.oldRows.size(); i++) {
+        for (int i = p.k - p.first; i < p.oldRows.size(); i++) {
             p.oldRemaining = p.oldRemaining.add(nz(p.oldRows.get(i).getBigDecimal("leaseAmount")));
             oldRemainingTax = oldRemainingTax.add(nz(p.oldRows.get(i).getBigDecimal("taxAmount")));
             oldRemainingInterest = oldRemainingInterest.add(nz(p.oldRows.get(i).getBigDecimal("interestPortion")));
@@ -281,7 +284,7 @@ public final class LeaseModificationServices {
             p.newRows.add(row);
         }
         p.interestAdjustment = newInterest.subtract(oldRemainingInterest);
-        for (int i = 0; i < p.k - 1; i++) {
+        for (int i = 0; i < p.k - p.first; i++) {
             p.newTotalTax = p.newTotalTax.add(nz(p.oldRows.get(i).getBigDecimal("taxAmount")));
         }
         for (BigDecimal t : taxes) {
@@ -365,7 +368,7 @@ public final class LeaseModificationServices {
 
             // New schedule revision: 1..k-1 copied, k..n' recalculated.
             long toRevision = p.fromRevision + 1;
-            for (int i = 0; i < p.k - 1; i++) {
+            for (int i = 0; i < p.k - p.first; i++) {
                 GenericValue line = delegator.makeValue("LeaseAgreementPaymentSchedule", p.oldRows.get(i).getAllFields());
                 line.set("scheduleRevisionNumber", toRevision);
                 line.create();
@@ -392,7 +395,7 @@ public final class LeaseModificationServices {
                 }
                 BigDecimal total = BigDecimal.ZERO;
                 BigDecimal totalTax = BigDecimal.ZERO;
-                for (long n = 1; n <= p.newTerm; n++) {
+                for (long n = p.first; n <= p.newTerm; n++) {
                     GenericValue src = old.get(n);
                     BigDecimal amount = src != null ? nz(src.getBigDecimal("amount")) : nz(def.getBigDecimal("monthlyAmount"));
                     BigDecimal tax = src != null && n < p.k ? nz(src.getBigDecimal("taxAmount"))
@@ -443,7 +446,7 @@ public final class LeaseModificationServices {
             mod.set("toRevisionNumber", toRevision);
             mod.set("oldTermMonths", (long) p.oldTerm);
             mod.set("newTermMonths", (long) p.newTerm);
-            mod.set("oldMonthlyLeaseAmount", p.oldRows.get(p.k - 1).getBigDecimal("leaseAmount"));
+            mod.set("oldMonthlyLeaseAmount", p.oldRows.get(p.k - p.first).getBigDecimal("leaseAmount"));
             mod.set("newMonthlyLeaseAmount", p.newPayment);
             mod.set("oldCalcInterestRate", agreement.getBigDecimal("calcInterestRate"));
             mod.set("newCalcInterestRate", p.newRate);

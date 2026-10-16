@@ -125,5 +125,8 @@ under the License.
     <test-case case-name="lease-advance-tests">
         <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseAdvanceTests"/>
     </test-case>
+    <test-case case-name="lease-split-tests">
+        <junit-test-suite class-name="org.apache.ofbiz.finance.test.LeaseSplitTests"/>
+    </test-case>
 
 </test-suite>

@@ -110,6 +110,14 @@ public final class LeaseProfitAllocator {
         for (int i = 0; i < sorted.size(); i++) {
             Installment row = sorted.get(i);
             if (advance) {
+                if (i == 0 && row.number > 1) {
+                    // STEP L15d: the schedule of a split agreement starts at installment k > 1; its
+                    // interest is earned in period k-1 (the month before its own period).
+                    if (row.interest.signum() != 0) {
+                        result.add(new Segment(row.periodFrom.minusMonths(1), row.periodFrom.minusDays(1), row.interest));
+                    }
+                    continue;
+                }
                 if (i == 0) {
                     // Paid at the start; no interest has been earned yet. Any amount is
                     // earned in the first period so the total is still released.

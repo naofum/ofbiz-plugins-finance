@@ -272,6 +272,8 @@ under the License.
         <field name="taxAuthGeoId" type="id"></field>
         <field name="taxAuthorityRateSeqId" type="id"><description>core TaxAuthorityRateProduct of the fixed rate</description></field>
         <field name="completedDate" type="date-time"><description>date the lease was completed by return / ownership transfer (STEP L7)</description></field>
+        <field name="splitFromLeaseAgreementId" type="id"><description>STEP L15d: agreement this one was split from (its schedule starts at the first unbilled installment of the original)</description></field>
+        <field name="openingPrincipal" type="currency-amount"><description>STEP L15d: principal outstanding taken over at the split (residual included); empty = acquisitionCost</description></field>
         <prim-key field="leaseAgreementId"/>
         <relation type="one" fk-name="LEASEAGR_FINCTR" rel-entity-name="FinanceContract">
             <key-map field-name="financeContractId"/>
@@ -300,6 +302,8 @@ under the License.
         <relation type="one" fk-name="LEASEAGR_UOM" rel-entity-name="Uom">
             <key-map field-name="currencyUomId" rel-field-name="uomId"/>
         </relation>
+        <!-- STEP L15d: agreements of a contract split have no quote (null). The derby datasource does not create
+             unique indices (use-indices-unique="false"); other databases allow several nulls. -->
         <index name="LEASEAGR_QT_UQ" unique="true">
             <index-field name="leaseQuoteId"/>
         </index>
@@ -350,6 +354,8 @@ under the License.
         <field name="municipalityGeoId" type="id"><description>STEP L10: municipality (core Geo, MUNICIPALITY) where the asset is located; defaults from the FixedAsset facility address</description></field>
         <field name="ownershipShare" type="fixed-point"><description>STEP L10b: lessor's ownership share of the asset (0 &lt; share &lt;= 1, e.g. a co-owned asset of a syndicated lease); empty = 1 (sole owner). Public charges are declared pro rata</description></field>
         <field name="reclassifiedResidual" type="currency-amount"><description>STEP L13 (finance lease): residual value moved from the lease investment to leased assets (165500) at the first re-lease; depreciated over the re-lease</description></field>
+        <field name="sourceLeaseAgreementId" type="id"><description>STEP L15d: agreement of the line this one comes from (contract split / asset split)</description></field>
+        <field name="sourceAssetSeqId" type="id"><description>STEP L15d: line this one comes from</description></field>
         <prim-key field="leaseAgreementId"/>
         <prim-key field="assetSeqId"/>
         <relation type="one" fk-name="LEASEAGRAS_AGR" rel-entity-name="LeaseAgreement">
@@ -1311,6 +1317,7 @@ under the License.
         <field name="refundPaymentId" type="id"><description>core CUSTOMER_REFUND payment (PMNT_SENT)</description></field>
         <field name="settledDate" type="date-time"></field>
         <field name="comments" type="comment"></field>
+        <field name="sourceLeaseAdvanceReceiptId" type="id"><description>STEP L15d: receipt of the original agreement this balance was transferred from at a contract split</description></field>
         <field name="createdDate" type="date-time"></field>
         <prim-key field="leaseAdvanceReceiptId"/>
         <relation type="one" fk-name="LEASEADV_AGR" rel-entity-name="LeaseAgreement">
@@ -1334,5 +1341,66 @@ under the License.
         <index name="LEASEADV_AGR_IDX">
             <index-field name="leaseAgreementId"/>
         </index>
+    </entity>
+    <!-- ========================================================= -->
+    <!-- STEP L15d: asset split and contract split.                 -->
+    <!-- An asset line of quantity N is split into several lines    -->
+    <!-- (LeaseAssetSplit); an ACTIVE agreement is split into new   -->
+    <!-- agreements per group of assets from the first unbilled     -->
+    <!-- installment (LeaseAgreementSplit, one row per new          -->
+    <!-- agreement); the original becomes LEASEAGR_SPLIT.           -->
+    <!-- ========================================================= -->
+    <entity entity-name="LeaseAssetSplit" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease asset split (物件分割)">
+        <field name="leaseAssetSplitId" type="id"><description>primary sequenced ID</description></field>
+        <field name="leaseAgreementId" type="id"></field>
+        <field name="sourceAssetSeqId" type="id"><description>line that was split (keeps the first quantity)</description></field>
+        <field name="newAssetSeqId" type="id"><description>line created by the split</description></field>
+        <field name="sourceQuantity" type="fixed-point"><description>quantity of the source line before the split</description></field>
+        <field name="quantity" type="fixed-point"><description>quantity of the new line</description></field>
+        <field name="acquisitionCost" type="currency-amount"><description>acquisition cost moved to the new line (by quantity)</description></field>
+        <field name="fixedAssetId" type="id"><description>core FixedAsset created for the new line</description></field>
+        <field name="splitDate" type="date-time"></field>
+        <field name="createdByUserLogin" type="id-vlong"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseAssetSplitId"/>
+        <relation type="one" fk-name="LEASEASPL_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <index name="LEASEASPL_AGR_IDX">
+            <index-field name="leaseAgreementId"/>
+        </index>
+    </entity>
+    <entity entity-name="LeaseAgreementSplit" package-name="org.apache.ofbiz.finance.lease"
+            title="Lease contract split (契約分割), one row per new agreement">
+        <field name="leaseAgreementId" type="id"><description>original agreement (LEASEAGR_SPLIT)</description></field>
+        <field name="newLeaseAgreementId" type="id"></field>
+        <field name="splitDate" type="date-time"></field>
+        <field name="effectiveInstallmentNumber" type="numeric"><description>first unbilled installment (first installment of the new agreement)</description></field>
+        <field name="allocationRatio" type="fixed-point"><description>acquisition cost of the group / acquisition cost of every asset</description></field>
+        <field name="acquisitionCost" type="currency-amount"></field>
+        <field name="residualValue" type="currency-amount"></field>
+        <field name="openingPrincipal" type="currency-amount"><description>remaining principal taken over (residual included)</description></field>
+        <field name="unbilledLeaseAmount" type="currency-amount"><description>lease payments of the new schedule (tax and components excluded)</description></field>
+        <field name="deferredProfit" type="currency-amount"><description>finance lease: deferred lease profit not yet released, taken over</description></field>
+        <field name="accumulatedDepreciation" type="currency-amount"><description>operating lease: accumulated depreciation of the assets taken over</description></field>
+        <field name="advanceTransferred" type="currency-amount"><description>advance lease payments transferred (L15c)</description></field>
+        <field name="depositTransferred" type="currency-amount"><description>security deposits transferred (L15c)</description></field>
+        <field name="acctgTransId" type="id"><description>transfer entries of the split (one transaction for every new agreement)</description></field>
+        <field name="reason" type="description"></field>
+        <field name="currencyUomId" type="id"></field>
+        <field name="createdByUserLogin" type="id-vlong"></field>
+        <field name="createdDate" type="date-time"></field>
+        <prim-key field="leaseAgreementId"/>
+        <prim-key field="newLeaseAgreementId"/>
+        <relation type="one" fk-name="LEASESPL_AGR" rel-entity-name="LeaseAgreement">
+            <key-map field-name="leaseAgreementId"/>
+        </relation>
+        <relation type="one" fk-name="LEASESPL_NEW" title="New" rel-entity-name="LeaseAgreement">
+            <key-map field-name="newLeaseAgreementId" rel-field-name="leaseAgreementId"/>
+        </relation>
+        <relation type="one-nofk" rel-entity-name="AcctgTrans">
+            <key-map field-name="acctgTransId"/>
+        </relation>
     </entity>
 </entitymodel>

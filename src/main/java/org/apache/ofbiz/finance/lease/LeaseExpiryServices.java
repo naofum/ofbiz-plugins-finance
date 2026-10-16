@@ -173,8 +173,9 @@ public final class LeaseExpiryServices {
                 .queryCount();
         List<GenericValue> links = EntityQuery.use(delegator).from("LeaseInstallmentInvoice")
                 .where("leaseAgreementId", leaseAgreementId).queryList();
-        if (links.size() < installments && LeaseTerminationServices.findTermination(delegator, leaseAgreementId) == null) {
-            return false;                                                       // STEP L14: terminated = no more billing
+        if (links.size() < installments && LeaseTerminationServices.findTermination(delegator, leaseAgreementId) == null
+                && !LeaseSplitServices.wasSplit(delegator, agreement)) {
+            return false;                                                       // STEP L14: terminated = no more billing (L15d: split)
         }
         return new LeaseContractAdapter().findOpenInvoiceIds(delegator, agreement).isEmpty();
     }
@@ -283,12 +284,14 @@ public final class LeaseExpiryServices {
         String leaseAgreementId = agreement.getString("leaseAgreementId");
         for (GenericValue asset : assets(delegator, leaseAgreementId)) {
             String status = asset.getString("assetStatusId");
-            if (!ASSET_RETURNED.equals(status) && !ASSET_DISPOSED.equals(status) && !ASSET_TRANSFERRED.equals(status)) {
+            if (!ASSET_RETURNED.equals(status) && !ASSET_DISPOSED.equals(status) && !ASSET_TRANSFERRED.equals(status)
+                    && !LeaseSplitServices.ASSET_SPLIT.equals(status)) {
                 return "FinanceLeaseCompleteAssetsPending";
             }
         }
         // STEP L14: a terminated lease was accounted through the termination date at termination.
-        boolean terminated = LeaseTerminationServices.isTerminated(agreement);
+        // STEP L15d: so was a split lease (through the split date).
+        boolean terminated = LeaseTerminationServices.isTerminated(agreement) || LeaseSplitServices.isSplit(agreement);
         if (!terminated) {
             // STEP L13: the re-lease periods are accounted through the last re-lease end.
             Timestamp effectiveEnd = LeaseReLeaseServices.effectiveEndDate(delegator, agreement);
@@ -711,7 +714,7 @@ public final class LeaseExpiryServices {
             if ("LEASEAGR_COMPLETED".equals(agreement.getString("statusId"))) {
                 return completionResult(null);
             }
-            boolean terminated = LeaseTerminationServices.isTerminated(agreement);
+            boolean terminated = LeaseTerminationServices.isTerminated(agreement) || LeaseSplitServices.isSplit(agreement);
             if (!terminated && !"LEASEAGR_ACTIVE".equals(agreement.getString("statusId"))) {
                 return error("FinanceLeaseAccountingRequiresActive", UtilMisc.toMap("leaseAgreementId", leaseAgreementId), locale);
             }

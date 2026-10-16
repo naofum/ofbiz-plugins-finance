@@ -87,6 +87,7 @@ public final class LeaseInquiryHelper {
         } else {
             list.add("LEASEAGR_ACTIVE");
             list.add("LEASEAGR_TERMINATED");
+            list.add(LeaseSplitServices.STATUS_SPLIT);
             list.add("LEASEAGR_COMPLETED");
         }
         return list;

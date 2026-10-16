@@ -559,6 +559,115 @@ public final class LeaseAdvanceServices {
     }
 
     // ------------------------------------------------------------------
+    // Contract split (STEP L15d)
+    // ------------------------------------------------------------------
+
+    /**
+     * STEP L15d: transfer the balance of every receipt of the original agreement to the new agreements
+     * of a contract split, by the given ratios (the last agreement absorbs the rounding). The balance is
+     * refunded on the original (core CUSTOMER_REFUND applied to the receipt payment: Dr liability /
+     * Cr cash) and received on each new agreement (core CUSTOMER_DEPOSIT: Dr cash / Cr liability), so no
+     * cash moves; the type, the application order and the receipt date are kept.
+     *
+     * @return per new agreement {advance lease payments, deposits} transferred
+     */
+    public static List<BigDecimal[]> transferForSplit(DispatchContext dctx, GenericValue from, List<GenericValue> targets,
+            List<BigDecimal> ratios, Timestamp date, GenericValue userLogin)
+            throws GenericEntityException, GenericServiceException {
+        Delegator delegator = dctx.getDelegator();
+        LocalDispatcher dispatcher = dctx.getDispatcher();
+        String fromId = from.getString("leaseAgreementId");
+        String currency = from.getString("currencyUomId");
+        int scale = org.apache.ofbiz.finance.common.FinanceInterestCalculator.resolveScale(currency, delegator);
+        java.math.RoundingMode mode = org.apache.ofbiz.finance.common.FinanceInterestCalculator.resolveRoundingMode(currency, delegator);
+        List<BigDecimal[]> totals = new ArrayList<>();
+        for (int i = 0; i < targets.size(); i++) {
+            totals.add(new BigDecimal[] {BigDecimal.ZERO, BigDecimal.ZERO});
+        }
+        String organizationPartyId = from.getString("organizationPartyId");
+        String lessee = from.getString("lesseePartyId");
+        for (GenericValue receipt : receipts(delegator, fromId, null)) {
+            BigDecimal left = available(delegator, receipt);
+            if (left.signum() <= 0) {
+                continue;
+            }
+            String type = receipt.getString("advanceTypeEnumId");
+            String glAccountId = FinanceGlHelper.findGlAccountId(delegator, organizationPartyId, glAccountType(type));
+            // Refund on the original (no cash: received again on the new agreements below).
+            Map<String, Object> refund = new HashMap<>();
+            refund.put("paymentTypeId", "CUSTOMER_REFUND");
+            refund.put("partyIdFrom", organizationPartyId);
+            refund.put("partyIdTo", lessee);
+            refund.put("statusId", "PMNT_SENT");
+            refund.put("paymentMethodTypeId", "EFT_ACCOUNT");
+            refund.put("amount", left);
+            refund.put("currencyUomId", receipt.getString("currencyUomId"));
+            refund.put("effectiveDate", date);
+            refund.put("overrideGlAccountId", glAccountId);
+            refund.put("comments", "Lease split transfer " + fromId + " / " + receipt.getString("leaseAdvanceReceiptId"));
+            refund.put("userLogin", userLogin);
+            Map<String, Object> pay = dispatcher.runSync("createPayment", refund);
+            check(pay);
+            String refundPaymentId = (String) pay.get("paymentId");
+            check(dispatcher.runSync("createPaymentApplication", UtilMisc.toMap("paymentId", refundPaymentId,
+                    "toPaymentId", receipt.getString("paymentId"), "amountApplied", left, "userLogin", userLogin)));
+            FinanceGlHelper.postUnposted(delegator, dispatcher, "paymentId", refundPaymentId, userLogin);
+            receipt.set("refundedAmount", nz(receipt.getBigDecimal("refundedAmount")).add(left));
+            receipt.set("refundPaymentId", refundPaymentId);
+            receipt.set("appliedAmount", appliedToInvoices(delegator, receipt));
+            receipt.set("statusId", STATUS_REFUNDED);
+            receipt.set("settledDate", date);
+            receipt.store();
+
+            // Received on the new agreements by ratio.
+            BigDecimal sum = BigDecimal.ZERO;
+            for (int i = 0; i < targets.size(); i++) {
+                BigDecimal share = i == targets.size() - 1 ? left.subtract(sum) : left.multiply(ratios.get(i)).setScale(scale, mode);
+                sum = sum.add(share);
+                if (share.signum() <= 0) {
+                    continue;
+                }
+                GenericValue target = targets.get(i);
+                Map<String, Object> payInput = new HashMap<>();
+                payInput.put("paymentTypeId", "CUSTOMER_DEPOSIT");
+                payInput.put("partyIdFrom", lessee);
+                payInput.put("partyIdTo", organizationPartyId);
+                payInput.put("statusId", "PMNT_RECEIVED");
+                payInput.put("paymentMethodTypeId", "EFT_ACCOUNT");
+                payInput.put("amount", share);
+                payInput.put("currencyUomId", receipt.getString("currencyUomId"));
+                payInput.put("effectiveDate", date);
+                payInput.put("overrideGlAccountId", glAccountId);
+                payInput.put("comments", (TYPE_DEPOSIT.equals(type) ? "Lease deposit " : "Lease advance ")
+                        + target.getString("leaseAgreementId") + " (split from " + fromId + ")");
+                payInput.put("userLogin", userLogin);
+                Map<String, Object> received = dispatcher.runSync("createPayment", payInput);
+                check(received);
+                String paymentId = (String) received.get("paymentId");
+                FinanceGlHelper.postUnposted(delegator, dispatcher, "paymentId", paymentId, userLogin);
+                GenericValue copy = delegator.makeValue("LeaseAdvanceReceipt");
+                copy.set("leaseAdvanceReceiptId", delegator.getNextSeqId("LeaseAdvanceReceipt"));
+                copy.set("leaseAgreementId", target.getString("leaseAgreementId"));
+                copy.set("advanceTypeEnumId", type);
+                copy.set("statusId", STATUS_RECEIVED);
+                copy.set("applyOrderEnumId", receipt.getString("applyOrderEnumId"));
+                copy.set("receiptDate", receipt.getTimestamp("receiptDate"));
+                copy.set("amount", share);
+                copy.set("currencyUomId", receipt.getString("currencyUomId"));
+                copy.set("paymentId", paymentId);
+                copy.set("appliedAmount", BigDecimal.ZERO);
+                copy.set("refundedAmount", BigDecimal.ZERO);
+                copy.set("comments", "Transferred from lease " + fromId + " / " + receipt.getString("leaseAdvanceReceiptId"));
+                copy.set("sourceLeaseAdvanceReceiptId", receipt.getString("leaseAdvanceReceiptId"));
+                copy.set("createdDate", UtilDateTime.nowTimestamp());
+                copy.create();
+                totals.get(i)[TYPE_DEPOSIT.equals(type) ? 1 : 0] = totals.get(i)[TYPE_DEPOSIT.equals(type) ? 1 : 0].add(share);
+            }
+        }
+        return totals;
+    }
+
+    // ------------------------------------------------------------------
     // Balance
     // ------------------------------------------------------------------
 

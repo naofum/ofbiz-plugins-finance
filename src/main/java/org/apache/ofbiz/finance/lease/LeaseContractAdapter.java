@@ -123,7 +123,9 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
             Timestamp asOfDate) throws GenericEntityException {
         String leaseAgreementId = agreement.getString("leaseAgreementId");
         List<Map<String, Object>> rows = new ArrayList<>();
-        boolean terminated = LeaseTerminationServices.findTermination(delegator, leaseAgreementId) != null;
+        // STEP L15d: the unbilled installments of a split agreement moved to the new agreements.
+        boolean terminated = LeaseTerminationServices.findTermination(delegator, leaseAgreementId) != null
+                || LeaseSplitServices.wasSplit(delegator, agreement);
         List<GenericValue> schedule = EntityQuery.use(delegator).from("LeaseAgreementPaymentSchedule")
                 .where("leaseAgreementId", leaseAgreementId,
                         "scheduleRevisionNumber", LeaseAccountingServices.currentScheduleRevision(delegator, leaseAgreementId))
@@ -159,7 +161,7 @@ public final class LeaseContractAdapter implements FinanceContractAdapter {
                 unpaid = nz(InvoiceWorker.getInvoiceNotApplied(invoice));
             } else {
                 if (terminated) {
-                    continue;                                                   // STEP L14: replaced by the damages
+                    continue;                                                   // STEP L14: replaced by the damages (L15d: moved)
                 }
                 // Not billed yet: include the scheduled component amounts of the installment.
                 for (GenericValue comp : EntityQuery.use(delegator).from("LeaseAgrPaySchedComp")

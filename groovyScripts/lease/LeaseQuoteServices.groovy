@@ -505,6 +505,12 @@ Map setLeaseAgreementStatus() {
     if (parameters.statusId == 'LEASEAGR_CONTRACTED' && agreement.statusId != 'LEASEAGR_CONTRACTED') {
         return error(label('FinanceReversalRequiresService', [statusId: parameters.statusId]))
     }
+    // The contract split is performed only by splitLeaseAgreement (STEP L15d); a split agreement
+    // completes through the collection of its billed installments.
+    if ((parameters.statusId == 'LEASEAGR_SPLIT' || agreement.statusId == 'LEASEAGR_SPLIT')
+            && parameters.statusId != agreement.statusId) {
+        return error(label('FinanceLeaseSplitRequiresService', [leaseAgreementId: agreement.leaseAgreementId]))
+    }
     // A purchased asset cannot be left behind by a cancellation (disposal is out of scope).
     if (parameters.statusId == 'LEASEAGR_CANCELLED'
             && from('LeaseAssetPurchase').where('leaseAgreementId', agreement.leaseAgreementId).queryCount() > 0) {

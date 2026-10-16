@@ -178,6 +178,11 @@ public final class LeaseReversalServices {
                         "statusId", agreement.getString("statusId")), locale);
             }
             // Nothing may have been processed after the acceptance.
+            // STEP L15d: an agreement created by a contract split (its start belongs to the original), or with a split asset.
+            if (UtilValidate.isNotEmpty(agreement.getString("splitFromLeaseAgreementId"))
+                    || count(delegator, "LeaseAssetSplit", "leaseAgreementId", leaseAgreementId) > 0) {
+                return blocked("split", locale);
+            }
             if (count(delegator, "LeaseInstallmentInvoice", "leaseAgreementId", leaseAgreementId) > 0) {
                 return blocked("billing", locale);
             }

@@ -189,3 +189,13 @@ context.advanceReceipts = from('LeaseAdvanceReceipt').where('leaseAgreementId', 
 context.canReceiveAdvance = leaseAgreement.statusId in ['LEASEAGR_CONTRACTED', 'LEASEAGR_ACTIVE']
 context.canSettleAdvances = leaseAgreement.statusId in ['LEASEAGR_CONTRACTED', 'LEASEAGR_ACTIVE', 'LEASEAGR_TERMINATED'] &&
         org.apache.ofbiz.finance.lease.LeaseAdvanceServices.hasBalance(delegator, leaseAgreement.leaseAgreementId as String)
+
+// STEP L15d: asset split and contract split (history of this agreement as the original or as a new agreement).
+context.leaseAgreementSplits = from('LeaseAgreementSplit').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
+        .orderBy('newLeaseAgreementId').queryList() +
+        from('LeaseAgreementSplit').where('newLeaseAgreementId', leaseAgreement.leaseAgreementId).queryList()
+context.leaseAssetSplits = from('LeaseAssetSplit').where('leaseAgreementId', leaseAgreement.leaseAgreementId)
+        .orderBy('leaseAssetSplitId').queryList()
+context.canSplit = context.isActive && !context.reLeases.any { it.statusId != 'LSREL_CANCELLED' } &&
+        !context.leaseModifications.any { it.reversedDate == null }
+context.isCollectingOnly = leaseAgreement.statusId in ['LEASEAGR_TERMINATED', 'LEASEAGR_SPLIT']
