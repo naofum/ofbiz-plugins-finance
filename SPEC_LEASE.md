@@ -43,7 +43,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L15 | 条件変更（期間・月額・計算利子率、確定リース料表の新 revision、投資資産と繰延利益の調整。17 章） | 完了（tests=186 / errors=0 / failures=0） |
 | L15a | 誤操作の取消（検収・中途解約・条件変更。18 章。共通部品は `SPEC_COMMON.md` 11 章） | 完了（tests=192 / errors=0 / failures=0） |
 | L15b | 祝日カレンダーを考慮した営業日調整（共通層。`SPEC_COMMON.md` 12 章。リースは見積・検収・条件変更の期日に適用） | 完了（tests=203 / errors=0 / failures=0） |
-| L15c | 前受リース料と保証金（19 章） | 完了（tests=211 / errors=0 / failures=0） |
+| L15c | 前受リース料と保証金（19 章） | 完了（tests=213 / errors=0 / failures=0） |
 | L15d | 物件分割・契約分割（20 章） | 計画（未着手） |
 
 前提：STEP L0（共通層の切り出し、`SPEC_COMMON.md`）の完了後に着手する。
@@ -1504,7 +1504,7 @@ L1〜L11 と同じで、契約の収益計上方法（`LeaseRevenueStrategy`）�
 
 ## 19. STEP L15c — 前受リース料と保証金
 
-> **状態：完了**（2026-10-16。tests=211 / errors=0 / failures=0）。
+> **状態：完了**（2026-10-16。tests=213 / errors=0 / failures=0。最終回からの充当の追加を含む）。
 
 契約時・リース開始前に受け取る前受リース料と、保証金（敷金）を管理する（`REQUIREMENTS_LEASE.md` 将来拡張「前受金」）。
 
@@ -1514,6 +1514,7 @@ L1〜L11 と同じで、契約の収益計上方法（`LeaseRevenueStrategy`）�
 |------|------|
 | 対象 | **前受リース料**と**保証金**。頭金をリース料の計算（取得価額からの控除・計算利子率）に反映することは対象外 |
 | 前受リース料の充当 | リース料を請求したときに、古い前受金から順に**自動で請求書へ消し込む** |
+| 充当順（追加） | 前受リース料は受け取りごとに充当順を選べる：**古い回から**（既定 `LSADV_ORD_OLDEST`）／**最終回から**（`LSADV_ORD_LAST`。最終回から前の回へ割り当て、その回を請求したときに充当する）。保証金には指定できない |
 | 保証金の精算 | 返還（満了）・解約の後に**精算サービスで、未払の請求書へ古い順に充当し、残りを返還する**。保証金が精算されるまで契約は完了にしない |
 
 ### 19.2 データモデル・seed
@@ -1521,6 +1522,7 @@ L1〜L11 と同じで、契約の収益計上方法（`LeaseRevenueStrategy`）�
 | 種類 | 内容 |
 |------|------|
 | `LeaseAdvanceReceipt`（新規、`entitymodel_lease.xml`） | 受け取り 1 件ごとの記録。契約、種類（`LEASE_ADV_TYPE`：`LSADV_LEASE` 前受リース料／`LSADV_DEPOSIT` 保証金）、状態（`LEASE_ADV_STATUS`）、受領日、金額、通貨、core の入金（`paymentId`）、充当額、返還額、返還の支払（`refundPaymentId`）、精算日、備考 |
+| 充当順 `LEASE_ADV_ORDER`（seed、`LeaseAdvanceReceipt.applyOrderEnumId`） | `LSADV_ORD_OLDEST` 古い回から（既定。空欄も古い回から）／`LSADV_ORD_LAST` 最終回から。前受リース料だけ |
 | 状態 `LEASE_ADV_STATUS` | `LSADVST_RECEIVED`（残高あり。一部充当を含む）→ `LSADVST_APPLIED`（全額充当）／`LSADVST_REFUNDED`（返還して精算）。サービスの中だけで変える |
 | GL 科目タイプ（seed） | `LEASE_ADVANCE_RCVD` 前受リース料（224800、流動負債）、`LEASE_DEPOSIT_RCVD` 預り保証金（239500、固定負債 `LONGTERM_LIABILITY`） |
 | 組織の科目（demo・テストデータ） | `Company` に 224800・239500 を `GlAccountTypeDefault` で設定 |
@@ -1541,7 +1543,9 @@ L1〜L11 と同じで、契約の収益計上方法（`LeaseRevenueStrategy`）�
 | サービス／部品 | 内容 |
 |----------|------|
 | `receiveLeaseAdvance`（`LeaseAdvanceServices`） | 契約済（`LEASEAGR_CONTRACTED`）または有効な契約で受け取る。core の入金を作り、記録を作る。前受リース料を有効な契約で受け取ったときは、すでにある未払の請求書へすぐ充当する |
-| 自動充当 `LeaseAdvanceServices.applyAdvances` | 前受リース料の残高を、未払の請求書へ古い受領・古い期日から順に充当する。呼ぶ場所：リース料の請求（`createLeaseInstallmentInvoice`）、再リースの請求、中途解約の損害金の請求、受領。請求額を超える分は次の回に回る。保証金は使わない |
+| 自動充当 `LeaseAdvanceServices.applyAdvances` | 前受リース料の残高を、未払の請求書へ古い受領・古い期日から順に充当する。呼ぶ場所：リース料の請求（`createLeaseInstallmentInvoice`）、再リースの請求、中途解約の損害金の請求、受領。請求額を超える分は次の回に回る。保証金は使わない。最終回からの受け取りを先に処理し、その後に古い回からの受け取りを処理する |
+| 最終回からの充当 `applyFromLast` | 最終回からの受け取りの合計（返還額を除く）を、**充当するときの**現在の revision の確定リース料表の最終回から前の回へ順に割り当てる（回の額は請求済みなら請求額、未請求なら表のリース料＋消費税＋構成要素）。請求書がある回だけ、割り当て額から充当済み額を引いた分を充当する。条件変更で表が変われば割り当ても変わる。再リース・損害金の請求書には自動で充当せず、精算（`settleLeaseAdvances`）で古い順に充当し、残りを返還する |
+| `receiveLeaseAdvance` の入力 `applyOrderEnumId` | 前受リース料だけ指定可（保証金に指定すると `FinanceLeaseAdvanceOrderDeposit`、不明な値は `FinanceLeaseAdvanceOrderInvalid`） |
 | `settleLeaseAdvances` | 前受リース料、次に保証金を未払の請求書へ古い順に充当し、残りを返還する。できるのは、①契約済（取消の前の返還。充当はしない）、②中途解約の後、③有効な契約で、すべての回を請求し、すべての物件を返還・処分・譲渡した後。精算の後、完了の条件がそろえば契約を完了にする |
 | 完了の条件（`LeaseExpiryServices.tryComplete`） | 今の条件（物件の返還・すべての請求書の決済）に、「残高のある受け取りがない」を加えた（`FinanceLeaseCompleteAdvancePending`）。返還（`returnLeaseAsset`）で完了しなかった契約は、精算のときに完了する |
 | 取消（`setLeaseAgreementStatus` → `LEASEAGR_CANCELLED`） | 残高のある受け取りがあると取り消せない（`FinanceLeaseCancelAdvancePending`）。先に精算で返還する |
@@ -1549,11 +1553,11 @@ L1〜L11 と同じで、契約の収益計上方法（`LeaseRevenueStrategy`）�
 
 ### 19.5 照会・画面
 
-- 回収状況（`computeBalance` / `getLeaseAgreementBalance`）に次の値を加えた：`advanceReceivedAmount` / `advanceAppliedAmount` / `advanceRefundedAmount` / `advanceBalance`（前受リース料）、`depositReceivedAmount` / `depositAppliedAmount` / `depositRefundedAmount` / `depositBalance`（保証金）。
+- 回収状況（`computeBalance` / `getLeaseAgreementBalance`）に次の値を加えた：`advanceReceivedAmount` / `advanceAppliedAmount` / `advanceRefundedAmount` / `advanceBalance`（前受リース料）、`depositReceivedAmount` / `depositAppliedAmount` / `depositRefundedAmount` / `depositBalance`（保証金）、`advanceLastBalance`（最終回からの前受リース料の残高。`advanceBalance` の内数）。
 - 前受金で充当した分は core の消込なので、回収額・未回収元本・延滞の計算にそのまま入る（入金と同じ扱い）。
-- 契約画面（`ManageLeaseAgreement`）に「前受リース料・保証金」を追加した：受け取りフォーム（契約済・有効のとき）、精算フォーム（残高があるとき）、受け取りの一覧。回収状況に前受リース料の残高・充当額と保証金の残高を出す。
+- 契約画面（`ManageLeaseAgreement`）に「前受リース料・保証金」を追加した：受け取りフォーム（契約済・有効のとき。充当順を選べる）、精算フォーム（残高があるとき）、受け取りの一覧。回収状況に前受リース料の残高・充当額と保証金の残高を出す。
 
-### 19.6 テスト（`LeaseAdvanceTests`、4 件）
+### 19.6 テスト（`LeaseAdvanceTests`、6 件）
 
 | テスト | 確認すること |
 |--------|--------------|
@@ -1561,6 +1565,8 @@ L1〜L11 と同じで、契約の収益計上方法（`LeaseRevenueStrategy`）�
 | `testDepositSettlementBeforeCompletion` | 満了・全額入金・返還の後も保証金があると完了しない（`completeLeaseAgreement` もエラー）、精算で全額返還（`CUSTOMER_REFUND`・`PMNT_SENT`、借 239500／貸 現預金、受領の入金への紐付け）、精算で完了（共通台帳も COMPLETED）、完了後は精算できない |
 | `testDepositAppliedAfterTermination` | 中途解約の後、保証金を未払のリース料、次に損害金へ古い順に充当（借 239500／貸 120000）、残りの返還、物件を回収するまでは完了しない |
 | `testRefundBeforeCancellation` | 契約済の契約は、前受金・保証金を返還するまで取り消せない、精算で両方を返還（借 224800・239500）、取消の後は受け取れない |
+| `testAdvanceFromLastInstallment` | 充当順の検証（保証金への指定・不明な値はエラー）、既定は古い回から、最終回からの受け取りは第 1〜10 回に使わない、第 11 回に最終回の超過分、第 12 回に全額（PAID）、状態 APPLIED、仕訳（借 224800／貸 120000）、`advanceLastBalance` |
+| `testAdvanceFromLastAfterModificationAndTermination` | 条件変更（24→12 か月）の後も請求前の回には充当しない、中途解約で損害金に自動充当しない、精算で未払・損害金に充当し残りを返還、残高 0 |
 
 ### 19.7 検証
 
@@ -1570,6 +1576,9 @@ L1〜L11 と同じで、契約の収益計上方法（`LeaseRevenueStrategy`）�
 | `gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
 | seed 投入 | 新規 1 テーブル（`LEASE_ADVANCE_RECEIPT`）、490 行を変更 |
 | `gradlew "ofbiz --test component=finance"` | tests=211 / errors=0 / failures=0（33 分）。1回目は、テストの見積で商品の月額料率（60 か月向け）を 12〜24 か月に使ったため見積が作れず 4 件がエラーになった。テストの見積を計算利子率の指定に直した |
+| 最終回からの充当の追加後：`gradlew cleanAll loadAll` | BUILD SUCCESSFUL（作業中の PC 再起動で読み込みが途中で止まったため、DB を作り直した） |
+| 最終回からの充当の追加後：`gradlew compileJava compileGroovy` | BUILD SUCCESSFUL |
+| 最終回からの充当の追加後：`gradlew "ofbiz --test component=finance"` | tests=213 / errors=0 / failures=0（24 分） |
 | demo 投入 | BUILD SUCCESSFUL |
 | 画面 | 未確認（定義のみ） |
 

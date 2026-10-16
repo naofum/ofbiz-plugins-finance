@@ -1301,6 +1301,7 @@ under the License.
         <field name="leaseAgreementId" type="id"></field>
         <field name="advanceTypeEnumId" type="id"><description>LEASE_ADV_TYPE: LSADV_LEASE (advance lease payment) / LSADV_DEPOSIT (security deposit)</description></field>
         <field name="statusId" type="id"><description>LEASE_ADV_STATUS: LSADVST_RECEIVED (balance left) / LSADVST_APPLIED (fully applied) / LSADVST_REFUNDED (settled with a refund)</description></field>
+        <field name="applyOrderEnumId" type="id"><description>LEASE_ADV_ORDER (advance lease payments only): LSADV_ORD_OLDEST (oldest installment first, default; empty = oldest) / LSADV_ORD_LAST (from the last installment backwards)</description></field>
         <field name="receiptDate" type="date-time"></field>
         <field name="amount" type="currency-amount"></field>
         <field name="currencyUomId" type="id"></field>
@@ -1320,6 +1321,9 @@ under the License.
         </relation>
         <relation type="one" fk-name="LEASEADV_STTS" rel-entity-name="StatusItem">
             <key-map field-name="statusId"/>
+        </relation>
+        <relation type="one-nofk" title="ApplyOrder" rel-entity-name="Enumeration">
+            <key-map field-name="applyOrderEnumId" rel-field-name="enumId"/>
         </relation>
         <relation type="one" fk-name="LEASEADV_PAY" rel-entity-name="Payment">
             <key-map field-name="paymentId"/>

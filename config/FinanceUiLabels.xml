@@ -2648,4 +2648,24 @@ under the License.
         <value xml:lang="en">Refund the advance payments and deposits of lease ${leaseAgreementId} before the cancellation</value>
         <value xml:lang="ja">リース契約 ${leaseAgreementId} の前受金・保証金を返還してから取り消してください</value>
     </property>
+    <property key="FinanceLeaseAdvanceOrder">
+        <value xml:lang="en">Application order</value>
+        <value xml:lang="ja">充当順</value>
+    </property>
+    <property key="FinanceLeaseAdvanceOrderTooltip">
+        <value xml:lang="en">Advance lease payments only. Empty = oldest installment first. From the last installment: reserved for the last installments and applied when they are billed.</value>
+        <value xml:lang="ja">前受リース料だけ。空欄は古い回から。最終回から：最終回から前の回へ割り当て、その回を請求したときに充当します。</value>
+    </property>
+    <property key="FinanceLeaseAdvanceLastBalance">
+        <value xml:lang="en">Advance lease payments for the last installments (balance)</value>
+        <value xml:lang="ja">最終回向けの前受リース料の残高</value>
+    </property>
+    <property key="FinanceLeaseAdvanceOrderDeposit">
+        <value xml:lang="en">The application order is only for advance lease payments (a deposit is applied by the settlement)</value>
+        <value xml:lang="ja">充当順は前受リース料だけに指定できます（保証金は精算で充当します）</value>
+    </property>
+    <property key="FinanceLeaseAdvanceOrderInvalid">
+        <value xml:lang="en">Invalid application order: ${applyOrderEnumId}</value>
+        <value xml:lang="ja">充当順が正しくありません: ${applyOrderEnumId}</value>
+    </property>
 </resource>

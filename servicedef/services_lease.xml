@@ -341,6 +341,7 @@ under the License.
         <attribute name="advanceAppliedAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c</description></attribute>
         <attribute name="advanceRefundedAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c</description></attribute>
         <attribute name="advanceBalance" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c</description></attribute>
+        <attribute name="advanceLastBalance" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c: balance reserved for the last installments</description></attribute>
         <attribute name="depositReceivedAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c</description></attribute>
         <attribute name="depositAppliedAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c</description></attribute>
         <attribute name="depositRefundedAmount" type="BigDecimal" mode="OUT" optional="true"><description>STEP L15c</description></attribute>
@@ -425,6 +426,7 @@ under the License.
         <permission-service service-name="financePaymentPermission" main-action="CREATE"/>
         <attribute name="leaseAgreementId" type="String" mode="IN" optional="false"/>
         <attribute name="advanceTypeEnumId" type="String" mode="IN" optional="false"><description>LSADV_LEASE / LSADV_DEPOSIT</description></attribute>
+        <attribute name="applyOrderEnumId" type="String" mode="IN" optional="true"><description>advance lease payments only: LSADV_ORD_OLDEST (default, oldest installment first) / LSADV_ORD_LAST (from the last installment backwards, applied when those are billed)</description></attribute>
         <attribute name="amount" type="BigDecimal" mode="IN" optional="false"/>
         <attribute name="paymentMethodTypeId" type="String" mode="IN" optional="true"><description>defaults to EFT_ACCOUNT</description></attribute>
         <attribute name="receiptDate" type="Timestamp" mode="IN" optional="true"/>

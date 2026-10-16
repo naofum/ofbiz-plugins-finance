@@ -53,7 +53,8 @@ import org.apache.ofbiz.service.ServiceUtil;
  *     is the liability, so the core posts Dr cash / Cr advance lease payments (224800) or
  *     security deposits (239500). One {@code LeaseAdvanceReceipt} per receipt.</li>
  * <li>Advance lease payments are applied automatically to the open lease invoices, oldest receipt
- *     and oldest invoice first: at the receipt, after every new installment / re-lease / damages
+ *     and oldest invoice first (order LSADV_ORD_OLDEST), or reserved for the installments from the last one
+ *     backwards and applied when those are billed (LSADV_ORD_LAST): at the receipt, after every new installment / re-lease / damages
  *     invoice. The core application posts Dr advance lease payments / Cr accounts receivable.</li>
  * <li>Security deposits are not applied automatically. The settlement (after the return of every asset
  *     or a termination, or before a cancellation) applies the advance lease payments and then the
@@ -71,6 +72,8 @@ public final class LeaseAdvanceServices {
     public static final String TYPE_LEASE = "LSADV_LEASE";
     public static final String TYPE_DEPOSIT = "LSADV_DEPOSIT";
     public static final String STATUS_RECEIVED = "LSADVST_RECEIVED";
+    public static final String ORDER_OLDEST = "LSADV_ORD_OLDEST";
+    public static final String ORDER_LAST = "LSADV_ORD_LAST";
     public static final String STATUS_APPLIED = "LSADVST_APPLIED";
     public static final String STATUS_REFUNDED = "LSADVST_REFUNDED";
     public static final String GL_ADVANCE = "LEASE_ADVANCE_RCVD";
@@ -154,6 +157,33 @@ public final class LeaseAdvanceServices {
     }
 
     /**
+     * Apply {@code amount} of a receipt payment to an invoice. The core {@code createPaymentApplication}
+     * always applies min(invoice open, payment not applied) to an invoice and ignores the requested amount;
+     * for a partial amount the application is created here and the same core follow-ups run
+     * (GL of the application, invoice PAID check).
+     */
+    private static void applyToInvoice(DispatchContext dctx, String paymentId, GenericValue invoice, BigDecimal amount,
+            GenericValue userLogin) throws GenericEntityException, GenericServiceException {
+        Delegator delegator = dctx.getDelegator();
+        LocalDispatcher dispatcher = dctx.getDispatcher();
+        GenericValue payment = EntityQuery.use(delegator).from("Payment").where("paymentId", paymentId).cache(false).queryOne();
+        BigDecimal full = InvoiceWorker.getInvoiceNotApplied(invoice)
+                .min(org.apache.ofbiz.accounting.payment.PaymentWorker.getPaymentNotApplied(payment));
+        if (amount.compareTo(full) == 0) {
+            check(dispatcher.runSync("createPaymentApplication", UtilMisc.toMap("paymentId", paymentId,
+                    "invoiceId", invoice.getString("invoiceId"), "amountApplied", amount, "userLogin", userLogin)));
+            return;
+        }
+        String id = delegator.getNextSeqId("PaymentApplication");
+        delegator.create("PaymentApplication", UtilMisc.toMap("paymentApplicationId", id, "paymentId", paymentId,
+                "invoiceId", invoice.getString("invoiceId"), "amountApplied", amount));
+        check(dispatcher.runSync("createAcctgTransAndEntriesForPaymentApplication", UtilMisc.toMap(
+                "paymentApplicationId", id, "userLogin", userLogin)));
+        check(dispatcher.runSync("checkInvoicePaymentApplications", UtilMisc.toMap("invoiceId", invoice.getString("invoiceId"),
+                "userLogin", userLogin)));
+    }
+
+    /**
      * Apply the receipts of the given type (null = every type, advance lease payments first) to the
      * open lease invoices, oldest receipt and oldest invoice first. Returns the amount applied.
      */
@@ -181,8 +211,7 @@ public final class LeaseAdvanceServices {
                     continue;
                 }
                 BigDecimal amount = left.min(notApplied);
-                check(dispatcher.runSync("createPaymentApplication", UtilMisc.toMap("paymentId", receipt.getString("paymentId"),
-                        "invoiceId", invoice.getString("invoiceId"), "amountApplied", amount, "userLogin", userLogin)));
+                applyToInvoice(dctx, receipt.getString("paymentId"), invoice, amount, userLogin);
                 left = left.subtract(amount);
                 appliedNow = appliedNow.add(amount);
                 // re-read: the invoice may now be PAID and its open amount is lower
@@ -208,8 +237,111 @@ public final class LeaseAdvanceServices {
      */
     public static BigDecimal applyAdvances(DispatchContext dctx, GenericValue agreement, GenericValue userLogin)
             throws GenericEntityException, GenericServiceException {
-        return apply(dctx, agreement, receipts(dctx.getDelegator(), agreement.getString("leaseAgreementId"), TYPE_LEASE),
-                userLogin);
+        Delegator delegator = dctx.getDelegator();
+        List<GenericValue> last = new ArrayList<>();
+        List<GenericValue> oldest = new ArrayList<>();
+        for (GenericValue r : receipts(delegator, agreement.getString("leaseAgreementId"), TYPE_LEASE)) {
+            (ORDER_LAST.equals(r.getString("applyOrderEnumId")) ? last : oldest).add(r);
+        }
+        // Receipts reserved for the last installments first, then the others oldest invoice first.
+        BigDecimal applied = applyFromLast(dctx, agreement, last, userLogin);
+        return applied.add(apply(dctx, agreement, oldest, userLogin));
+    }
+
+    /** Full amount of an installment: the billed amount, or lease + tax + components of the schedule. */
+    private static BigDecimal installmentAmount(Delegator delegator, GenericValue row, GenericValue link)
+            throws GenericEntityException {
+        if (link != null) {
+            return nz(link.getBigDecimal("billedAmount"));
+        }
+        BigDecimal amount = nz(row.getBigDecimal("leaseAmount")).add(nz(row.getBigDecimal("taxAmount")));
+        for (GenericValue comp : EntityQuery.use(delegator).from("LeaseAgrPaySchedComp")
+                .where("leaseAgreementId", row.getString("leaseAgreementId"),
+                        "scheduleRevisionNumber", row.getLong("scheduleRevisionNumber"),
+                        "installmentNumber", row.getLong("installmentNumber")).queryList()) {
+            amount = amount.add(nz(comp.getBigDecimal("amount"))).add(nz(comp.getBigDecimal("taxAmount")));
+        }
+        return amount;
+    }
+
+    /**
+     * Receipts with the order "from the last installment": their total (less refunds) is reserved for the
+     * installments of the current schedule from the last one backwards, and applied to an installment only
+     * when its invoice exists. Not used for re-lease / damages invoices (only by the settlement).
+     */
+    private static BigDecimal applyFromLast(DispatchContext dctx, GenericValue agreement, List<GenericValue> receipts,
+            GenericValue userLogin) throws GenericEntityException, GenericServiceException {
+        if (receipts.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        Delegator delegator = dctx.getDelegator();
+        LocalDispatcher dispatcher = dctx.getDispatcher();
+        String leaseAgreementId = agreement.getString("leaseAgreementId");
+        BigDecimal pool = BigDecimal.ZERO;
+        List<String> paymentIds = new ArrayList<>();
+        for (GenericValue r : receipts) {
+            pool = pool.add(nz(r.getBigDecimal("amount"))).subtract(nz(r.getBigDecimal("refundedAmount")));
+            paymentIds.add(r.getString("paymentId"));
+        }
+        List<GenericValue> rows = EntityQuery.use(delegator).from("LeaseAgreementPaymentSchedule")
+                .where("leaseAgreementId", leaseAgreementId,
+                        "scheduleRevisionNumber", LeaseAccountingServices.currentScheduleRevision(delegator, leaseAgreementId))
+                .orderBy("-installmentNumber").queryList();
+        BigDecimal total = BigDecimal.ZERO;
+        List<GenericValue> touched = new ArrayList<>();
+        for (GenericValue row : rows) {
+            if (pool.signum() <= 0) {
+                break;
+            }
+            GenericValue link = EntityQuery.use(delegator).from("LeaseInstallmentInvoice")
+                    .where("leaseAgreementId", leaseAgreementId, "installmentNumber", row.getLong("installmentNumber"))
+                    .queryOne();
+            BigDecimal reserved = pool.min(installmentAmount(delegator, row, link));
+            pool = pool.subtract(reserved);
+            if (link == null) {
+                continue;                                                       // applied when it is billed
+            }
+            GenericValue invoice = EntityQuery.use(delegator).from("Invoice")
+                    .where("invoiceId", link.getString("invoiceId")).cache(false).queryOne();
+            String status = invoice == null ? null : invoice.getString("statusId");
+            if (invoice == null || "INVOICE_CANCELLED".equals(status) || "INVOICE_WRITEOFF".equals(status)) {
+                continue;
+            }
+            BigDecimal already = BigDecimal.ZERO;
+            for (GenericValue app : EntityQuery.use(delegator).from("PaymentApplication")
+                    .where("invoiceId", invoice.getString("invoiceId")).cache(false).queryList()) {
+                if (paymentIds.contains(app.getString("paymentId"))) {
+                    already = already.add(nz(app.getBigDecimal("amountApplied")));
+                }
+            }
+            BigDecimal toApply = reserved.subtract(already).min(InvoiceWorker.getInvoiceNotApplied(invoice));
+            for (GenericValue receipt : receipts) {
+                if (toApply.signum() <= 0) {
+                    break;
+                }
+                BigDecimal left = available(delegator, receipt);
+                if (left.signum() <= 0) {
+                    continue;
+                }
+                BigDecimal amount = left.min(toApply);
+                applyToInvoice(dctx, receipt.getString("paymentId"), invoice, amount, userLogin);
+                toApply = toApply.subtract(amount);
+                total = total.add(amount);
+                if (!touched.contains(receipt)) {
+                    touched.add(receipt);
+                }
+            }
+        }
+        for (GenericValue receipt : touched) {
+            FinanceGlHelper.postUnposted(delegator, dispatcher, "paymentId", receipt.getString("paymentId"), userLogin);
+            receipt.set("appliedAmount", appliedToInvoices(delegator, receipt));
+            if (available(delegator, receipt).signum() <= 0) {
+                receipt.set("statusId", STATUS_APPLIED);
+                receipt.set("settledDate", UtilDateTime.nowTimestamp());
+            }
+            receipt.store();
+        }
+        return total;
     }
 
     // ------------------------------------------------------------------
@@ -247,6 +379,17 @@ public final class LeaseAdvanceServices {
             if (amount == null || amount.signum() <= 0) {
                 return error("FinancePaymentAmountInvalid", UtilMisc.toMap(), locale);
             }
+            // Application order (advance lease payments only): oldest installment first (default) or from the last.
+            String order = (String) context.get("applyOrderEnumId");
+            if (TYPE_DEPOSIT.equals(type) && UtilValidate.isNotEmpty(order)) {
+                return error("FinanceLeaseAdvanceOrderDeposit", UtilMisc.toMap(), locale);
+            }
+            if (TYPE_LEASE.equals(type)) {
+                order = UtilValidate.isEmpty(order) ? ORDER_OLDEST : order;
+                if (!ORDER_OLDEST.equals(order) && !ORDER_LAST.equals(order)) {
+                    return error("FinanceLeaseAdvanceOrderInvalid", UtilMisc.toMap("applyOrderEnumId", order), locale);
+                }
+            }
             String organizationPartyId = agreement.getString("organizationPartyId");
             String glAccountId = FinanceGlHelper.findGlAccountId(delegator, organizationPartyId, glAccountType(type));
             if (glAccountId == null) {
@@ -276,6 +419,7 @@ public final class LeaseAdvanceServices {
             receipt.set("leaseAgreementId", leaseAgreementId);
             receipt.set("advanceTypeEnumId", type);
             receipt.set("statusId", STATUS_RECEIVED);
+            receipt.set("applyOrderEnumId", order);
             receipt.set("receiptDate", receiptDate);
             receipt.set("amount", amount);
             receipt.set("currencyUomId", agreement.getString("currencyUomId"));
@@ -423,17 +567,22 @@ public final class LeaseAdvanceServices {
             throws GenericEntityException {
         BigDecimal[] advance = new BigDecimal[] {BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO};
         BigDecimal[] deposit = new BigDecimal[] {BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO};
+        BigDecimal lastBalance = BigDecimal.ZERO;
         for (GenericValue r : receipts(delegator, leaseAgreementId, null)) {
             BigDecimal[] sums = TYPE_DEPOSIT.equals(r.getString("advanceTypeEnumId")) ? deposit : advance;
             sums[0] = sums[0].add(nz(r.getBigDecimal("amount")));
             sums[1] = sums[1].add(appliedToInvoices(delegator, r));
             sums[2] = sums[2].add(nz(r.getBigDecimal("refundedAmount")));
+            if (ORDER_LAST.equals(r.getString("applyOrderEnumId"))) {
+                lastBalance = lastBalance.add(available(delegator, r));
+            }
         }
         Map<String, BigDecimal> result = new HashMap<>();
         result.put("advanceReceivedAmount", advance[0]);
         result.put("advanceAppliedAmount", advance[1]);
         result.put("advanceRefundedAmount", advance[2]);
         result.put("advanceBalance", advance[0].subtract(advance[1]).subtract(advance[2]));
+        result.put("advanceLastBalance", lastBalance);
         result.put("depositReceivedAmount", deposit[0]);
         result.put("depositAppliedAmount", deposit[1]);
         result.put("depositRefundedAmount", deposit[2]);

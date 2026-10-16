@@ -322,4 +322,7 @@ under the License.
     <StatusItem description="Settled with a refund" sequenceId="03" statusCode="REFUNDED" statusId="LSADVST_REFUNDED" statusTypeId="LEASE_ADV_STATUS"/>
     <StatusValidChange statusId="LSADVST_RECEIVED" statusIdTo="LSADVST_APPLIED" transitionName="Apply"/>
     <StatusValidChange statusId="LSADVST_RECEIVED" statusIdTo="LSADVST_REFUNDED" transitionName="Refund"/>
+    <EnumerationType description="Lease advance payment application order" enumTypeId="LEASE_ADV_ORDER" hasTable="N"/>
+    <Enumeration description="Oldest installment first (古い回から)" enumCode="OLDEST" enumId="LSADV_ORD_OLDEST" sequenceId="01" enumTypeId="LEASE_ADV_ORDER"/>
+    <Enumeration description="From the last installment (最終回から)" enumCode="LAST" enumId="LSADV_ORD_LAST" sequenceId="02" enumTypeId="LEASE_ADV_ORDER"/>
 </entity-engine-xml>

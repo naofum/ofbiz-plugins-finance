@@ -613,6 +613,7 @@ under the License.
         <field name="leasedAssetBookValue" title="${uiLabelMap.FinanceLeaseAssetBookValue}" use-when="${bsh:context.get(&quot;isOperating&quot;)}"><display type="currency" currency="${currencyUomId}"/></field>
         <field name="advanceBalance" title="${uiLabelMap.FinanceLeaseAdvanceBalance}"><display type="currency" currency="${currencyUomId}"/></field>
         <field name="advanceAppliedAmount" title="${uiLabelMap.FinanceLeaseAdvanceAppliedTotal}"><display type="currency" currency="${currencyUomId}"/></field>
+        <field name="advanceLastBalance" title="${uiLabelMap.FinanceLeaseAdvanceLastBalance}"><display type="currency" currency="${currencyUomId}"/></field>
         <field name="depositBalance" title="${uiLabelMap.FinanceLeaseDepositBalance}"><display type="currency" currency="${currencyUomId}"/></field>
     </form>
 
@@ -701,6 +702,14 @@ under the License.
             </drop-down>
         </field>
         <field name="amount" title="${uiLabelMap.FinanceAmount}" required-field="true"><text size="20"/></field>
+        <field name="applyOrderEnumId" title="${uiLabelMap.FinanceLeaseAdvanceOrder}" tooltip="${uiLabelMap.FinanceLeaseAdvanceOrderTooltip}">
+            <drop-down allow-empty="true">
+                <entity-options entity-name="Enumeration" key-field-name="enumId" description="${description}">
+                    <entity-constraint name="enumTypeId" value="LEASE_ADV_ORDER"/>
+                    <entity-order-by field-name="sequenceId"/>
+                </entity-options>
+            </drop-down>
+        </field>
         <field name="receiptDate" title="${uiLabelMap.FinanceLeaseReceiptDate}" tooltip="${uiLabelMap.FinanceLeaseDefaultToday}"><date-time type="date"/></field>
         <field name="comments" title="${uiLabelMap.CommonComments}"><text size="60"/></field>
         <field name="receiveButton" title="${uiLabelMap.FinanceLeaseReceiveAdvance}"><submit button-type="button"/></field>
@@ -717,6 +726,7 @@ under the License.
             odd-row-style="alternate-row" header-row-style="header-row-2" default-table-style="basic-table hover-bar">
         <field name="receiptDate" title="${uiLabelMap.FinanceLeaseReceiptDate}"><display type="date"/></field>
         <field name="advanceTypeEnumId" title="${uiLabelMap.FinanceLeaseAdvanceType}"><display-entity entity-name="Enumeration" key-field-name="enumId"/></field>
+        <field name="applyOrderEnumId" title="${uiLabelMap.FinanceLeaseAdvanceOrder}"><display-entity entity-name="Enumeration" key-field-name="enumId"/></field>
         <field name="amount" title="${uiLabelMap.FinanceAmount}"><display type="currency" currency="${currencyUomId}"/></field>
         <field name="appliedAmount" title="${uiLabelMap.FinanceLeaseAdvanceApplied}"><display type="currency" currency="${currencyUomId}"/></field>
         <field name="refundedAmount" title="${uiLabelMap.FinanceLeaseAdvanceRefunded}"><display type="currency" currency="${currencyUomId}"/></field>

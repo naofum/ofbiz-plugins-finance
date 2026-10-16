@@ -94,9 +94,22 @@ class LeaseAdvanceTests extends OFBizTestCase {
                 userLogin: userLogin]))
     }
 
-    private Map receive(String agreementId, String type, BigDecimal amount, GenericValue userLogin) {
-        return dispatcher.runSync('receiveLeaseAdvance', [leaseAgreementId: agreementId, advanceTypeEnumId: type,
-                amount: amount, userLogin: userLogin])
+    private Map receive(String agreementId, String type, BigDecimal amount, GenericValue userLogin, String order = null) {
+        Map input = [leaseAgreementId: agreementId, advanceTypeEnumId: type, amount: amount, userLogin: userLogin]
+        if (order != null) {
+            input.applyOrderEnumId = order
+        }
+        return dispatcher.runSync('receiveLeaseAdvance', input)
+    }
+
+    private List<GenericValue> currentSchedule(String agreementId) {
+        long revision = LeaseAccountingServices.currentScheduleRevision(delegator, agreementId)
+        return from('LeaseAgreementPaymentSchedule').where('leaseAgreementId', agreementId,
+                'scheduleRevisionNumber', revision).orderBy('installmentNumber').queryList()
+    }
+
+    private static BigDecimal rowAmount(GenericValue row) {
+        return row.leaseAmount.add(row.taxAmount ?: BigDecimal.ZERO)
     }
 
     private Map bill(String agreementId, long installment, GenericValue userLogin) {
@@ -320,5 +333,90 @@ class LeaseAdvanceTests extends OFBizTestCase {
         ok(dispatcher.runSync('setLeaseAgreementStatus', [leaseAgreementId: agreementId, statusId: 'LEASEAGR_CANCELLED',
                 userLogin: userLogin]))
         assert ServiceUtil.isError(receive(agreementId, 'LSADV_DEPOSIT', amount, userLogin))
+    }
+
+    // Order "from the last installment": not used for the earlier installments; applied to the last, then the one before.
+    void testAdvanceFromLastInstallment() {
+        GenericValue userLogin = admin()
+        LocalDate start = LocalDate.now().minusMonths(13).withDayOfMonth(1)
+        String agreementId = contractedLease(userLogin, start, 12L)
+        // Only for advance lease payments; the value must be known.
+        assert ServiceUtil.isError(receive(agreementId, 'LSADV_DEPOSIT', new BigDecimal('100.00'), userLogin, 'LSADV_ORD_LAST'))
+        assert ServiceUtil.isError(receive(agreementId, 'LSADV_LEASE', new BigDecimal('100.00'), userLogin, 'NO_SUCH_ORDER'))
+        accept(agreementId, start, userLogin)
+        List<GenericValue> rows = currentSchedule(agreementId)
+        assert rows.size() == 12
+        BigDecimal extra = new BigDecimal('100.00')
+        BigDecimal amount = rowAmount(rows[11]).add(extra)
+        Map last = receive(agreementId, 'LSADV_LEASE', amount, userLogin, 'LSADV_ORD_LAST')
+        ok(last)
+        assert last.appliedAmount.compareTo(BigDecimal.ZERO) == 0
+        GenericValue receipt = from('LeaseAdvanceReceipt').where('leaseAdvanceReceiptId', last.leaseAdvanceReceiptId).queryOne()
+        assert receipt.applyOrderEnumId == 'LSADV_ORD_LAST'
+        // The default order is "oldest first".
+        Map oldest = receive(agreementId, 'LSADV_LEASE', new BigDecimal('50.00'), userLogin)
+        ok(oldest)
+        assert from('LeaseAdvanceReceipt').where('leaseAdvanceReceiptId', oldest.leaseAdvanceReceiptId).queryOne()
+                .applyOrderEnumId == 'LSADV_ORD_OLDEST'
+
+        // Installments 1..10: the receipt for the last installments is not used.
+        Map bill1 = bill(agreementId, 1L, userLogin)
+        assert appliedFrom(oldest.paymentId, bill1.invoiceId).compareTo(new BigDecimal('50.00')) == 0
+        (2L..10L).each { long k -> bill(agreementId, k, userLogin) }
+        assert from('PaymentApplication').where('paymentId', last.paymentId).queryCount() == 0
+        Map bal = balance(agreementId, userLogin)
+        assert bal.advanceLastBalance.compareTo(amount) == 0
+        assert bal.advanceBalance.compareTo(amount) == 0
+
+        // Installment 11: what is left after the last installment (the extra).
+        Map bill11 = bill(agreementId, 11L, userLogin)
+        assert appliedFrom(last.paymentId, bill11.invoiceId).compareTo(extra) == 0
+        assert notApplied(bill11.invoiceId).compareTo(bill11.billedAmount.subtract(extra)) == 0
+        // Installment 12: in full.
+        Map bill12 = bill(agreementId, 12L, userLogin)
+        assert appliedFrom(last.paymentId, bill12.invoiceId).compareTo(bill12.billedAmount) == 0
+        assert from('Invoice').where('invoiceId', bill12.invoiceId).queryOne().statusId == 'INVOICE_PAID'
+        receipt.refresh()
+        assert receipt.statusId == 'LSADVST_APPLIED'
+        assert receipt.appliedAmount.compareTo(amount) == 0
+        Map<String, BigDecimal> applSums = paymentEntrySums(last.paymentId, 'PAYMENT_APPL')
+        assert applSums['224800:D'].compareTo(amount) == 0
+        assert applSums['120000:C'].compareTo(amount) == 0
+        bal = balance(agreementId, userLogin)
+        assert bal.advanceLastBalance.compareTo(BigDecimal.ZERO) == 0
+        assert bal.advanceBalance.compareTo(BigDecimal.ZERO) == 0
+    }
+
+    // "From the last installment" follows the schedule at application time (change of terms);
+    // after a termination it is applied by the settlement (unpaid invoices and damages, oldest first) and the rest refunded.
+    void testAdvanceFromLastAfterModificationAndTermination() {
+        GenericValue userLogin = admin()
+        LocalDate start = LocalDate.now().minusMonths(2).withDayOfMonth(1)
+        String agreementId = contractedLease(userLogin, start, 24L)
+        accept(agreementId, start, userLogin)
+        BigDecimal amount = new BigDecimal('100.00')
+        Map last = receive(agreementId, 'LSADV_LEASE', amount, userLogin, 'LSADV_ORD_LAST')
+        ok(last)
+        ok(dispatcher.runSync('createLeaseModification', [leaseAgreementId: agreementId, newTermMonths: 12L,
+                reason: 'Shorter term', userLogin: userLogin]))
+        assert currentSchedule(agreementId).size() == 12
+        ok(dispatcher.runSync('runLeaseMonthlyAccountingBatch', [leaseAgreementId: agreementId, userLogin: userLogin]))
+        assert from('PaymentApplication').where('paymentId', last.paymentId).queryCount() == 0
+        Map bal = balance(agreementId, userLogin)
+        assert bal.advanceLastBalance.compareTo(amount) == 0
+        BigDecimal unpaid = bal.unpaidBilledAmount
+
+        Map terminated = dispatcher.runSync('terminateLeaseAgreement', [leaseAgreementId: agreementId,
+                reason: 'Advance from last test', userLogin: userLogin])
+        ok(terminated)
+        assert from('PaymentApplication').where('paymentId', last.paymentId).queryCount() == 0   // not to the damages
+        Map settled = dispatcher.runSync('settleLeaseAdvances', [leaseAgreementId: agreementId, userLogin: userLogin])
+        ok(settled)
+        BigDecimal expected = unpaid.add(terminated.damagesAmount ?: BigDecimal.ZERO).min(amount)
+        assert settled.appliedAmount.compareTo(expected) == 0
+        assert settled.refundedAmount.compareTo(amount.subtract(expected)) == 0
+        bal = balance(agreementId, userLogin)
+        assert bal.advanceBalance.compareTo(BigDecimal.ZERO) == 0
+        assert bal.advanceLastBalance.compareTo(BigDecimal.ZERO) == 0
     }
 }
