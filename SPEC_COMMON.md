@@ -34,6 +34,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L10a | 契約×取引先×役割×持分率（`FinanceContractParty`）と契約の親子関係（10 章） | 完了（tests=138 / errors=0 / failures=0） |
 | L15a | 誤操作の取消（取消記録・逆仕訳・管理者権限。11 章。ローン・リースの各操作は `SPEC.md` 27 章・`SPEC_LEASE.md` 18 章） | 完了（tests=192 / errors=0 / failures=0） |
 | L15b | 祝日カレンダーを考慮した営業日調整（core `TechDataCalendar`、複数カレンダー。12 章） | 完了（tests=203 / errors=0 / failures=0） |
+| L21 | 外部 BPM 連携の承認ワークフロー（汎用 REST、依頼サービス・Webhook とポーリング。13 章） | 設計（未着手） |
 
 L0 のコミット：L0-1 `6d46268`、L0-2 `fe644c8`、L0-3 `ae6fa2e`、L0-4 `2afe7f7`、L0-5 `beea390`、L0-6 `450b654`。
 
@@ -447,6 +448,207 @@ core の `Agreement` / `AgreementRole` は使わない（`FinanceContract` は c
 - **ローン層への影響**：ローンの返済表の期日にも適用する（`SPEC.md` 28 章）。
 - **core 変更**：なし（core のエンティティを読むだけ）。
 - **テスト時間**：今回の全体テストは 44 分かかった。目安の 20 分を超えているため、次の STEP の前に開発用 DB を作り直す（`cleanAll loadAll`）ことを勧める。
+
+---
+
+## 13. 外部 BPM 連携の承認ワークフロー（STEP L21、設計）
+
+> **状態：設計（未着手）**。2026-10-17 に方針を決定した。設計だけを記録し、実装は別途行う。実装後に「実装」「テスト」「検証」を追記する。
+
+実務では、何段階もの承認、複数部署への回覧、金額による決裁者の切替などの承認ワークフローが必要になる。OFBiz 本体には現在ワークフローエンジンがない（古い workflow エンジンは削除済み）ため、**外部の BPM（Business Process Management）製品に承認を任せ、finance には汎用の薄い連携層（ラッパー）だけを置く**。
+
+### 13.1 決定事項（2026-10-17）
+
+| 項目 | 決定 |
+|------|------|
+| 対象の BPM | **汎用 REST だけ**。製品別（Camunda・Flowable 等）の実装は作らず、汎用 REST の設定（URL・認証・項目の対応）で合わせる。製品別の実装が必要になったら `BpmAdapter` を追加する |
+| 最初の対象操作 | **審査の承認・否決**（`setLoanUnderwritingStatus` → `LOANUW_APPROVED` / `LOANUW_REJECTED`。ローン・リース共通）、**契約の作成**（`createLoanAgreement` / `createLeaseAgreement`）、**中途解約**（`terminateLeaseAgreement`） |
+| 差し込み方 | **A：依頼サービスを分ける**。画面・API は承認の依頼サービス（`requestFinanceApproval`）を呼び、承認されたら記録してある元の業務サービスを実行する。元の業務サービスは変えない（直接呼べば今まで通り動く。サービスの中で承認済みかを確かめる方式 B は採らない） |
+| 結果の受け取り | **Webhook（BPM から呼んでもらう）と、定期的な問い合わせ（ポーリング）の両方**。BPM 製品によって使える方式が違うため、接続先ごとに設定で選ぶ（両方を有効にしてもよい。二重処理は依頼 ID で防ぐ） |
+| 業務の状態 | **BPM は業務の状態を変えない**。BPM が返すのは判断（承認／否決）だけで、業務の状態は既存の状態遷移サービスが変える（AGENTS.md の「業務STATUSは状態遷移サービスだけで変える」を守る） |
+| 層 | **共通層**（`org.apache.ofbiz.finance.common`）に置く。共通層はローン層・リース層のクラスを参照しない（操作は「サービス名＋入力」で記録し、OFBiz の dispatcher で呼ぶ） |
+
+### 13.2 全体の流れ
+
+```mermaid
+sequenceDiagram
+    participant UI as 画面・API
+    participant F as finance（承認の関門）
+    participant O as 送信待ち（アウトボックス）
+    participant A as BpmAdapter（汎用 REST）
+    participant B as 外部 BPM
+    UI->>F: requestFinanceApproval（操作・入力）
+    F->>F: 方針（FinanceApprovalPolicy）で承認の要否を判定
+    alt 承認が要らない
+        F->>F: 元の業務サービスをすぐ実行
+    else 承認が要る
+        F->>F: 依頼を記録（FINAPR_PENDING）。業務の状態は変えない
+        F->>O: 送信を予約（同じトランザクション）
+        O->>A: 確定後にジョブで送信
+        A->>B: プロセスを開始（REST）
+        B-->>B: 多段階の承認・回覧
+        alt Webhook
+            B->>F: 結果を通知（署名つき）
+        else ポーリング
+            F->>A: 状態の問い合わせ（ジョブ）
+            A->>B: GET
+        end
+        F->>F: 本人確認・二重処理と前提の確認
+        F->>F: 承認なら元の業務サービスを実行（否決なら実行しない）
+    end
+```
+
+依頼の状態（`FIN_APPROVAL_STATUS`）：
+
+```mermaid
+stateDiagram-v2
+    [*] --> FINAPR_PENDING: 依頼（送信待ち）
+    FINAPR_PENDING --> FINAPR_IN_PROCESS: BPM が受け付けた
+    FINAPR_PENDING --> FINAPR_ERROR: 送信の失敗が上限を超えた
+    FINAPR_IN_PROCESS --> FINAPR_APPROVED: 承認（業務サービスを実行中）
+    FINAPR_IN_PROCESS --> FINAPR_REJECTED: 否決
+    FINAPR_IN_PROCESS --> FINAPR_CANCELLED: 取下げ
+    FINAPR_PENDING --> FINAPR_CANCELLED: 取下げ
+    FINAPR_APPROVED --> FINAPR_EXECUTED: 業務サービスが成功
+    FINAPR_APPROVED --> FINAPR_ERROR: 業務サービスが失敗・前提が変わった
+    FINAPR_ERROR --> FINAPR_PENDING: 管理者が再送
+    FINAPR_EXECUTED --> [*]
+    FINAPR_REJECTED --> [*]
+    FINAPR_CANCELLED --> [*]
+```
+
+### 13.3 データモデル（予定）
+
+| 種類 | 内容 |
+|------|------|
+| `FinanceApprovalRequest`（新規） | 依頼 1 件：`financeApprovalRequestId`、操作（`approvalOperationEnumId`）、対象（`contractTypeId`・`targetEntityName`・`targetId`、あれば `financeContractId`）、実行するサービス名（`serviceName`）と入力（`serviceContext`、JSON。`userLogin`・`locale` は保存しない）、前提の値（`preconditionJson`：依頼時の対象の状態・金額など）、方針（`financeApprovalPolicyId`）、接続先（`bpmEndpointId`）、BPM 側の ID（`externalProcessId`）、状態（`statusId`）、判断（`decision`）・判断者（`decisionByText`）・コメント、依頼者（`requestedByUserLogin`）、依頼日時・判断日時・実行日時、実行結果（`resultMessage`、作成された ID など `resultJson`）、送信回数・最終送信日時 |
+| `FinanceApprovalEvent`（新規） | 依頼ごとの履歴（送信・受付・Webhook 受信・問い合わせ・判断・実行・エラー）。受信した本文の要約とハッシュ（二重受信の判定に使う）を残す |
+| `FinanceApprovalPolicy`（新規、設定データ） | 「操作 × 契約種別 × 商品（空＝すべて）× 金額の範囲（空＝制限なし）→ 承認の要否、接続先、BPM のプロセス名（`processKey`）、有効期間」。先に一致した優先順位（`sequenceNum`）の行を使う。一致する行がなければ**承認不要**（今まで通り） |
+| `FinanceBpmEndpoint`（新規、設定データ） | 接続先：`bpmEndpointId`、アダプター（`adapterName`、既定 `GENERIC_REST`）、基本 URL、開始・問い合わせ・取下げのパスと HTTP メソッド、認証の方式（なし／Basic／Bearer トークン）と資格情報のプロパティ名（値そのものは DB に置かない）、Webhook の有効・署名鍵のプロパティ名、ポーリングの有効・間隔、タイムアウト、再送の上限、応答の項目の対応（`responseMappingJson`：BPM 側の ID・状態・判断の項目名と値の対応） |
+| `FinanceApprovalOutbox`（新規） | 送信待ち：依頼 ID、送る操作（開始／取下げ）、次の送信予定日時、送信回数、最後のエラー |
+| seed | 状態 `FIN_APPROVAL_STATUS`（上の図）と `StatusValidChange`、操作 `FIN_APPROVAL_OP`（`FINAPROP_UW_DECISION` 審査の判断、`FINAPROP_AGR_CREATE` 契約の作成、`FINAPROP_LS_TERMINATE` 中途解約）、権限 `FINANCE_APPROVAL_*`、BPM 用のシステムユーザー |
+| demo | 内部テスト用の接続先（`FINBPM_DEMO`、ポーリングのみ、URL はローカル）と、承認を要求する方針の例（無効の状態で登録） |
+
+### 13.4 操作の対応（最初の 3 つ）
+
+| 操作 | 依頼で受け取る入力 | 実行するサービス | 前提の確認（判断を受けたとき） | 方針の金額 |
+|------|--------------------|------------------|--------------------------------|------------|
+| 審査の判断 | `loanUnderwritingId`、`statusId`（APPROVED / REJECTED） | `setLoanUnderwritingStatus` | 審査がまだ `LOANUW_IN_REVIEW` で、承認額が依頼時と同じ | 審査の承認額（`approvedPrincipalAmount`） |
+| 契約の作成 | `loanQuoteId` または `leaseQuoteId` と、契約日など | `createLoanAgreement` / `createLeaseAgreement` | 見積が受理済みのまま、同じ見積の契約がまだない | 見積の元本・取得価額 |
+| 中途解約 | `leaseAgreementId`、解約日、理由 | `terminateLeaseAgreement` | 契約がまだ `LEASEAGR_ACTIVE`。規定損害金を依頼時に計算して保存し、判断時の再計算と比べて違えば `FINAPR_ERROR` | 規定損害金（`calculateLeaseTerminationDamages`） |
+
+- 操作ごとの「入力の検証・前提の取得・方針の金額」は、`FinanceApprovalOperation`（共通層のインターフェース）の実装が受け持つ。実装クラスは `finance.properties` の `approval.operation.<操作>` で登録する（`FinanceContractAdapter` と同じ形）。中途解約の実装はリース層、審査の判断は共通層、契約の作成はローン層・リース層に置く。
+- 審査の判断は、否決も承認の対象にできる（方針の設定で選ぶ）。否決を承認なしで行う運用なら、方針に否決の行を作らない。
+- 依頼を作るときにも業務サービスの事前確認を行い（契約の作成なら申込・見積・審査の状態、中途解約なら計算サービス）、実行できない依頼は作らない。
+
+### 13.5 サービス（予定）
+
+| サービス | 内容 |
+|----------|------|
+| `requestFinanceApproval` | 操作と入力を受け取る。方針で承認が要らなければ元のサービスをすぐ実行して結果を返す。要るときは依頼と送信待ちを作り、`financeApprovalRequestId` を返す（同じ対象・操作の進行中の依頼があればエラー） |
+| `cancelFinanceApproval` | 依頼者または管理者が取り下げる。BPM にも取下げを送る（送信待ち） |
+| `processFinanceApprovalOutbox`（ジョブ） | 送信待ちを送る。失敗したら間隔をあけて再送し、上限を超えたら `FINAPR_ERROR` |
+| `pollFinanceApprovals`（ジョブ） | ポーリングが有効な接続先の、進行中の依頼の状態を問い合わせ、判断が出ていれば `completeFinanceApproval` を呼ぶ |
+| `receiveFinanceApprovalWebhook`（イベント） | Webhook の受け口。署名と接続先を確かめ、本文を `BpmAdapter.parseCallback` で判断に変換して `completeFinanceApproval` を呼ぶ |
+| `completeFinanceApproval`（内部） | 判断を確定する：①依頼をロック（`FinanceContractHelper.lock` または依頼の行のロック）②状態が終わっていれば何もしない（冪等）③前提を確かめる ④承認なら記録したサービスを依頼者の権限で実行し、結果を保存 ⑤履歴を残す |
+| `retryFinanceApproval` | 管理者が `FINAPR_ERROR` の依頼を送り直す（前提が変わった場合は取り下げて新しく依頼する） |
+| `getFinanceApprovalStatus` | 画面・API 用の照会 |
+
+**`BpmAdapter`**（共通層のインターフェース）：
+
+```java
+public interface BpmAdapter {
+    /** Start a process; returns the external process id (null = accepted asynchronously). */
+    String start(GenericValue endpoint, GenericValue request, Map<String, Object> payload) throws BpmException;
+    /** Current state of a process (for polling); null when not decided yet. */
+    BpmDecision status(GenericValue endpoint, GenericValue request) throws BpmException;
+    void cancel(GenericValue endpoint, GenericValue request, String reason) throws BpmException;
+    /** Verify and translate a webhook call into a decision. */
+    BpmDecision parseCallback(GenericValue endpoint, Map<String, String> headers, String body) throws BpmException;
+}
+```
+
+- 実装は `GenericRestBpmAdapter` の 1 つ（Java 標準の `java.net.http.HttpClient` と JSON。外部ライブラリを増やさない）。`finance.properties` の `bpm.adapter.GENERIC_REST` で登録し、製品別の実装を足すときも同じ形で登録する。
+- テスト用に、HTTP を使わず決めた判断を返す `StubBpmAdapter` をテストのソース（`src/main/groovy/.../test`）に置き、テストの中だけで登録する。
+
+### 13.6 汎用 REST の送受信（既定の形）
+
+**開始（POST 開始のパス）** で送る本文：
+
+```json
+{
+  "requestId": "10010",
+  "processKey": "lease-termination-approval",
+  "operation": "FINAPROP_LS_TERMINATE",
+  "contractType": "LEASE",
+  "targetId": "10070",
+  "financeContractId": "10230",
+  "amount": 1234567,
+  "currency": "JPY",
+  "requestedBy": "admin",
+  "summary": { "lessee": "...", "terminationDate": "2026-10-31", "reason": "..." },
+  "callbackUrl": "https://<host>/finance/control/financeApprovalWebhook",
+  "detailUrl": "https://<host>/finance/control/ViewFinanceApproval?financeApprovalRequestId=10010"
+}
+```
+
+- 個人情報・金額の明細は最小限にし、詳細は `detailUrl` から finance の画面で見てもらう（BPM 側に業務データを複製しない）。
+- 応答から BPM 側の ID を `responseMappingJson` の項目名で取り出す（例 `{"processId": "$.id"}`）。
+
+**判断（Webhook の本文、または問い合わせの応答）**：`responseMappingJson` で、BPM の項目と値を finance の判断に対応づける。
+
+```json
+{ "requestId": "10010", "processId": "abc-123", "state": "COMPLETED", "outcome": "APPROVED",
+  "decidedBy": "部長 山田", "comment": "...", "decidedAt": "2026-10-20T15:00:00+09:00" }
+```
+
+| 対応の例（`responseMappingJson`） | 意味 |
+|------|------|
+| `"decision": "$.outcome"`、`"approvedValues": ["APPROVED", "OK"]`、`"rejectedValues": ["REJECTED", "NG"]` | 判断の項目と値 |
+| `"doneStates": ["COMPLETED"]`、`"cancelledStates": ["TERMINATED", "CANCELED"]` | 問い合わせで終わったとみなす状態 |
+
+### 13.7 安全性・整合性
+
+| 観点 | 対応 |
+|------|------|
+| Webhook の本人確認 | 本文の HMAC-SHA256 署名（ヘッダー、鍵は接続先ごと）または Bearer トークン。時刻のずれの許容範囲を設け、古い通知・同じ通知（本文のハッシュ）は拒否する。HTTPS 必須 |
+| 二重処理 | 判断の確定は依頼の状態が進行中のときだけ（冪等）。Webhook とポーリングが両方届いても 1 回だけ実行する |
+| 待っている間の変化 | 判断を受けたとき、依頼時に保存した前提（状態・金額）を確かめ、違えば実行せず `FINAPR_ERROR`（理由つき）。対象の業務サービス自身の検査も通常通り働く |
+| 実行する権限 | 記録したサービスを**依頼者の `UserLogin`** で実行する（依頼者がその操作の権限を持たない依頼は作れない）。Webhook の受け口は BPM 用のシステムユーザーで、承認の確定以外の権限を持たせない |
+| トランザクション | 依頼と送信待ちは同じトランザクションで作り、送信は確定後にジョブで行う（アウトボックス）。HTTP 通信を業務のトランザクションの中で行わない |
+| 入力の保存 | `serviceContext` はサービス定義の IN 属性だけを JSON で保存する（`userLogin`・`locale`・パスワード類は除く）。実行時に型を戻す |
+| 資格情報 | URL 以外の秘密（トークン・署名鍵・パスワード）は DB に置かず、`finance.properties`（または環境変数）のプロパティ名で参照する |
+| 監査 | 依頼・送信・受信・判断・実行・エラーを `FinanceApprovalEvent` に残す。誤操作の取消（L15a）の記録とは別 |
+| BPM が止まったとき | 送信は再送し、上限を超えたら `FINAPR_ERROR` で管理者に知らせる（作業管理のタスク `FINWE_OTHER` を作る）。緊急時は管理者が依頼を取り下げ、権限を持つ人が業務サービスを直接実行できる（方式 A のため） |
+
+### 13.8 画面（予定）
+
+- 対象の画面（審査・契約の作成・中途解約）のボタンを、方針で承認が要るときは「承認を依頼」に変え、`requestFinanceApproval` を呼ぶ。承認が要らない操作の画面は変えない。
+- 契約・申込の画面に「承認の依頼」の一覧（状態・BPM 側の ID・判断者・コメント・履歴）を出す。進行中の依頼がある操作のボタンは押せないようにする。
+- 管理画面：方針・接続先の一覧と編集、`FINAPR_ERROR` の依頼の一覧と再送・取下げ。
+
+### 13.9 テスト（予定）
+
+| テスト | 確認すること |
+|--------|--------------|
+| 方針の判定 | 一致する行がなければ承認不要ですぐ実行、金額の範囲・商品・優先順位・有効期間 |
+| 3 つの操作の承認・否決 | `StubBpmAdapter` で承認 → 業務サービスが 1 回だけ実行される（審査が APPROVED、契約ができる、解約される）。否決 → 実行されない。業務の状態は依頼の間変わらない |
+| Webhook | 署名の検証（正しい・誤り・古い）、同じ通知の 2 回目は何もしない、判断の項目の対応 |
+| ポーリング | 判断前は何もしない、判断が出たら確定、Webhook との重複で 1 回だけ実行 |
+| 前提の変化 | 依頼の後に対象が別の操作で変わった（審査が別に承認された、契約が先にできた、損害金が変わった）→ `FINAPR_ERROR` |
+| 送信の失敗 | 再送と上限、取下げ |
+| 権限 | 権限のない依頼者は依頼できない、Webhook のユーザーは他の操作をできない |
+| 既存の動作 | 方針がないときは今の全体テストがそのまま通る（方式 A のため既存のサービスは変わらない） |
+
+### 13.10 要確認・制約
+
+- **差し込み方 B（サービスの中での強制）**：今回は採らない。承認を必須にする操作は、画面・API の入口を `requestFinanceApproval` だけにする運用で守る。必須化が必要になったら、操作ごとに「承認済みの依頼 ID がないとエラー」の確認を業務サービスに足す（バッチ・テスト・取消での扱いを合わせて決める）。
+- **バッチの中の操作**：月次バッチ・延滞バッチ・満了バッチが行う処理は承認の対象にしない。
+- **BPM 側からの差し戻し・条件の修正**：判断は承認／否決／取下げの 3 つだけとし、「条件を変えて承認」は否決して新しく依頼する。
+- **複数の承認結果の合成**（例：審査と与信枠の同時承認）は対象外。
+- **対象の拡大**：見積の受理、検収、条件変更、契約分割、債権の償却、誤操作の取消、前受金・保証金の精算を候補とし、`FinanceApprovalOperation` の実装を足して広げる。
+- **OFBiz の rest-api プラグイン**：BPM から finance の照会 API を呼ぶ用途で使えるが、本 STEP の受け口は finance の Webhook（コントローラーのイベント）とする。
+- **時刻**：BPM の判断日時はそのまま記録し、業務サービスの日付（契約日・解約日）は依頼時の入力を使う（判断が遅れても日付は変えない。変える必要がある場合は取り下げて依頼し直す）。
 
 ---
 ## 運用メモ
