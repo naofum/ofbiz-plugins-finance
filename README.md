@@ -593,6 +593,7 @@ demo データを読み込んだ環境では、OFBiz の管理者ユーザー（
 | [`SPEC_LEASE.md`](SPEC_LEASE.md) | リース層の詳細仕様（STEP ごとの決定事項・仕訳・テスト・検証） |
 | [`AGENTS.md`](AGENTS.md) | 開発のルール（AI エージェント向けだが、設計方針の要約としても読める） |
 | [`REQUIREMENTS_UNDERWRITING.md`](REQUIREMENTS_UNDERWRITING.md) / [`SPEC_UNDERWRITING.md`](SPEC_UNDERWRITING.md) | 審査（与信審査）の要件と設計（社内の情報・規則・スコアカード・決裁・外部の情報・貸金業法と割賦販売法の確認・AI の活用・途中の管理。設計のみ） |
+| [`REQUIREMENTS_EFINANCE.md`](REQUIREMENTS_EFINANCE.md) / [`SPEC_EFINANCE.md`](SPEC_EFINANCE.md) | Web 申込・顧客ポータル（別プラグイン `efinance`。rest-api の API と別のフロントエンド、会員・シミュレーション・申込・eKYC・仮審査・電子契約・マイページ・口座振替。設計のみ） |
 | [`REQUIREMENTS_ALM.md`](REQUIREMENTS_ALM.md) / [`SPEC_ALM.md`](SPEC_ALM.md) | ALM（資産負債管理）の要件と設計（別プラグイン `alm` として作る予定。設計のみ） |
 | [`REQUIREMENTS_LESSEE.md`](REQUIREMENTS_LESSEE.md) / [`SPEC_LESSEE.md`](SPEC_LESSEE.md) | リース借手（一般の事業会社）向けの要件と設計（別プラグイン `lessee` として作る予定。現行基準・新リース会計基準・IFRS 第 16 号。設計のみ） |
 
