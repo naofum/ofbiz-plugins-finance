@@ -6,6 +6,7 @@
 - 開発対象のfinance機能は `plugins/finance/` にある。
 - 要件定義は `REQUIREMENTS.md`（ローン）と `REQUIREMENTS_LEASE.md`（共通層・リース、STEP L0〜）、詳細仕様・運用記録は `SPEC_COMMON.md`（共通層）・`SPEC.md`（ローン層）・`SPEC_LEASE.md`（リース層）を正とする。
 - ALM（資産負債管理）は別プラグイン `alm` として作る予定で、要件・設計は `REQUIREMENTS_ALM.md`・`SPEC_ALM.md`（alm を作るまで本プラグインに置く）。alm は finance の共通層だけを使い、finance は alm を参照しない。
+- リース借手（一般の事業会社）向けは別プラグイン `lessee` として作る予定で、要件・設計は `REQUIREMENTS_LESSEE.md`・`SPEC_LESSEE.md`（lessee を作るまで本プラグインに置く）。lessee は finance に依存しない。転貸リースは lessee と finance の両方に依存する橋渡し（STEP L22）で扱い、finance の「貸手側のみ」の範囲は変えない。
 - Windows環境では `gradlew.bat` を使用する。
 - リース業務は同一プラグイン内に追加する。プラグイン内は共通層・ローン層・リース層に分け、依存は「ローン層→共通層」「リース層→共通層」のみとする。ローン層とリース層は互いを参照しない（詳細は `REQUIREMENTS_LEASE.md` 1.2）。
 - 層とパッケージ：共通層 `org.apache.ofbiz.finance.common`、ローン層 `org.apache.ofbiz.finance.loan`、リース層 `org.apache.ofbiz.finance.lease`。共通層のJavaはローン層・リース層のクラスをimportしない（契約種別ごとの処理は `FinanceContractAdapter` 経由。実装クラスは `finance.properties` の `contract.adapter.<contractTypeId>` で登録する）。

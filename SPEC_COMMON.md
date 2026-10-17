@@ -35,7 +35,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L15a | 誤操作の取消（取消記録・逆仕訳・管理者権限。11 章。ローン・リースの各操作は `SPEC.md` 27 章・`SPEC_LEASE.md` 18 章） | 完了（tests=192 / errors=0 / failures=0） |
 | L15b | 祝日カレンダーを考慮した営業日調整（core `TechDataCalendar`、複数カレンダー。12 章） | 完了（tests=203 / errors=0 / failures=0） |
 | L21 | 外部 BPM 連携の承認ワークフロー（汎用 REST、依頼サービス・Webhook とポーリング。13 章） | 設計（未着手） |
-| L22 | 将来キャッシュフローの部品（ALM 向け。`FinanceContractAdapter.projectCashFlows`・`FinanceCashFlowProvider`。14 章、`REQUIREMENTS_ALM.md`） | 設計（未着手） |
+| L23 | 将来キャッシュフローの部品（ALM 向け。`FinanceContractAdapter.projectCashFlows`・`FinanceCashFlowProvider`。14 章、`REQUIREMENTS_ALM.md`） | 設計（未着手） |
 
 L0 のコミット：L0-1 `6d46268`、L0-2 `fe644c8`、L0-3 `ae6fa2e`、L0-4 `2afe7f7`、L0-5 `beea390`、L0-6 `450b654`。
 
@@ -653,7 +653,7 @@ public interface BpmAdapter {
 
 ---
 
-## 14. 将来キャッシュフローの部品（STEP L22、設計）
+## 14. 将来キャッシュフローの部品（STEP L23、設計）
 
 > **状態：設計（未着手）**。2026-10-17 に方針を決定した（ALM の基盤。`REQUIREMENTS_ALM.md`・`SPEC_ALM.md`）。実装後に「実装」「テスト」「検証」を追記する。
 

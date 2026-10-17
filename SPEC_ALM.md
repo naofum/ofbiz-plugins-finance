@@ -8,7 +8,7 @@
 
 | STEP | 内容 | 状態 |
 |------|------|------|
-| L22（finance） | 将来キャッシュフローの部品（`SPEC_COMMON.md` 14 章） | 設計（未着手） |
+| L23（finance） | 将来キャッシュフローの部品（`SPEC_COMMON.md` 14 章） | 設計（未着手） |
 | A0 | 基盤（2 章） | 設計（未着手） |
 | A1 | 調達の管理（3 章） | 設計（未着手） |
 | A2 | 資金ギャップ（4 章） | 設計（未着手） |
@@ -41,7 +41,7 @@ flowchart LR
         RUN[AlmRun] --> SRC[AlmCashFlowSource<br/>（資産・負債・ヘッジ）]
     end
     subgraph finance 共通層
-        PROV[FinanceCashFlowProvider<br/>（L22）]
+        PROV[FinanceCashFlowProvider<br/>（L23）]
         AD[FinanceContractAdapter]
     end
     SRC -- 資産 --> PROV
@@ -51,7 +51,7 @@ flowchart LR
     SRC -- 負債・ヘッジ --> FUND[alm の調達・スワップ]
 ```
 
-- 資産のキャッシュフローは finance の `FinanceCashFlowProvider.projectCashFlows`（L22、`SPEC_COMMON.md` 14 章）だけから受け取る。
+- 資産のキャッシュフローは finance の `FinanceCashFlowProvider.projectCashFlows`（L23、`SPEC_COMMON.md` 14 章）だけから受け取る。
 - alm は finance のエンティティ（`FinanceContract` 等）を読んでよいが、書き込まない。例外は流動化の印（3.6、finance の別の STEP で決める）。
 
 ### 1.3 調達を共通契約台帳に載せるか
@@ -99,7 +99,7 @@ public interface AlmCalculator {
 | サービス | 内容 |
 |----------|------|
 | `createAlmRun` | 実行を作る（基準日・組織・帯・前提・分析の種類） |
-| `runAlmSnapshot` | 資産（L22）・負債（A1）・ヘッジ（A4）のキャッシュフローと残高を取り込む。契約 500 件ごと（設定）に別のトランザクションで確定し、途中で失敗した実行はエラーにする（同じ実行で再実行すると明細を作り直す） |
+| `runAlmSnapshot` | 資産（L23）・負債（A1）・ヘッジ（A4）のキャッシュフローと残高を取り込む。契約 500 件ごと（設定）に別のトランザクションで確定し、途中で失敗した実行はエラーにする（同じ実行で再実行すると明細を作り直す） |
 | `runAlmAnalysis` | `AlmCalculator` で分析の結果を作る |
 | `runAlmBatch` | 上の 3 つをまとめて実行する（ジョブスケジューラで月次・日次に登録） |
 | `finalizeAlmRun` | 確定（`ALMRUN_FINAL`）。確定した実行の明細・結果は変えない |
@@ -107,7 +107,7 @@ public interface AlmCalculator {
 
 ### 2.3 将来キャッシュフローの取込み
 
-- 対象：基準日に有効な契約（finance の L22 が返すもの）。中途解約で回収中・分割済の契約は、請求済みの未回収の分だけ。
+- 対象：基準日に有効な契約（finance の L23 が返すもの）。中途解約で回収中・分割済の契約は、請求済みの未回収の分だけ。
 - 請求済みの回（未回収）は `BILLED`、確定表の未請求の回は `SCHEDULED`、行動の前提による調整は `ASSUMED` として別の行にする（調整前の契約どおりの値を残す）。
 - 前受金・保証金の残高は負債（`DEPOSIT`／`ADVANCE`）として取り込む。保証金は返還の予定日（契約の終了日）に資金の出とする。
 - 延滞中の未回収は、行動の前提の「回収遅れの日数」で期日をずらす（既定 0 日）。
@@ -218,7 +218,7 @@ public interface AlmCalculator {
 ### 7.2 NII のシミュレーション
 
 - 期間：基準日の翌月から 12〜36 か月（設定）、月次。
-- 受取利息：ローンは日次残元本方式（finance と同じ日割り基準）、リースは利息相当額の期間配分（finance の `LeaseProfitAllocator` と同じ考え方。alm は finance の計算クラスを直接使わず、L22 が返す期間ごとの利息相当額を使う）。
+- 受取利息：ローンは日次残元本方式（finance と同じ日割り基準）、リースは利息相当額の期間配分（finance の `LeaseProfitAllocator` と同じ考え方。alm は finance の計算クラスを直接使わず、L23 が返す期間ごとの利息相当額を使う）。
 - 支払利息：調達・スワップの予定。変動はシナリオのカーブで改定する。
 - 残高の前提：
   - **静的**：満期・返済の分は補充しない。
@@ -283,7 +283,7 @@ sequenceDiagram
 | 種類 | 内容 |
 |------|------|
 | 計算の単体テスト | 計算クラスは DB を使わないので、決めた入力（手計算できるキャッシュフロー・カーブ）で結果を確かめる（ギャップの合計＝キャッシュフローの合計、平行移動 +1bp の ΔEVE ≒ −BPV 等） |
-| 取込みのテスト | finance のテストと同じ方法でローン・リースの契約を作り、L22 の部品の結果と `AlmCashFlow` が一致すること（請求済み・未請求・分割済・中途解約） |
+| 取込みのテスト | finance のテストと同じ方法でローン・リースの契約を作り、L23 の部品の結果と `AlmCashFlow` が一致すること（請求済み・未請求・分割済・中途解約） |
 | 調達のテスト | 予定表・実行・返済・利払い・未払利息の増分（二重に計上しない）・仕訳の貸借・変動金利の改定 |
 | 再現性 | 同じ入力で 2 回実行して結果が一致すること、確定した実行が変わらないこと |
 | finance への影響 | finance の全体テストが毎回通ること |
