@@ -186,7 +186,7 @@ under the License.
     </property>
     <property key="FinanceLoanAgreement">
         <value xml:lang="en">Loan Agreement</value>
-        <value xml:lang="ja">契約</value>
+        <value xml:lang="ja">ローン契約</value>
     </property>
     <property key="FinancePrintAgreementPdf">
         <value xml:lang="en">Print Contract (PDF)</value>
