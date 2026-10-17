@@ -59,8 +59,9 @@ under the License.
     <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceStep5DemoData.xml"/>
     <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceStep6DemoData.xml"/>
     <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceSecurityPermissionDemoData.xml"/>
-    <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceStatusDemoData.xml"/>
+    <!-- FinanceLeaseDemoData.xml first: the lease status snapshots in FinanceStatusDemoData.xml use its product, supplier and tax data. -->
     <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceLeaseDemoData.xml"/>
+    <entity-resource type="data" reader-name="demo" loader="main" location="data/FinanceStatusDemoData.xml"/>
 
     <!-- service resources -->
     <service-resource type="model" loader="main" location="servicedef/services_common.xml"/>
