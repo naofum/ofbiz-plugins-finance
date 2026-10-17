@@ -5,6 +5,7 @@
 - The Data Model Resource BookのFinance Servicesモデルに準拠する
 - 開発対象のfinance機能は `plugins/finance/` にある。
 - 要件定義は `REQUIREMENTS.md`（ローン）と `REQUIREMENTS_LEASE.md`（共通層・リース、STEP L0〜）、詳細仕様・運用記録は `SPEC_COMMON.md`（共通層）・`SPEC.md`（ローン層）・`SPEC_LEASE.md`（リース層）を正とする。
+- 審査（与信審査）の拡張は `REQUIREMENTS_UNDERWRITING.md`・`SPEC_UNDERWRITING.md`（STEP U0〜U9、共通層 `org.apache.ofbiz.finance.common.underwriting`）。既存の `LoanUnderwriting` と状態遷移はそのまま使い、審査の設定がない商品は手入力の審査で動く。最終の判断は人が行い、AI の出力を判断の根拠・否決の理由にしない。
 - ALM（資産負債管理）は別プラグイン `alm` として作る予定で、要件・設計は `REQUIREMENTS_ALM.md`・`SPEC_ALM.md`（alm を作るまで本プラグインに置く）。alm は finance の共通層だけを使い、finance は alm を参照しない。
 - リース借手（一般の事業会社）向けは別プラグイン `lessee` として作る予定で、要件・設計は `REQUIREMENTS_LESSEE.md`・`SPEC_LESSEE.md`（lessee を作るまで本プラグインに置く）。lessee は finance に依存しない。転貸リースは lessee と finance の両方に依存する橋渡し（STEP L22）で扱い、finance の「貸手側のみ」の範囲は変えない。
 - Windows環境では `gradlew.bat` を使用する。
