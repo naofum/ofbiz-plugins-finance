@@ -35,6 +35,7 @@ Apache OFBiz 上に構築する独立ファイナンスモジュール（`plugin
 | L15a | 誤操作の取消（取消記録・逆仕訳・管理者権限。11 章。ローン・リースの各操作は `SPEC.md` 27 章・`SPEC_LEASE.md` 18 章） | 完了（tests=192 / errors=0 / failures=0） |
 | L15b | 祝日カレンダーを考慮した営業日調整（core `TechDataCalendar`、複数カレンダー。12 章） | 完了（tests=203 / errors=0 / failures=0） |
 | L21 | 外部 BPM 連携の承認ワークフロー（汎用 REST、依頼サービス・Webhook とポーリング。13 章） | 設計（未着手） |
+| L22 | 将来キャッシュフローの部品（ALM 向け。`FinanceContractAdapter.projectCashFlows`・`FinanceCashFlowProvider`。14 章、`REQUIREMENTS_ALM.md`） | 設計（未着手） |
 
 L0 のコミット：L0-1 `6d46268`、L0-2 `fe644c8`、L0-3 `ae6fa2e`、L0-4 `2afe7f7`、L0-5 `beea390`、L0-6 `450b654`。
 
@@ -649,6 +650,79 @@ public interface BpmAdapter {
 - **対象の拡大**：見積の受理、検収、条件変更、契約分割、債権の償却、誤操作の取消、前受金・保証金の精算を候補とし、`FinanceApprovalOperation` の実装を足して広げる。
 - **OFBiz の rest-api プラグイン**：BPM から finance の照会 API を呼ぶ用途で使えるが、本 STEP の受け口は finance の Webhook（コントローラーのイベント）とする。
 - **時刻**：BPM の判断日時はそのまま記録し、業務サービスの日付（契約日・解約日）は依頼時の入力を使う（判断が遅れても日付は変えない。変える必要がある場合は取り下げて依頼し直す）。
+
+---
+
+## 14. 将来キャッシュフローの部品（STEP L22、設計）
+
+> **状態：設計（未着手）**。2026-10-17 に方針を決定した（ALM の基盤。`REQUIREMENTS_ALM.md`・`SPEC_ALM.md`）。実装後に「実装」「テスト」「検証」を追記する。
+
+ALM（別プラグイン `alm`）が、ローン・リースの契約の将来キャッシュフローを、ローン層・リース層を参照せずに受け取れるように、共通層に読み取り専用の部品を追加する。業務の処理（請求・入金・計上・延滞）は変えない。
+
+### 14.1 決定事項（2026-10-17）
+
+| 項目 | 決定 |
+|------|------|
+| 置き場所 | 共通層。`FinanceContractAdapter` に将来キャッシュフローを返すメソッドを追加し、ローン層・リース層の Adapter が実装する。alm は共通層の `FinanceCashFlowProvider` だけを使う |
+| 依存 | alm → finance の共通層。finance は alm を参照しない（finance だけでも動く） |
+| 読み取りのみ | 業務の記録は書き込まない。既存の計算（延滞・回収状況）と同じ規則で値を出す |
+
+### 14.2 インターフェース（予定）
+
+```java
+/** One future cash flow of a contract as of a date. */
+public final class FinanceCashFlow {
+    String financeContractId; String contractTypeId; Timestamp flowDate;
+    String flowType;      // PRINCIPAL / INTEREST / TAX / COMPONENT / RESIDUAL / ADVANCE / DEPOSIT / DAMAGES
+    BigDecimal amount;    // positive = inflow to the lessor / lender
+    String currencyUomId;
+    String certainty;     // BILLED (invoice open) / SCHEDULED (confirmed schedule, not billed)
+    String rateType;      // FIXED (only fixed today)
+    Timestamp periodFromDate; Timestamp periodThruDate;  // period the interest is earned in (for NII)
+    BigDecimal outstandingPrincipalBefore;
+    String sourceRef;     // installment number / invoice id
+}
+
+// FinanceContractAdapter (default: empty list, so other contract types are unaffected)
+default List<FinanceCashFlow> projectCashFlows(Delegator delegator, GenericValue agreement, Timestamp asOfDate)
+        throws GenericEntityException { return Collections.emptyList(); }
+
+// Common entry point used by alm
+public final class FinanceCashFlowProvider {
+    public static List<FinanceCashFlow> projectCashFlows(Delegator delegator, String financeContractId, Timestamp asOfDate);
+    /** Contracts with future cash flows as of the date (FINCTR_ACTIVE, optionally per organization / type). */
+    public static List<String> contractsWithCashFlows(Delegator delegator, String organizationPartyId, String contractTypeId, Timestamp asOfDate);
+}
+```
+
+サービス `getFinanceContractCashFlows`（照会・テスト用）も用意する。
+
+### 14.3 値の決め方
+
+| 区分 | ローン | リース |
+|------|--------|--------|
+| 対象 | `LOANAGR_ACTIVE` | `LEASEAGR_ACTIVE`、`LEASEAGR_SPLIT`（請求済みの未回収だけ）、`LEASEAGR_TERMINATED`（未回収と損害金） |
+| 請求済み・未回収（`BILLED`） | 請求書の未回収の額を、入金の充当の逆順（元本 → 利息 → 消費税）で分ける（延滞計算と同じ） | 請求書の未回収の額を、元本 → 利息相当額 → 構成要素 → 消費税の順に分ける（`LeaseContractAdapter.overdueInstallments` と同じ）。再リース料・規定損害金の請求書も含める |
+| 未請求（`SCHEDULED`） | 確定返済表（現在の revision）の基準日以降の回の元本・利息 | 確定リース料表（現在の revision）の未請求の回の元本回収額・利息相当額・消費税・構成要素。分割済・中途解約の契約は含めない |
+| 残価 | ― | 所有権移転外ファイナンスは、残価をリース終了日の翌日に `RESIDUAL`（処分の見込み）。所有権移転は譲渡価額の予定。オペレーティングは残存簿価 |
+| 前受金・保証金 | ― | 残高を `ADVANCE` / `DEPOSIT` の負の値（返還・充当の予定）で、保証金はリース終了日、前受リース料は充当の予定の回 |
+| 利息の期間 | 回の対象期間 | 利息相当額の配分の期間（`LeaseProfitAllocator` の区分。前払は前の期） |
+| 延滞 | 期日はそのまま（遅れの想定は alm の行動の前提で扱う） | 同左 |
+
+- 金額は契約の通貨のまま返す（換算は alm で行う）。
+- 流動化した契約も同じように返す（finance 側の回収は変わらない）。alm 側で回収金の受け渡しの負債として扱う（`SPEC_ALM.md` 3.6）。
+
+### 14.4 テスト（予定）
+
+- ローン・リースの契約を作り、基準日の前後で、未請求の回の合計 ＝ 回収状況の未請求額、請求済みの未回収 ＝ 未払の請求額、元本の合計 ＝ 未回収元本（ファイナンス）になること。
+- 分割済・中途解約・再リース・前受金・保証金・構成要素のある契約。
+- 既存の全体テストがそのまま通ること（読み取りのみの追加）。
+
+### 14.5 要確認・制約
+
+- **変動金利**：finance のローン・リースは固定金利だけのため、`rateType` は常に `FIXED`。変動金利の商品を追加するときは、次の改定日と基準金利を返す。
+- **性能**：契約ごとに表・請求書を読むため、契約数が多いと時間がかかる。alm のバッチは契約のまとまりごとに呼ぶ（`SPEC_ALM.md` 2.2）。必要になったら一括で読む版を追加する。
+- **行動の前提**（繰上返済・中途解約・再リース）は finance では扱わない（契約どおりの値だけを返す）。
 
 ---
 ## 運用メモ

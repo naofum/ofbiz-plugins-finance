@@ -592,6 +592,7 @@ demo データを読み込んだ環境では、OFBiz の管理者ユーザー（
 | [`SPEC.md`](SPEC.md) | ローン層の詳細仕様 |
 | [`SPEC_LEASE.md`](SPEC_LEASE.md) | リース層の詳細仕様（STEP ごとの決定事項・仕訳・テスト・検証） |
 | [`AGENTS.md`](AGENTS.md) | 開発のルール（AI エージェント向けだが、設計方針の要約としても読める） |
+| [`REQUIREMENTS_ALM.md`](REQUIREMENTS_ALM.md) / [`SPEC_ALM.md`](SPEC_ALM.md) | ALM（資産負債管理）の要件と設計（別プラグイン `alm` として作る予定。設計のみ） |
 
 ---
 
