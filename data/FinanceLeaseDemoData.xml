@@ -38,7 +38,8 @@ under the License.
             currencyUomId="JPY" minPrincipalAmount="100000" maxPrincipalAmount="50000000"
             minTermMonths="12" maxTermMonths="84" lateFeeAnnualRate="0.146000"/>
     <FinancialProductLease productId="DEMO_LEASEPROD1" leaseClassEnumId="LEASE_CLS_FIN_NONTR"
-            defaultMonthlyRateFactor="0.018000" paymentTimingEnumId="LEASE_PAY_ADVANCE"
+            defaultMonthlyRateFactor="0.018000" defaultCalcInterestRate="0.030000"
+            paymentTimingEnumId="LEASE_PAY_ADVANCE"
             residualValueRate="0" revenueMethodEnumId="LEASE_REV_AT_START" taxable="Y"/>
     <FinancialProductLeaseAssetType productId="DEMO_LEASEPROD1" fixedAssetTypeId="EQUIPMENT"/>
     <FinancialProductLeaseAssetType productId="DEMO_LEASEPROD1" fixedAssetTypeId="COMPUTER_HARDWARE"/>
