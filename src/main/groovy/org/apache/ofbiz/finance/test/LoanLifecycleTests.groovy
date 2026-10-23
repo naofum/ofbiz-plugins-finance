@@ -355,6 +355,18 @@ class LoanLifecycleTests extends OFBizTestCase {
                 amount: firstPayment, userLogin: userLogin])
         assert ServiceUtil.isSuccess(firstPayResult)
 
+        BigDecimal expectedFirstPrincipal = firstPayment.subtract(link.interestAmount)
+                .max(BigDecimal.ZERO).min(link.principalAmount)
+                .setScale(2, BigDecimal.ROUND_HALF_UP)
+        Map firstBalance = dispatcher.runSync('getLoanAgreementBalance',
+                [loanAgreementId: loanAgreementId, userLogin: userLogin])
+        assert ServiceUtil.isSuccess(firstBalance)
+        assert firstBalance.principalAmount.compareTo(new BigDecimal('60000.00')) == 0
+        assert firstBalance.installmentPrincipalPaid.compareTo(expectedFirstPrincipal) == 0
+        assert firstBalance.prepaymentPrincipalPaid.compareTo(BigDecimal.ZERO) == 0
+        assert firstBalance.outstandingPrincipal.compareTo(
+                new BigDecimal('60000.00').subtract(expectedFirstPrincipal)) == 0
+
         Map cumulativeOverpayment = dispatcher.runSync('receiveLoanPayment', [
                 loanAgreementId: loanAgreementId, invoiceId: invoiceId,
                 amount: billed, userLogin: userLogin])
@@ -366,6 +378,13 @@ class LoanLifecycleTests extends OFBizTestCase {
                 amount: finalPayment, userLogin: userLogin])
         assert ServiceUtil.isSuccess(finalPayResult)
         assert finalPayResult.paymentId != null
+
+        Map paidBalance = dispatcher.runSync('getLoanAgreementBalance',
+                [loanAgreementId: loanAgreementId, userLogin: userLogin])
+        assert ServiceUtil.isSuccess(paidBalance)
+        assert paidBalance.principalPaid.compareTo(link.principalAmount) == 0
+        assert paidBalance.outstandingPrincipal.compareTo(
+                new BigDecimal('60000.00').subtract(link.principalAmount)) == 0
 
         List receipts = from('LoanPaymentReceipt')
                 .where('loanAgreementId', loanAgreementId, 'invoiceId', invoiceId).queryList()
@@ -384,6 +403,12 @@ class LoanLifecycleTests extends OFBizTestCase {
         assert from('Invoice').where('invoiceId', invoiceId).queryOne().statusId == 'INVOICE_READY'
         assert from('PaymentApplication').where('invoiceId', invoiceId).queryList()
                 .sum { it.amountApplied }.compareTo(firstPayment) == 0
+        Map reopenedBalance = dispatcher.runSync('getLoanAgreementBalance',
+                [loanAgreementId: loanAgreementId, userLogin: userLogin])
+        assert ServiceUtil.isSuccess(reopenedBalance)
+        assert reopenedBalance.installmentPrincipalPaid.compareTo(expectedFirstPrincipal) == 0
+        assert reopenedBalance.outstandingPrincipal.compareTo(
+                new BigDecimal('60000.00').subtract(expectedFirstPrincipal)) == 0
 
         assert ServiceUtil.isSuccess(dispatcher.runSync('setLoanAgreementStatus', [
                 loanAgreementId: loanAgreementId, statusId: 'LOANAGR_CLOSED', userLogin: userLogin]))

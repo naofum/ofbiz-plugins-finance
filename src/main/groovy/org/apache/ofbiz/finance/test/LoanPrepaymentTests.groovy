@@ -127,6 +127,12 @@ class LoanPrepaymentTests extends OFBizTestCase {
         assert prepayment != null
         assert prepayment.principalAmount.compareTo(new BigDecimal('20000.00')) == 0
 
+        Map balance = dispatcher.runSync('getLoanAgreementBalance',
+                [loanAgreementId: loanAgreementId, userLogin: userLogin])
+        assert ServiceUtil.isSuccess(balance)
+        assert balance.prepaymentPrincipalPaid.compareTo(new BigDecimal('20000.00')) == 0
+        assert balance.outstandingPrincipal.compareTo(new BigDecimal('100000.00')) == 0
+
         List revision2 = from('LoanAgreementRepaymentSchedule').where(
                 'loanAgreementId', loanAgreementId, 'scheduleRevisionNumber', 2L).queryList()
         assert revision2.size() == 12
@@ -178,6 +184,11 @@ class LoanPrepaymentTests extends OFBizTestCase {
         assert prepayment != null
         assert prepayment.prepaymentTypeEnumId == 'PREPAY_FULL'
         assert prepayment.principalAmount.compareTo(new BigDecimal('120000.00')) == 0
+        Map balance = dispatcher.runSync('getLoanAgreementBalance',
+                [loanAgreementId: loanAgreementId, userLogin: userLogin])
+        assert ServiceUtil.isSuccess(balance)
+        assert balance.prepaymentPrincipalPaid.compareTo(new BigDecimal('120000.00')) == 0
+        assert balance.outstandingPrincipal.compareTo(BigDecimal.ZERO) == 0
     }
 
     // A condition change (rate + term) records history and re-amortizes.

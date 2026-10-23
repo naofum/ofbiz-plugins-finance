@@ -62,6 +62,8 @@ public final class FinanceAccountingServices {
     private static final String RESOURCE = "FinanceUiLabels";
     private static final int SCALE = 2;
     private static final RoundingMode ROUNDING = RoundingMode.HALF_UP;
+    private static final String SOURCE_INSTALLMENT = "INSTALLMENT";
+    private static final String SOURCE_PREPAYMENT = "PREPAYMENT";
 
     private FinanceAccountingServices() {
     }
@@ -598,6 +600,65 @@ public final class FinanceAccountingServices {
         return new AccrualComputation(roundedOutstanding, roundedAccrued);
     }
 
+    /**
+     * Current balance of a loan agreement. The outstanding principal is the
+     * contract principal less the principal repaid through valid
+     * PaymentApplications and non-reversed prepayments. Billing alone does not
+     * reduce the balance.
+     */
+    public static Map<String, Object> getLoanAgreementBalance(DispatchContext dctx,
+            Map<String, Object> context) {
+        Delegator delegator = dctx.getDelegator();
+        Locale locale = (Locale) context.get("locale");
+        String loanAgreementId = (String) context.get("loanAgreementId");
+        Timestamp asOfDate = (Timestamp) context.get("asOfDate");
+        if (asOfDate == null) {
+            asOfDate = UtilDateTime.nowTimestamp();
+        }
+        try {
+            GenericValue agreement = EntityQuery.use(delegator).from("LoanAgreement")
+                    .where("loanAgreementId", loanAgreementId).cache(false).queryOne();
+            if (agreement == null) {
+                return recordNotFound("LoanAgreement", loanAgreementId, locale);
+            }
+
+            LocalDate asOfDay = asOfDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            BigDecimal installmentPrincipalPaid = BigDecimal.ZERO;
+            BigDecimal prepaymentPrincipalPaid = BigDecimal.ZERO;
+            for (PrincipalPaymentEvent event : getPrincipalPaymentEvents(delegator, agreement)) {
+                if (event.date.isAfter(asOfDay)) {
+                    continue;
+                }
+                if (SOURCE_PREPAYMENT.equals(event.source)) {
+                    prepaymentPrincipalPaid = prepaymentPrincipalPaid.add(event.principalAmount);
+                } else {
+                    installmentPrincipalPaid = installmentPrincipalPaid.add(event.principalAmount);
+                }
+            }
+
+            BigDecimal principalAmount = defaultZero(agreement.getBigDecimal("principalAmount"))
+                    .setScale(SCALE, ROUNDING);
+            BigDecimal principalPaid = installmentPrincipalPaid.add(prepaymentPrincipalPaid)
+                    .setScale(SCALE, ROUNDING);
+            BigDecimal outstandingPrincipal = principalAmount.subtract(principalPaid)
+                    .max(BigDecimal.ZERO).setScale(SCALE, ROUNDING);
+
+            Map<String, Object> result = ServiceUtil.returnSuccess();
+            result.put("loanAgreementId", loanAgreementId);
+            result.put("principalAmount", principalAmount);
+            result.put("installmentPrincipalPaid", installmentPrincipalPaid.setScale(SCALE, ROUNDING));
+            result.put("prepaymentPrincipalPaid", prepaymentPrincipalPaid.setScale(SCALE, ROUNDING));
+            result.put("principalPaid", principalPaid);
+            result.put("outstandingPrincipal", outstandingPrincipal);
+            result.put("currencyUomId", agreement.getString("currencyUomId"));
+            result.put("balanceAsOfDate", asOfDate);
+            return result;
+        } catch (GenericEntityException e) {
+            Debug.logError(e, MODULE);
+            return ServiceUtil.returnError(e.getMessage());
+        }
+    }
+
     private static List<PrincipalPaymentEvent> getPrincipalPaymentEvents(Delegator delegator,
             GenericValue agreement) throws GenericEntityException {
         List<PrincipalPaymentEvent> events = new ArrayList<>();
@@ -629,7 +690,7 @@ public final class FinanceAccountingServices {
                 if (principalDelta.compareTo(BigDecimal.ZERO) > 0) {
                     LocalDate effectiveDay = application.effectiveDate.toInstant()
                             .atZone(ZoneId.systemDefault()).toLocalDate();
-                    events.add(new PrincipalPaymentEvent(effectiveDay, principalDelta));
+                    events.add(new PrincipalPaymentEvent(effectiveDay, principalDelta, SOURCE_INSTALLMENT));
                 }
                 previousPrincipalPaid = principalPaid;
             }
@@ -647,7 +708,7 @@ public final class FinanceAccountingServices {
                 prepaymentDate = UtilDateTime.nowTimestamp();
             }
             LocalDate effectiveDay = prepaymentDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-            events.add(new PrincipalPaymentEvent(effectiveDay, prepaidPrincipal));
+            events.add(new PrincipalPaymentEvent(effectiveDay, prepaidPrincipal, SOURCE_PREPAYMENT));
         }
         events.sort(Comparator.comparing(value -> value.date));
         return events;
@@ -846,10 +907,12 @@ public final class FinanceAccountingServices {
     private static final class PrincipalPaymentEvent {
         private final LocalDate date;
         private final BigDecimal principalAmount;
+        private final String source;
 
-        private PrincipalPaymentEvent(LocalDate date, BigDecimal principalAmount) {
+        private PrincipalPaymentEvent(LocalDate date, BigDecimal principalAmount, String source) {
             this.date = date;
             this.principalAmount = principalAmount;
+            this.source = source;
         }
     }
 

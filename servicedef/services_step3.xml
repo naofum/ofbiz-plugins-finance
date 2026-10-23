@@ -103,4 +103,20 @@ under the License.
         <attribute name="loanPaymentReceiptId" type="String" mode="OUT" optional="true"/>
     </service>
 
+    <service name="getLoanAgreementBalance" engine="java" auth="true" export="true"
+            location="org.apache.ofbiz.finance.loan.FinanceAccountingServices" invoke="getLoanAgreementBalance">
+        <description>Outstanding principal from valid payment applications and non-reversed prepayments</description>
+        <permission-service service-name="financeGenericPermission" main-action="VIEW"/>
+        <attribute name="loanAgreementId" type="String" mode="IN" optional="false"/>
+        <attribute name="asOfDate" type="Timestamp" mode="IN" optional="true"/>
+        <attribute name="loanAgreementId" type="String" mode="OUT" optional="true"/>
+        <attribute name="principalAmount" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="installmentPrincipalPaid" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="prepaymentPrincipalPaid" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="principalPaid" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="outstandingPrincipal" type="BigDecimal" mode="OUT" optional="true"/>
+        <attribute name="currencyUomId" type="String" mode="OUT" optional="true"/>
+        <attribute name="balanceAsOfDate" type="Timestamp" mode="OUT" optional="true"/>
+    </service>
+
 </services>

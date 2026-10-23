@@ -468,8 +468,9 @@ seed 値：`LOAN`（ルート） / `PERSONAL_UNSECURED` / `SECURED` / `BUSINESS`
 | runLoanMonthlyAccountingBatch | java | 全ACTIVE契約（または指定契約）を月次計上し、処理日当日の終端までに期日到来した契約確定返済回を一括請求。再実行時は計上・請求とも重複作成しない |
 | createLoanInstallmentInvoice | java | 契約確定返済スケジュールを `createInvoice` + `createInvoiceItem` で請求化。元本はFinAccountの元本債権勘定、計上済み利息は未収利息、未計上分だけ利息収益へ振り替え、InvoiceをREADY化して請求GLを転記 |
 | receiveLoanPayment | java | `createPayment` + `createPaymentApplication` で入金を請求に適用し、core入金・消込GLを転記して `LoanPaymentReceipt` に記録。累計入金が請求残額を超えないことを契約DBロック下で検証し、支払方法種別は未指定時 `EFT_ACCOUNT` |
+| getLoanAgreementBalance | java | 契約元本から、有効な `PaymentApplication`（`PMNT_RECEIVED` / `PMNT_CONFIRMED`）で利息優先充当された元本と、取消されていない `LoanPrepayment` の元本を差し引き、`outstandingPrincipal` を返す。`asOfDate` で基準日を指定できる |
 
-- 残元本 = 契約元本 − 有効な `PaymentApplication` の入金済み元金。部分入金は利息優先で元金充当額を算定し、Payment取消・消込解除は次回計上へ自動反映する。
+- 残元本 = 契約元本 − 有効な `PaymentApplication` の入金済み元金 − 取消されていない `LoanPrepayment` の元本。部分入金は利息優先で元金充当額を算定し、Payment取消・消込解除は次回計上へ自動反映する。`getLoanAgreementBalance` はこの残元本を照会用に返す。
 - 同月内で月中計上後に再実行した場合、直前 `thruDate` の翌日から指定日までを増分計上する。請求は期日前の全未消費未収利息を古い期間から振り替え、差額だけを当日利息収益にする。
 - 月次計上は契約・開始日の一意制約、請求は契約・回次の主キーと Invoice 一意制約、入金記録は Payment 一意制約で重複永続化を防止。契約の `processingLockVersion` 条件付き更新で同時計上・請求・入金を直列化する（STEP L0 以降はロックを共通契約台帳 `FinanceContract.processingLockVersion` に移した。`SPEC_COMMON.md` 2.3）。
 - GL勘定は貸主組織の `GlAccountTypeDefault`、または組織に割り当てられた `ACCOUNTS_RECEIVABLE` / `INTRSTINC_RECEIVABLE` / `INTEREST_INCOME` 勘定から解決する。契約FinAccountの `postToGlAccountId` に元本債権勘定を固定する。
