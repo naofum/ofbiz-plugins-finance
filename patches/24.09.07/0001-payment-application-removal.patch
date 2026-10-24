@@ -1,0 +1,20 @@
+diff --git a/applications/accounting/src/main/groovy/org/apache/ofbiz/accounting/payment/PaymentServices.groovy b/applications/accounting/src/main/groovy/org/apache/ofbiz/accounting/payment/PaymentServices.groovy
+index 8a58107cec..3d6938a35f 100644
+--- a/applications/accounting/src/main/groovy/org/apache/ofbiz/accounting/payment/PaymentServices.groovy
++++ b/applications/accounting/src/main/groovy/org/apache/ofbiz/accounting/payment/PaymentServices.groovy
+@@ -990,8 +990,13 @@ Map removePaymentApplication() {
+         // if the invoice is already PAID, then set it back to READY and clear out the paidDate
+         GenericValue invoice = from('Invoice').where(invoiceId: paymentApplication.invoiceId).queryOne()
+         if (invoice.statusId == 'INVOICE_PAID') {
+-            run service: 'setInvoiceStatus', with: [invoiceId: paymentApplication.invoiceId,
+-                                                    statustId: 'INVOICE_READY']
++            Map statusResult = run service: 'setInvoiceStatus', with: [
++                    invoiceId: paymentApplication.invoiceId,
++                    statusId: 'INVOICE_READY',
++                    paidDate: null]
++            if (ServiceUtil.isError(statusResult)) {
++                return statusResult
++            }
+         }
+         toMessage = label('AccountingUiLabels', 'AccountingPaymentApplToInvoice', paymentApplicationFields)
+     }

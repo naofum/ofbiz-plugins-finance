@@ -1,0 +1,23 @@
+{
+    "bundle":  "finance",
+    "version":  "0.1.0",
+    "ofbiz":  "24.09.07",
+    "description":  "Fix payment application removal consistency",
+    "patches":  [
+                    {
+                        "id":  "0001-payment-application-removal",
+                        "order":  10,
+                        "mode":  "diff",
+                        "description":  "Fix payment application removal consistency",
+                        "patch":  "0001-payment-application-removal.patch",
+                        "reversible":  true,
+                        "files":  [
+                                      {
+                                          "path":  "applications/accounting/src/main/groovy/org/apache/ofbiz/accounting/payment/PaymentServices.groovy",
+                                          "sha256Before":  "03efca3f38c0f2c8754c5b721e190c0b7666a7fc4ac89b74c01e3c2d6ad98e49",
+                                          "sha256After":  "c448242f45492df982aac5f86ce1d9a2f645a637a8d5f6ebddc2a2e678f20f57"
+                                      }
+                                  ]
+                    }
+                ]
+}

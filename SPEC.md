@@ -495,6 +495,7 @@ applications/accounting/src/main/groovy/org/apache/ofbiz/accounting/payment/Paym
 | financeで必要な理由 | `LoanPaymentReceipt` の元となるPaymentApplicationを解除した際、Invoice状態・未消込残額・将来の残元本／利息計算を一致させるため |
 | 影響範囲 | finance専用処理ではなく、標準 `removePaymentApplication` を利用するOFBiz全体。誤記修正のため、通常は既存の意図された動作へ戻す影響となる |
 | 検証 | financeライフサイクルテストで、全額消込後の単独解除によりInvoiceがREADYへ戻り、残存適用額が復元されることを確認 |
+| 配布用coreパッチ | `plugins/finance/patches/24.09.07/0001-payment-application-removal.patch`（manifest: `plugins/finance/patches/24.09.07/manifest.json`）。`.\gradlew.bat :plugins:finance:testFinanceCorePatch` でクリーン適用・ロールバックを検証 |
 
 この変更は **`plugins/finance` の配布物だけを差し替えても反映されない**。デプロイ・差分管理・レビューでは、finance側変更と上記core側変更をセットで扱う必要がある。core無変更を必須とする運用では、この修正をcoreから戻したうえで、finance専用の消込解除ラッパーサービス内に同等の状態復元とエラー処理を実装する代替設計が必要となる。汎用的な誤記修正なので、可能であればOFBiz本体へのupstream修正候補として管理する。
 
@@ -939,7 +940,7 @@ JasperReports 7.x は機能がアーティファクト分割されている点�
 - Java サービスを追加・変更した場合は再ビルド（`classes` タスク）が必要。
 - STEP 7 で `LoanAgreementRepaymentSchedule` に `scheduleRevisionNumber` を PK 追加したため、既存 DB ではテーブル再作成が必要。新規環境は
   `gradlew "ofbiz --load-data readers=seed,seed-initial,demo"` で全投入（finance 含む全コンポーネント）すれば良い。
-- STEP 3 の消込解除修正は `plugins/finance` 外の `applications/accounting/src/main/groovy/org/apache/ofbiz/accounting/payment/PaymentServices.groovy` を含む。financeプラグインだけをコピーするデプロイでは欠落するため、core差分も同時に適用して `compileGroovy` とfinanceテストを実行する。
+- STEP 3 の消込解除修正は `plugins/finance` 外の `applications/accounting/src/main/groovy/org/apache/ofbiz/accounting/payment/PaymentServices.groovy` を含む。financeプラグインだけをコピーするデプロイでは欠落するため、core差分も同時に適用して `compileGroovy` とfinanceテストを実行する。配布用パッチは `plugins/finance/patches/24.09.07/0001-payment-application-removal.patch`（manifest 同ディレクトリ）にあり、`.\gradlew.bat :plugins:finance:testFinanceCorePatch` でクリーン適用・ロールバックを検証できる。
 - finance の実行テストは `gradlew "ofbiz --test component=finance"` で完了し、tests=48 / errors=0 / failures=0 を確認済み。webapp の `base-permission="OFBTOOLS,FINANCE"` を満たすため、`FINANCE_ADMIN` を `SUPER` だけでなく
   `FULLADMIN` / `FLEXADMIN` にも付与している（デモの `admin` は `FULLADMIN` 所属で `SUPER` 非所属のため）。この付与は demo 専用
   （`FinanceSecurityPermissionDemoData.xml`）で、seed は `SUPER` への付与のみ。seed→demo の順序依存を避け、フル投入（`loadDefault` 相当）を成立させるため。

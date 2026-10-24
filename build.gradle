@@ -21,3 +21,14 @@ dependencies {
     // Reuse OFBiz core data models: party (applicant), product (loan product),
     // accounting (billing/GL). These are provided by the running OFBiz instance.
 }
+
+// Core patch bundle for payment-application removal consistency.
+// The shared patch manager lives under tools/patchmgr.
+ext.patchManifest = file("${projectDir}/patches/24.09.07/manifest.json")
+apply from: "${rootDir}/gradle/patchmgr.gradle"
+
+tasks.register('testFinanceCorePatch') {
+    group = 'finance'
+    description = 'Alias for testCorePatch'
+    dependsOn 'testCorePatch'
+}
