@@ -241,7 +241,8 @@ public final class LeaseAdvanceServices {
         List<GenericValue> last = new ArrayList<>();
         List<GenericValue> oldest = new ArrayList<>();
         for (GenericValue r : receipts(delegator, agreement.getString("leaseAgreementId"), TYPE_LEASE)) {
-            (ORDER_LAST.equals(r.getString("applyOrderEnumId")) ? last : oldest).add(r);
+            List<GenericValue> target = ORDER_LAST.equals(r.getString("applyOrderEnumId")) ? last : oldest;
+            target.add(r);
         }
         // Receipts reserved for the last installments first, then the others oldest invoice first.
         BigDecimal applied = applyFromLast(dctx, agreement, last, userLogin);

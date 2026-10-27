@@ -552,57 +552,55 @@ public final class LeaseAccountingServices {
         Timestamp processingEnd = UtilDateTime.getDayEnd(processingDate);
         long invoices = 0;
         try {
-            {
-                List<GenericValue> rows = EntityQuery.use(delegator).from("LeaseAgreementPaymentSchedule")
-                        .where("leaseAgreementId", leaseAgreementId,
-                                "scheduleRevisionNumber", currentScheduleRevision(delegator, leaseAgreementId))
-                        .orderBy("dueDate", "installmentNumber").queryList();
-                for (GenericValue row : rows) {
-                    Timestamp due = row.getTimestamp("dueDate");
-                    if (due == null || due.after(processingEnd)) {
-                        continue;
-                    }
-                    Map<String, Object> bill = createLeaseInstallmentInvoice(dctx, UtilMisc.toMap(
-                            "leaseAgreementId", leaseAgreementId, "installmentNumber", row.getLong("installmentNumber"),
-                            "userLogin", userLogin, "locale", locale));
-                    if (ServiceUtil.isError(bill)) {
-                        return batchError(leaseAgreementId, ServiceUtil.getErrorMessage(bill), locale);
-                    }
-                    if (Boolean.TRUE.equals(bill.get("invoiceCreated"))) {
-                        invoices++;
-                    }
+            List<GenericValue> rows = EntityQuery.use(delegator).from("LeaseAgreementPaymentSchedule")
+                    .where("leaseAgreementId", leaseAgreementId,
+                            "scheduleRevisionNumber", currentScheduleRevision(delegator, leaseAgreementId))
+                    .orderBy("dueDate", "installmentNumber").queryList();
+            for (GenericValue row : rows) {
+                Timestamp due = row.getTimestamp("dueDate");
+                if (due == null || due.after(processingEnd)) {
+                    continue;
                 }
-                Map<String, Object> rec = recognizeLeaseProfit(dctx, UtilMisc.toMap("leaseAgreementId", leaseAgreementId,
-                        "recognitionDate", processingDate, "userLogin", userLogin, "locale", locale));
-                if (ServiceUtil.isError(rec)) {
-                    return batchError(leaseAgreementId, ServiceUtil.getErrorMessage(rec), locale);
+                Map<String, Object> bill = createLeaseInstallmentInvoice(dctx, UtilMisc.toMap(
+                        "leaseAgreementId", leaseAgreementId, "installmentNumber", row.getLong("installmentNumber"),
+                        "userLogin", userLogin, "locale", locale));
+                if (ServiceUtil.isError(bill)) {
+                    return batchError(leaseAgreementId, ServiceUtil.getErrorMessage(bill), locale);
                 }
-                // STEP L12: depreciation of the leased assets of an operating lease.
-                long depreciations = 0;
-                GenericValue agreement = findAgreement(delegator, leaseAgreementId);
-                LeaseRevenueStrategy strategy = agreement == null ? null
-                        : LeaseRevenueStrategy.REGISTRY.get(agreement.getString("revenueMethodEnumId"));
-                if (strategy != null && strategy.depreciatesAsset()) {
-                    Map<String, Object> dep = LeaseDepreciationServices.depreciateLeaseAssets(dctx, UtilMisc.toMap(
-                            "leaseAgreementId", leaseAgreementId, "depreciationDate", processingDate,
-                            "userLogin", userLogin, "locale", locale));
-                    if (ServiceUtil.isError(dep)) {
-                        return batchError(leaseAgreementId, ServiceUtil.getErrorMessage(dep), locale);
-                    }
-                    depreciations = (Long) dep.get("createdCount");
+                if (Boolean.TRUE.equals(bill.get("invoiceCreated"))) {
+                    invoices++;
                 }
-                // STEP L13: re-lease periods (start / billing, monthly fee recognition, depreciation).
-                if (agreement != null && "LEASEAGR_ACTIVE".equals(agreement.getString("statusId"))) {
-                    long[] rel = LeaseReLeaseServices.processReLeases(dctx, agreement, processingDate, userLogin);
-                    invoices += rel[0];
-                    depreciations += rel[2];
-                }
-                Map<String, Object> result = ServiceUtil.returnSuccess();
-                result.put("createdInvoiceCount", invoices);
-                result.put("createdRecognitionCount", rec.get("createdCount"));
-                result.put("createdDepreciationCount", depreciations);
-                return result;
             }
+            Map<String, Object> rec = recognizeLeaseProfit(dctx, UtilMisc.toMap("leaseAgreementId", leaseAgreementId,
+                    "recognitionDate", processingDate, "userLogin", userLogin, "locale", locale));
+            if (ServiceUtil.isError(rec)) {
+                return batchError(leaseAgreementId, ServiceUtil.getErrorMessage(rec), locale);
+            }
+            // STEP L12: depreciation of the leased assets of an operating lease.
+            long depreciations = 0;
+            GenericValue agreement = findAgreement(delegator, leaseAgreementId);
+            LeaseRevenueStrategy strategy = agreement == null ? null
+                    : LeaseRevenueStrategy.REGISTRY.get(agreement.getString("revenueMethodEnumId"));
+            if (strategy != null && strategy.depreciatesAsset()) {
+                Map<String, Object> dep = LeaseDepreciationServices.depreciateLeaseAssets(dctx, UtilMisc.toMap(
+                        "leaseAgreementId", leaseAgreementId, "depreciationDate", processingDate,
+                        "userLogin", userLogin, "locale", locale));
+                if (ServiceUtil.isError(dep)) {
+                    return batchError(leaseAgreementId, ServiceUtil.getErrorMessage(dep), locale);
+                }
+                depreciations = (Long) dep.get("createdCount");
+            }
+            // STEP L13: re-lease periods (start / billing, monthly fee recognition, depreciation).
+            if (agreement != null && "LEASEAGR_ACTIVE".equals(agreement.getString("statusId"))) {
+                long[] rel = LeaseReLeaseServices.processReLeases(dctx, agreement, processingDate, userLogin);
+                invoices += rel[0];
+                depreciations += rel[2];
+            }
+            Map<String, Object> result = ServiceUtil.returnSuccess();
+            result.put("createdInvoiceCount", invoices);
+            result.put("createdRecognitionCount", rec.get("createdCount"));
+            result.put("createdDepreciationCount", depreciations);
+            return result;
         } catch (GenericEntityException | GenericServiceException e) {
             Debug.logError(e, MODULE);
             return ServiceUtil.returnError(e.getMessage());

@@ -85,14 +85,14 @@ public final class BusinessDayCalculator {
             return date;
         }
         switch (conventionId) {
-            case "DUEDATE_FOLLOWING":
-                return following(date, calendar);
-            case "DUEDATE_PRECEDING":
-                return preceding(date, calendar);
-            case "DUEDATE_MOD_FOLLOW":
-                return modifiedFollowing(date, calendar);
-            default:
-                return date;
+        case "DUEDATE_FOLLOWING":
+            return following(date, calendar);
+        case "DUEDATE_PRECEDING":
+            return preceding(date, calendar);
+        case "DUEDATE_MOD_FOLLOW":
+            return modifiedFollowing(date, calendar);
+        default:
+            return date;
         }
     }
 

@@ -241,7 +241,7 @@ public final class FinanceDelinquencyServices {
             BigDecimal lateFee;
             if (FinanceInterestCalculator.isPeriodBased(dayCountConvId)) {
                 // 30/360: compute as a single period (overdueBalance is constant).
-                lateFee = FinanceInterestCalculator.computePeriodInterest30_360(
+                lateFee = FinanceInterestCalculator.computePeriodInterest30360(
                         overdueBalance, lateFeeRate, toLocalDate(fromDate), toLocalDate(thruDate));
             } else {
                 // Actual-based: daily loop (overdueBalance is constant across the period).

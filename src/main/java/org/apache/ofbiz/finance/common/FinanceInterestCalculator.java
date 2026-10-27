@@ -39,7 +39,7 @@ import org.apache.ofbiz.entity.util.EntityUtilProperties;
  *   <li>{@code DAY_COUNT_ACT_365} – Actual/365 Fixed: daily rate = annualRate / 365</li>
  *   <li>{@code DAY_COUNT_ACT_360} – Actual/360: daily rate = annualRate / 360</li>
  *   <li>{@code DAY_COUNT_ACT_ACT} – Actual/Actual (ISDA): daily rate = annualRate / daysInYear(day)</li>
- *   <li>{@code DAY_COUNT_30_360} – 30/360 Bond Basis: period rate = annualRate * days30_360 / 360</li>
+ *   <li>{@code DAY_COUNT_30_360} – 30/360 Bond Basis: period rate = annualRate * days30360 / 360</li>
  * </ul>
  *
  * <p>Supports the following period endpoint conventions (enumId from LOAN_PERIOD_ENDPT):
@@ -218,12 +218,12 @@ public final class FinanceInterestCalculator {
             String periodEndpointId) {
         if (periodEndpointId == null) periodEndpointId = DEFAULT_PERIOD_ENDPOINT;
         switch (periodEndpointId) {
-            case "PERIOD_BACK_EXCL":
-                return new LocalDate[]{firstDay, lastDay.minusDays(1)};
-            case "PERIOD_FRONT_EXCL":
-                return new LocalDate[]{firstDay.plusDays(1), lastDay};
-            default: // PERIOD_BOTH
-                return new LocalDate[]{firstDay, lastDay};
+        case "PERIOD_BACK_EXCL":
+            return new LocalDate[]{firstDay, lastDay.minusDays(1)};
+        case "PERIOD_FRONT_EXCL":
+            return new LocalDate[]{firstDay.plusDays(1), lastDay};
+        default: // PERIOD_BOTH
+            return new LocalDate[]{firstDay, lastDay};
         }
     }
 
@@ -314,12 +314,19 @@ public final class FinanceInterestCalculator {
         String key = "currency.scale." + (UtilValidate.isNotEmpty(currencyUomId) ? currencyUomId : "");
         String val = EntityUtilProperties.getPropertyValue(FINANCE_RESOURCE, key, null, delegator);
         if (UtilValidate.isNotEmpty(val)) {
-            try { return Integer.parseInt(val.trim()); } catch (NumberFormatException ignored) { }
+            try {
+                return Integer.parseInt(val.trim());
+            } catch (NumberFormatException ignored) {
+                // fall back to the default scale
+            }
         }
         String def = EntityUtilProperties.getPropertyValue(
                 FINANCE_RESOURCE, "currency.scale.default", "2", delegator);
-        try { return Integer.parseInt(def.trim()); } catch (NumberFormatException ignored) { }
-        return 2;
+        try {
+            return Integer.parseInt(def.trim());
+        } catch (NumberFormatException ignored) {
+            return 2;
+        }
     }
 
     /** Resolve RoundingMode for the given currency. */
@@ -345,7 +352,7 @@ public final class FinanceInterestCalculator {
      * For Actual/Actual the denominator is the number of days in the calendar year
      * that contains {@code day}.
      * For 30/360 this method returns zero (use
-     * {@link #computePeriodInterest30_360} instead).
+     * {@link #computePeriodInterest30360} instead).
      *
      * @param outstanding      outstanding principal on this day
      * @param annualRate       annual nominal interest rate (e.g. 0.12 for 12%)
@@ -357,7 +364,7 @@ public final class FinanceInterestCalculator {
             LocalDate day, String dayCountConvId) {
         BigDecimal denominator = getDenominator(day, dayCountConvId);
         if (denominator == null || denominator.compareTo(BigDecimal.ZERO) == 0) {
-            // 30/360 or unknown: caller must use computePeriodInterest30_360
+            // 30/360 or unknown: caller must use computePeriodInterest30360
             return BigDecimal.ZERO;
         }
         return outstanding.multiply(annualRate)
@@ -383,8 +390,8 @@ public final class FinanceInterestCalculator {
      * <pre>
      *   D1 = min(d1, 30)
      *   D2 = if (D1 == 30 &amp;&amp; d2 == 31) then 30 else d2
-     *   days30_360 = (y2-y1)*360 + (m2-m1)*30 + (D2-D1)
-     *   interest   = principal * annualRate * days30_360 / 360
+     *   days30360 = (y2-y1)*360 + (m2-m1)*30 + (D2-D1)
+     *   interest   = principal * annualRate * days30360 / 360
      * </pre>
      *
      * @param principal    outstanding principal for this sub-period
@@ -393,9 +400,9 @@ public final class FinanceInterestCalculator {
      * @param to           period end date (inclusive, matching current both-ends convention)
      * @return interest amount at intermediate precision (scale=12)
      */
-    public static BigDecimal computePeriodInterest30_360(BigDecimal principal,
+    public static BigDecimal computePeriodInterest30360(BigDecimal principal,
             BigDecimal annualRate, LocalDate from, LocalDate to) {
-        long days = days30_360(from, to);
+        long days = days30360(from, to);
         if (days <= 0) return BigDecimal.ZERO;
         return principal.multiply(annualRate)
                 .multiply(new BigDecimal(days))
@@ -407,12 +414,16 @@ public final class FinanceInterestCalculator {
      * Both {@code from} and {@code to} are inclusive (matching the current
      * both-ends convention used throughout the system).
      */
-    public static long days30_360(LocalDate from, LocalDate to) {
-        int y1 = from.getYear(), m1 = from.getMonthValue(), d1 = from.getDayOfMonth();
-        int y2 = to.getYear(),   m2 = to.getMonthValue(),   d2 = to.getDayOfMonth();
-        int D1 = Math.min(d1, 30);
-        int D2 = (D1 == 30 && d2 == 31) ? 30 : d2;
-        long result = (long)(y2 - y1) * 360 + (long)(m2 - m1) * 30 + (D2 - D1);
+    public static long days30360(LocalDate from, LocalDate to) {
+        int y1 = from.getYear();
+        int m1 = from.getMonthValue();
+        int d1 = from.getDayOfMonth();
+        int y2 = to.getYear();
+        int m2 = to.getMonthValue();
+        int d2 = to.getDayOfMonth();
+        int adjustedDay1 = Math.min(d1, 30);
+        int adjustedDay2 = (adjustedDay1 == 30 && d2 == 31) ? 30 : d2;
+        long result = (long) (y2 - y1) * 360 + (long) (m2 - m1) * 30 + (adjustedDay2 - adjustedDay1);
         // +1 for both-ends inclusive to stay consistent with the ACT loops
         return result + 1;
     }
@@ -423,16 +434,16 @@ public final class FinanceInterestCalculator {
 
     /**
      * Return the annual denominator for the given day and convention.
-     * Returns null for 30/360 (period-based – use computePeriodInterest30_360).
+     * Returns null for 30/360 (period-based – use computePeriodInterest30360).
      */
     private static BigDecimal getDenominator(LocalDate day, String dayCountConvId) {
         if (dayCountConvId == null) dayCountConvId = DEFAULT_DAY_COUNT;
         switch (dayCountConvId) {
-            case "DAY_COUNT_ACT_365": return D_365;
-            case "DAY_COUNT_ACT_360": return D_360;
-            case "DAY_COUNT_ACT_ACT": return new BigDecimal(Year.of(day.getYear()).length());
-            case "DAY_COUNT_30_360":  return null; // period-based
-            default:                 return D_365; // unknown → fallback ACT/365
+        case "DAY_COUNT_ACT_365": return D_365;
+        case "DAY_COUNT_ACT_360": return D_360;
+        case "DAY_COUNT_ACT_ACT": return new BigDecimal(Year.of(day.getYear()).length());
+        case "DAY_COUNT_30_360": return null; // period-based
+        default: return D_365; // unknown -> fallback ACT/365
         }
     }
 
@@ -457,10 +468,10 @@ public final class FinanceInterestCalculator {
     private static RoundingMode parseRoundingMode(String val) {
         if (UtilValidate.isEmpty(val)) return null;
         switch (val.trim().toUpperCase()) {
-            case "DOWN":    return RoundingMode.DOWN;
-            case "HALF_UP": return RoundingMode.HALF_UP;
-            case "UP":      return RoundingMode.UP;
-            default:        return null;
+        case "DOWN": return RoundingMode.DOWN;
+        case "HALF_UP": return RoundingMode.HALF_UP;
+        case "UP": return RoundingMode.UP;
+        default: return null;
         }
     }
 }

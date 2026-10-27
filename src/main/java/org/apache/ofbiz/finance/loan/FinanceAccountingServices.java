@@ -41,8 +41,6 @@ import org.apache.ofbiz.base.util.UtilValidate;
 import org.apache.ofbiz.entity.Delegator;
 import org.apache.ofbiz.entity.GenericEntityException;
 import org.apache.ofbiz.entity.GenericValue;
-import org.apache.ofbiz.entity.condition.EntityCondition;
-import org.apache.ofbiz.entity.condition.EntityOperator;
 import org.apache.ofbiz.entity.util.EntityQuery;
 import org.apache.ofbiz.finance.common.FinanceInterestCalculator;
 import org.apache.ofbiz.finance.common.FinanceContractHelper;
@@ -537,7 +535,7 @@ public final class FinanceAccountingServices {
         int eventIndex = 0;
         String currencyUomId = agreement.getString("currencyUomId");
         String dayCountConvId = FinanceInterestCalculator.resolveDayCountConvention(delegator, agreement);
-        boolean is30_360 = FinanceInterestCalculator.isPeriodBased(dayCountConvId);
+        boolean is30360 = FinanceInterestCalculator.isPeriodBased(dayCountConvId);
 
         // Apply period endpoint convention to loop boundaries.
         String periodEndpointId = FinanceInterestCalculator.resolvePeriodEndpoint(delegator, agreement);
@@ -552,7 +550,7 @@ public final class FinanceAccountingServices {
             eventIndex++;
         }
 
-        if (is30_360) {
+        if (is30360) {
             // 30/360: split at each principal-reduction event and compute period interest.
             LocalDate periodStart = firstDay;
             while (periodStart.compareTo(lastDay) <= 0) {
@@ -567,7 +565,7 @@ public final class FinanceAccountingServices {
                 }
                 // Accumulate interest for sub-period.
                 if (!periodEnd.isBefore(periodStart)) {
-                    accrued = accrued.add(FinanceInterestCalculator.computePeriodInterest30_360(
+                    accrued = accrued.add(FinanceInterestCalculator.computePeriodInterest30360(
                             outstanding, annualRate, periodStart, periodEnd));
                 }
                 // Advance past events whose date falls at periodEnd+1 (= start of next sub-period).

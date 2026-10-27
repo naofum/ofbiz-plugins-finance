@@ -139,7 +139,7 @@ public final class LeaseInquiryHelper {
             row.put("agreementCount", (Long) row.get("agreementCount") + 1L);
             row.put("acquisitionCost", ((BigDecimal) row.get("acquisitionCost")).add(nz(agreement.getBigDecimal("acquisitionCost"))));
             for (String f : new String[] {"outstandingPrincipal", "unpaidBilledAmount", "unbilledLeaseAmount",
-                "deferredProfitBalance"}) {
+                    "deferredProfitBalance"}) {
                 row.put(f, ((BigDecimal) row.get(f)).add(nz((BigDecimal) balance.get(f))));
             }
         }
@@ -244,8 +244,8 @@ public final class LeaseInquiryHelper {
         p.put("lesseeName", partyName(delegator, agreement.getString("lesseePartyId")));
         p.put("currencyUomId", agreement.getString("currencyUomId"));
         for (String key : new String[] {"FinanceLeasePdfIssueDate", "FinanceLeasePdfLessor", "FinanceLeasePdfLessee",
-            "FinanceLeaseAssetSeqId", "FinanceLeaseAssetName", "FinanceLeaseAssetQuantity", "FinanceLeaseFixedAssetId",
-            "FinanceLeaseAcquisitionCost", "FinanceQuotePdfPage"}) {
+                "FinanceLeaseAssetSeqId", "FinanceLeaseAssetName", "FinanceLeaseAssetQuantity", "FinanceLeaseFixedAssetId",
+                "FinanceLeaseAcquisitionCost", "FinanceQuotePdfPage"}) {
             p.put(key, msg(key, locale));
         }
         List<Map<String, Object>> rows = new ArrayList<>();
